@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 function info() {
-    echo "::notice::$(date +"[%Y-%m-%d %H:%M:%S]") $*"
+    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $*"
 }
 
 function debug() {
