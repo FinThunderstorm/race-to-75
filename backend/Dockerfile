@@ -16,8 +16,8 @@ COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/
 RUN npm ci --omit=dev --workspace backend --include-workspace-root
 COPY --from=build /app/backend/dist ./backend/dist
-EXPOSE 7200
+EXPOSE 7500
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=10 \
-  CMD wget -qO- http://127.0.0.1:7200/ping || exit 1
+  CMD wget -qO- http://127.0.0.1:7500/ping || exit 1
 WORKDIR /app/backend
 CMD ["node", "dist/server.js"]
