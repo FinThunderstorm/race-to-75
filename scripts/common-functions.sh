@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+function info() {
+    echo "::notice::$(date +"[%Y-%m-%d %H:%M:%S]") $*"
+}
+
+function debug() {
+    echo "::debug::$(date +"[%Y-%m-%d %H:%M:%S]") $*"
+}
+
+function warn() {
+    echo "::warning::$(date +"[%Y-%m-%d %H:%M:%S]") $*" >&2
+}
+
+function error() {
+    echo "::error::$(date +"[%Y-%m-%d %H:%M:%S]") $*" >&2
+}
+
+function start_group() {
+    echo "::group::$*"
+}
+
+function end_group() {
+    echo "::endgroup::"
+}
+
+readonly PROJECT_NAME="race-to-75"
+readonly repo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)"
+
+function check_node_version() {
+    pushd "$repo"
+    debug "Setting up right Node version"
+
+    # This will use always repo provided nvm if nvm is not in PATH etc.
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    source "./scripts/nvm.sh"
+    nvm use || nvm install
+
+    popd
+}
+
+function required_command() {
+    if ! command -v $1 &> /dev/null
+    then
+        error "$1 could not be found"
+        exit
+    fi
+}
+
+function npm_ci() {
+    pushd "$repo/backend"
+    debug "Installing dependencies with npm ci"
+
+    required_command shasum
+
+    # check if shashum is same, do not run npm ci
+    if shasum -c "node_modules/package-lock.json.sha1" &> /dev/null
+    then
+        info "package-lock.json has not changed, no need for npm ci"
+    else
+        info "package-lock.json has changed, running npm ci"
+        npm ci
+        shasum "package-lock.json" > "node_modules/package-lock.json.sha1"
+    fi
+
+    popd
+}
+
+function compose_cmd() {
+    required_command docker
+    required_command "docker compose"
+
+    docker compose --project-name $PROJECT_NAME "$@"
+}
+
+function wait_for_port() {
+    local port=$1
+    info "Waiting for port $port to be ready..."
+    while ! nc -z localhost "$port" 2>/dev/null; do
+        sleep 1
+    done
+}
