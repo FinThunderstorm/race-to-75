@@ -69,6 +69,20 @@ Light "juice" on logging, derived from existing measurements — no new data.
   and disconnect. Readings sync automatically into the weight history. See the
   Integrations architecture below for how providers and sync work.
 
+### Radiator
+
+An ambient, read-only big-screen display (office TV/monitor) of the group's
+race to 75 — glanceable, no interaction, auto-updating.
+
+- Shows the **group race to 75** (each participant's current weight, kg to go,
+  % progress), the **leaderboard** with goal-reached badges, and **live
+  reactions** (personal-low celebrations and "buu" moments) as they happen.
+- Updates over **Server-Sent Events**, so standings re-rank and celebrations
+  appear in real time as weights are logged or synced.
+- Access is **authenticated OR IP-allowlisted**: logged-in users view it from
+  anywhere, while unauthenticated requests are allowed only from an
+  admin-managed IP allowlist (the office-TV case). Read-only either way.
+
 ## Architecture
 
 TypeScript monorepo, cloud backend with shared data.
