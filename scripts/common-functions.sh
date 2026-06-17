@@ -24,7 +24,8 @@ function end_group() {
 }
 
 readonly PROJECT_NAME="race-to-75"
-readonly repo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)"
+repo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)"
+readonly repo
 
 function check_node_version() {
     pushd "$repo"
@@ -32,6 +33,7 @@ function check_node_version() {
 
     # This will use always repo provided nvm if nvm is not in PATH etc.
     export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    # shellcheck source=/dev/null
     source "./scripts/nvm.sh"
     nvm use || nvm install
 
@@ -39,7 +41,7 @@ function check_node_version() {
 }
 
 function required_command() {
-    if ! command -v $1 &> /dev/null
+    if ! command -v "$1" &> /dev/null
     then
         error "$1 could not be found"
         exit
@@ -47,7 +49,7 @@ function required_command() {
 }
 
 function npm_ci() {
-    pushd "$repo/backend"
+    pushd "$repo"
     debug "Installing dependencies with npm ci"
 
     required_command shasum

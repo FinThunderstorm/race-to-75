@@ -1,0 +1,3 @@
+# pushd/popd failures already abort via `set -o errexit`, so the explicit
+# `|| exit` guard SC2164 asks for is redundant with our script style.
+disable=SC2164

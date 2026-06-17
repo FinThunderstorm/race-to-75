@@ -1,0 +1,18 @@
+{
+  "name": "race-to-75",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": ["backend"],
+  "scripts": {
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "md": "markdownlint-cli2",
+    "md:fix": "markdownlint-cli2 --fix"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.0",
+    "markdownlint-cli2": "0.22.1"
+  }
+}
