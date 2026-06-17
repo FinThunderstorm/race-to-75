@@ -2,7 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/dist/**", "!**/build/**", "!**/package-lock.json"]
+    "includes": [
+      "**",
+      "!**/dist/**",
+      "!**/build/**",
+      "!**/package-lock.json",
+      "!**/playwright-report/**",
+      "!**/test-results/**"
+    ]
   },
   "formatter": {
     "enabled": true,

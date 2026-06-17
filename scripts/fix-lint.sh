@@ -25,7 +25,16 @@ function check_shell() {
     info "Checking shell scripts with shellcheck"
     pushd "$repo"
 
-    shellcheck scripts/common-functions.sh scripts/run-backend.sh scripts/fix-lint.sh start-local-env.sh
+    # Third-party / vendored scripts excluded from linting.
+    local -r blacklist=("./scripts/nvm.sh")
+
+    local -a exclude=("-not" "-path" "./node_modules/*")
+    local entry
+    for entry in "${blacklist[@]}"; do
+        exclude+=("-not" "-path" "$entry")
+    done
+
+    find . -name "*.sh" "${exclude[@]}" -print0 | xargs -0 shellcheck
 
     popd
 }
