@@ -1,4 +1,4 @@
-# road-to-75
+# race-to-75
 
 A simple app to track progress toward a shared goal: everyone reaching 75 kg.
 
