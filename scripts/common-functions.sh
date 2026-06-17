@@ -69,9 +69,16 @@ function npm_ci() {
 
 function compose_cmd() {
     required_command docker
-    required_command "docker compose"
 
-    docker compose --project-name $PROJECT_NAME "$@"
+    docker compose --project-name "$PROJECT_NAME" "$@"
+}
+
+# Export the versions the compose file substitutes, sourced from their single
+# source of truth so the container images always match the project.
+function export_compose_versions() {
+    NODE_VERSION="$(cat "$repo/.nvmrc")"
+    PLAYWRIGHT_VERSION="$(sed -n 's/.*"@playwright\/test": *"\([^"]*\)".*/\1/p' "$repo/playwright/package.json")"
+    export NODE_VERSION PLAYWRIGHT_VERSION
 }
 
 function wait_for_port() {
@@ -80,4 +87,23 @@ function wait_for_port() {
     while ! nc -z localhost "$port" 2>/dev/null; do
         sleep 1
     done
+}
+
+function check_shell_scripts() {
+    required_command shellcheck
+    info "Checking shell scripts with shellcheck"
+    pushd "$repo"
+
+    # Third-party / vendored scripts excluded from linting.
+    local -r blacklist=("./scripts/nvm.sh")
+
+    local -a exclude=("-not" "-path" "./node_modules/*")
+    local entry
+    for entry in "${blacklist[@]}"; do
+        exclude+=("-not" "-path" "$entry")
+    done
+
+    find . -name "*.sh" "${exclude[@]}" -print0 | xargs -0 shellcheck
+
+    popd
 }

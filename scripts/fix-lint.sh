@@ -21,33 +21,14 @@ function fix_markdown() {
     popd
 }
 
-function check_shell() {
-    info "Checking shell scripts with shellcheck"
-    pushd "$repo"
-
-    # Third-party / vendored scripts excluded from linting.
-    local -r blacklist=("./scripts/nvm.sh")
-
-    local -a exclude=("-not" "-path" "./node_modules/*")
-    local entry
-    for entry in "${blacklist[@]}"; do
-        exclude+=("-not" "-path" "$entry")
-    done
-
-    find . -name "*.sh" "${exclude[@]}" -print0 | xargs -0 shellcheck
-
-    popd
-}
-
 function main() {
     required_command npm
-    required_command shellcheck
 
     npm_ci
 
     fix_biome
     fix_markdown
-    check_shell
+    check_shell_scripts
 }
 
 main "$@"

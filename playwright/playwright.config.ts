@@ -3,6 +3,6 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
   testDir: '.',
   use: {
-    baseURL: 'http://localhost:7200'
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:7200'
   }
 })
