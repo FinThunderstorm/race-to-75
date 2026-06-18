@@ -4,6 +4,7 @@
   "private": true,
   "workspaces": ["backend", "playwright"],
   "scripts": {
+    "db:migrate": "npm run db:migrate -w backend",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",

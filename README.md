@@ -148,4 +148,68 @@ else changes.
 
 ## Getting started
 
-To be added once the stack is scaffolded.
+Install local prerequisites:
+
+- Node.js version from `.nvmrc`
+- Docker Desktop
+- tmux
+
+Start the local backend and database:
+
+```sh
+./start-local-env.sh
+```
+
+This starts PostgreSQL in one tmux pane and the backend in another. The backend
+waits for PostgreSQL, runs migrations, and then starts the dev server.
+
+Run migrations manually:
+
+```sh
+npm run db:migrate
+```
+
+The migration runner reads `DATABASE_URL`. For local development the default is:
+
+```sh
+postgres://postgres:postgres@localhost:5432/race_to_75
+```
+
+### Database migrations
+
+Schema changes live in `backend/migrations` as ordered SQL files. Applied
+migrations are tracked in `schema_migrations` with checksums, and the runner
+uses a PostgreSQL advisory lock so concurrent deploys do not apply the same
+migration twice.
+
+The same command is used locally, in Playwright Docker tests, and in production:
+
+```sh
+npm run db:migrate -w backend
+```
+
+PostgreSQL major version is pinned in `.postgres-version` and used by local and
+test Compose files.
+
+### Coolify deployment
+
+For Coolify on Hetzner, use `docker-compose.coolify.yml` as the Compose file.
+It defines three services:
+
+- `postgres` — PostgreSQL with persistent volume storage.
+- `migrate` — a one-shot service that runs `npm run db:migrate`.
+- `backend` — starts only after `migrate` completes successfully.
+
+Set these Coolify environment variables:
+
+```sh
+DATABASE_URL=postgres://race_to_75:<password>@postgres:5432/race_to_75
+POSTGRES_PASSWORD=<password>
+POSTGRES_USER=race_to_75
+POSTGRES_DB=race_to_75
+POSTGRES_VERSION=18
+NODE_VERSION=24.16.0
+```
+
+Do not add custom Compose networks in Coolify; services in the stack can reach
+each other by service name.

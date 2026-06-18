@@ -77,8 +77,9 @@ function compose_cmd() {
 # source of truth so the container images always match the project.
 function export_compose_versions() {
     NODE_VERSION="$(cat "$repo/.nvmrc")"
+    POSTGRES_VERSION="$(cat "$repo/.postgres-version")"
     PLAYWRIGHT_VERSION="$(sed -n 's/.*"@playwright\/test": *"\([^"]*\)".*/\1/p' "$repo/playwright/package.json")"
-    export NODE_VERSION PLAYWRIGHT_VERSION
+    export NODE_VERSION PLAYWRIGHT_VERSION POSTGRES_VERSION
 }
 
 function wait_for_port() {

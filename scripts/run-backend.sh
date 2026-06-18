@@ -5,8 +5,13 @@ source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)/scripts/common
 
 function main() {
     required_command npm
+    export DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/race_to_75}"
+
+    wait_for_port 5432
+
     pushd "$repo/backend"
 
+    npm run db:migrate
     npm run dev
 
     popd
