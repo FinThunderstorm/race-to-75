@@ -84,9 +84,18 @@ function export_compose_versions() {
 
 function wait_for_port() {
     local port=$1
+    local timeout_seconds=${2:-60}
+    local elapsed_seconds=0
+
     info "Waiting for port $port to be ready..."
     while ! nc -z localhost "$port" 2>/dev/null; do
+        if [[ $elapsed_seconds -ge $timeout_seconds ]]; then
+            error "Timed out waiting for port $port"
+            return 1
+        fi
+
         sleep 1
+        elapsed_seconds=$((elapsed_seconds + 1))
     done
 }
 
