@@ -30,6 +30,7 @@ services:
       backend:
         condition: service_healthy
     environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/race_to_75
       PLAYWRIGHT_BASE_URL: http://backend:7500
     working_dir: /work
     volumes:

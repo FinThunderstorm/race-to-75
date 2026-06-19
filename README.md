@@ -92,6 +92,16 @@ TypeScript monorepo, cloud backend with shared data.
 - **Backend** — Node + Fastify REST API.
 - **Database** — PostgreSQL.
 
+### Code organization
+
+Backend code is organized by feature and endpoint. Small features can stay in a
+single file; split them only when the file has enough real responsibilities to
+justify it. For larger feature directories, keep the entrypoint focused on the
+workflow, put Zod schemas next to their related types in `types.ts`, and move
+large SQL blocks into `queries.ts` when they start to dominate the feature
+logic. Avoid file splits that add ceremony without making the behavior easier to
+read.
+
 ### Data model
 
 A user *is* a participant in the challenge — there is no separate participant

@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "db:migrate": "node scripts/migrate.js",
     "build": "tsc",
-    "cron:fetch-withings-measurement": "node dist/cron/fetch-withings-measurement.js",
+    "cron:fetch-withings-measurement": "node dist/cron/fetch-withings-measurement/index.js",
     "start": "node dist/server.js"
   },
   "dependencies": {

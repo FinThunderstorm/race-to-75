@@ -7,7 +7,7 @@ import {
   handleWithingsWebhook,
   type ParsedWithingsWebhookBody,
   parseWithingsWebhookFormBody
-} from './webhooks/handle-withings-webhook.js'
+} from './webhooks/withings/index.js'
 
 const app = Fastify({ logger: true })
 
