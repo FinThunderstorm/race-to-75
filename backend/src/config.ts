@@ -9,13 +9,10 @@ const envSchema = z
   .object({
     PORT: z.coerce.number().int().positive().default(7500),
     HOST: z.string().default('0.0.0.0'),
-    DATABASE_URL: z
-      .string()
-      .url()
-      .default('postgres://postgres:postgres@localhost:5432/race_to_75'),
+    DATABASE_URL: z.url().default('postgres://postgres:postgres@localhost:5432/race_to_75'),
     WITHINGS_CLIENT_ID: optionalNonEmptyString,
     WITHINGS_CLIENT_SECRET: optionalNonEmptyString,
-    WITHINGS_API_BASE_URL: z.string().url().default('https://wbsapi.withings.net')
+    WITHINGS_API_BASE_URL: z.url().default('https://wbsapi.withings.net')
   })
   .transform((env) => ({
     port: env.PORT,
