@@ -3,40 +3,24 @@ set -o errexit -o nounset -o pipefail
 
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)/scripts/common-functions.sh"
 
-backend_pid=""
+function test_compose_cmd() {
+    required_command docker
 
-function cleanup() {
-    if [[ -n "${backend_pid:-}" ]]; then
-        kill "$backend_pid" 2>/dev/null || true
-        wait "$backend_pid" 2>/dev/null || true
-    fi
+    docker compose --project-name "$PROJECT_NAME-tests" "$@"
 }
 
 function main() {
-    required_command npm
     required_command docker
-
-    npm_ci
-
-    pushd "$repo"
 
     export_compose_versions
 
-    info "Starting local PostgreSQL"
-    compose_cmd -f docker-compose.local.yml up -d postgres
+    pushd "$repo"
 
-    info "Starting backend"
-    ./scripts/run-backend.sh &
-    backend_pid=$!
-    trap cleanup EXIT
+    trap 'test_compose_cmd -f docker-compose.playwright.yml down --remove-orphans' EXIT
 
-    wait_for_port 7500
-
-    info "Installing Playwright browsers"
-    npx playwright install
-
-    info "Running Playwright tests"
-    npm test -w playwright
+    info "Running Playwright tests in isolated Docker Compose stack"
+    test_compose_cmd -f docker-compose.playwright.yml up \
+        --build --abort-on-container-exit --exit-code-from playwright
 
     popd
 }
