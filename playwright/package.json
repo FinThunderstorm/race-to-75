@@ -6,6 +6,6 @@
   },
   "devDependencies": {
     "@playwright/test": "1.61.0",
-    "postgres": "^3.4.9"
+    "postgres": "3.4.9"
   }
 }
