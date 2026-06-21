@@ -9,7 +9,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7
       - run: ./deploy-scripts/01-lint.sh
       - run: ./deploy-scripts/02-build.sh
       - run: ./deploy-scripts/03-run-tests.sh
