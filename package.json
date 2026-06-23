@@ -2,7 +2,7 @@
   "name": "race-to-75",
   "version": "0.0.1",
   "private": true,
-  "workspaces": ["backend", "playwright"],
+  "workspaces": ["backend", "frontend", "playwright"],
   "scripts": {
     "db:migrate": "npm run db:migrate -w backend",
     "lint": "biome lint .",

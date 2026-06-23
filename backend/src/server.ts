@@ -1,3 +1,8 @@
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import fastifyStatic from '@fastify/static'
 import Fastify from 'fastify'
 
 import { config } from './config.js'
@@ -34,7 +39,28 @@ app.get('/integrations/withings/status', handleWithingsStatus)
 app.delete('/integrations/withings', handleWithingsDisconnect)
 app.post<{ Body: ParsedWithingsWebhookBody }>('/webhooks/withings', handleWithingsWebhook)
 
-app.listen({ port: config.port, host: config.host }).catch((err) => {
+const here = dirname(fileURLToPath(import.meta.url))
+const frontendDist = join(here, '..', '..', 'frontend', 'dist')
+
+async function start() {
+  if (existsSync(join(frontendDist, 'index.html'))) {
+    await app.register(fastifyStatic, { root: frontendDist })
+
+    app.setNotFoundHandler((request, reply) => {
+      if (request.method === 'GET' && !request.url.startsWith('/api')) {
+        return reply.sendFile('index.html')
+      }
+
+      return reply.code(404).send({ message: 'Not Found' })
+    })
+  } else {
+    app.log.warn(`Frontend build not found at ${frontendDist}; serving API only`)
+  }
+
+  await app.listen({ port: config.port, host: config.host })
+}
+
+start().catch((err) => {
   app.log.error(err)
   process.exit(1)
 })
