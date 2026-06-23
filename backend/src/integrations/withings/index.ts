@@ -297,7 +297,7 @@ async function subscribeToWithingsWeightNotifications(accessToken: string) {
     comment: 'Race to 75 weight measurements'
   })
 
-  const response = await fetch(config.withingsApiBaseUrl, {
+  const response = await fetch(new URL('/notify', config.withingsApiBaseUrl), {
     body,
     headers: {
       Authorization: `Bearer ${accessToken}`,
