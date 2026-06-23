@@ -52,22 +52,9 @@ services:
     environment:
       <<: *backend-environment
       HOST: 0.0.0.0
-      PORT: 7500
+      PORT: 80
     expose:
-      - "7500"
-    labels:
-      - traefik.enable=true
-      - traefik.http.middlewares.race-to-75-redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.routers.race-to-75-http.entryPoints=http
-      - traefik.http.routers.race-to-75-http.middlewares=race-to-75-redirect-to-https
-      - traefik.http.routers.race-to-75-http.rule=Host(`${APP_HOST:-race-to-75.rigster.cv}`) && PathPrefix(`/`)
-      - traefik.http.routers.race-to-75-http.service=race-to-75
-      - traefik.http.routers.race-to-75-https.entryPoints=https
-      - traefik.http.routers.race-to-75-https.rule=Host(`${APP_HOST:-race-to-75.rigster.cv}`) && PathPrefix(`/`)
-      - traefik.http.routers.race-to-75-https.service=race-to-75
-      - traefik.http.routers.race-to-75-https.tls=true
-      - traefik.http.routers.race-to-75-https.tls.certresolver=letsencrypt
-      - traefik.http.services.race-to-75.loadbalancer.server.port=7500
+      - "80"
 
   withings-worker:
     <<: *backend-service
