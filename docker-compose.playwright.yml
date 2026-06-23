@@ -12,6 +12,7 @@ services:
       retries: 30
 
   backend:
+    image: race-to-75
     build:
       context: .
       dockerfile: backend/Dockerfile

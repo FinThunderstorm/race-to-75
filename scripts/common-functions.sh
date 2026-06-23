@@ -24,6 +24,10 @@ function end_group() {
 }
 
 readonly PROJECT_NAME="race-to-75"
+# shellcheck disable=SC2034  # consumed by the deploy-scripts that source this
+readonly ARM_IMAGE="race-to-75:arm64"
+# shellcheck disable=SC2034  # consumed by the deploy-scripts that source this
+readonly AMD_IMAGE="race-to-75"
 repo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)"
 readonly repo
 
@@ -116,4 +120,12 @@ function check_shell_scripts() {
     find . -name "*.sh" "${exclude[@]}" -print0 | xargs -0 shellcheck
 
     popd
+}
+
+function trivy() {
+    docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "race-to-75-trivy-cache:/root/.cache" \
+        -v "$repo:$repo:ro" \
+        "aquasec/trivy:0.71.2" "$@"
 }
