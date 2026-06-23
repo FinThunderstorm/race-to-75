@@ -223,6 +223,7 @@ POSTGRES_PASSWORD=<password>
 POSTGRES_USER=race_to_75
 POSTGRES_DB=race_to_75
 POSTGRES_VERSION=18
+APP_HOST=race-to-75.rigster.cv
 IMAGE_TAG=latest
 WITHINGS_CLIENT_ID=<withings-client-id>
 WITHINGS_CLIENT_SECRET=<withings-client-secret>
