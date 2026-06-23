@@ -14,7 +14,7 @@ import {
 export type { ParsedWithingsWebhookBody } from './types.js'
 
 type WithingsWebhookRequest = FastifyRequest<{
-  Body: ParsedWithingsWebhookBody
+  Body: ParsedWithingsWebhookBody | undefined
 }>
 
 function parseFormBody(rawBody: string): WithingsWebhookBody {
@@ -76,7 +76,7 @@ export function createHandleWithingsWebhook(
     request: WithingsWebhookRequest,
     reply: FastifyReply
   ) {
-    if (isEmptyObject(request.body.fields)) {
+    if (!request.body || isEmptyObject(request.body.fields)) {
       return reply.status(204).send()
     }
 
