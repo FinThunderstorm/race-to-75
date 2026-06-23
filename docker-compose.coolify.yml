@@ -1,5 +1,6 @@
 x-backend-service: &backend-service
   image: ghcr.io/finthunderstorm/race-to-75:${IMAGE_TAG:-latest}
+  pull_policy: always
 
 x-backend-environment: &backend-environment
   APP_HOST: ${APP_HOST:-race-to-75.rigster.cv}

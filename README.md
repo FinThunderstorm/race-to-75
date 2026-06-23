@@ -239,9 +239,10 @@ WITHINGS_INITIAL_SYNC_DAYS=3650
 WITHINGS_WORKER_INTERVAL_SECONDS=60
 ```
 
-Use a commit SHA instead of `latest` for `IMAGE_TAG` when you want Coolify to
-deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the GHCR package
-is private, configure Coolify registry credentials for `ghcr.io`.
+The Compose file sets `pull_policy: always` for the app image so `IMAGE_TAG=latest`
+is pulled on each deploy. Use a commit SHA instead of `latest` when you want
+Coolify to deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the
+GHCR package is private, configure Coolify registry credentials for `ghcr.io`.
 
 Until normal member login is implemented, connect the bootstrap account to
 Withings by opening:
