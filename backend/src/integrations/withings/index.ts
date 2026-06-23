@@ -40,6 +40,18 @@ const withingsNotifySubscribeResponseSchema = z.object({
   status: z.number().int()
 })
 
+function errorDetails(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    }
+  }
+
+  return { message: String(error) }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll('&', '&amp;')
@@ -204,11 +216,13 @@ async function exchangeAuthorizationCode(code: string) {
     method: 'POST'
   })
   const responseBody = await response.json()
-  const parsed = withingsRefreshTokenResponseSchema.parse(responseBody)
+  const status = z.object({ status: z.number().int() }).parse(responseBody).status
 
-  if (!response.ok || parsed.status !== 0) {
+  if (!response.ok || status !== 0) {
     throw new Error(`Withings token exchange failed: ${JSON.stringify(responseBody)}`)
   }
+
+  const parsed = withingsRefreshTokenResponseSchema.parse(responseBody)
 
   if (!parsed.body.userid) {
     throw new Error('Withings token exchange response did not include userid')
@@ -292,11 +306,13 @@ async function subscribeToWithingsWeightNotifications(accessToken: string) {
     method: 'POST'
   })
   const responseBody = await response.json()
-  const parsed = withingsNotifySubscribeResponseSchema.parse(responseBody)
+  const status = z.object({ status: z.number().int() }).parse(responseBody).status
 
-  if (!response.ok || parsed.status !== 0) {
+  if (!response.ok || status !== 0) {
     throw new Error(`Withings notification subscription failed: ${JSON.stringify(responseBody)}`)
   }
+
+  withingsNotifySubscribeResponseSchema.parse(responseBody)
 }
 
 function verifyTemporaryConnectToken(token: string | undefined) {
@@ -332,7 +348,7 @@ export async function handleWithingsConnect(
 
     return reply.redirect(authorizeUrl.toString())
   } catch (error) {
-    request.log.warn({ error }, 'Withings connect failed')
+    request.log.warn({ error: errorDetails(error) }, 'Withings connect failed')
 
     return reply.status(403).send({ error: 'Withings connect is not available' })
   }
@@ -377,13 +393,13 @@ export async function handleWithingsCallback(
       await subscribeToWithingsWeightNotifications(token.accessToken)
     } catch (error) {
       notificationSubscriptionSucceeded = false
-      request.log.error({ error }, 'Withings notification subscription failed')
+      request.log.error({ error: errorDetails(error) }, 'Withings notification subscription failed')
     }
 
     try {
       initialMeasurementCount = await fetchInitialMeasurements(user.id, token.accessToken)
     } catch (error) {
-      request.log.error({ error }, 'Initial Withings measurement sync failed')
+      request.log.error({ error: errorDetails(error) }, 'Initial Withings measurement sync failed')
     }
 
     const message =
@@ -398,12 +414,13 @@ export async function handleWithingsCallback(
       .type('text/html')
       .send(htmlPage('Withings connected', `${message}${subscriptionMessage}`))
   } catch (error) {
-    request.log.error({ error }, 'Withings OAuth callback failed')
+    const details = errorDetails(error)
+    request.log.error({ error: details }, 'Withings OAuth callback failed')
 
     return reply
       .status(400)
       .type('text/html')
-      .send(htmlPage('Withings connection failed', 'The OAuth callback could not be completed.'))
+      .send(htmlPage('Withings connection failed', details.message))
   }
 }
 
@@ -421,7 +438,7 @@ export async function handleWithingsStatus(
       status: connection?.status ?? 'disconnected'
     })
   } catch (error) {
-    request.log.warn({ error }, 'Withings status failed')
+    request.log.warn({ error: errorDetails(error) }, 'Withings status failed')
 
     return reply.status(403).send({ error: 'Withings status is not available' })
   }
@@ -445,7 +462,7 @@ export async function handleWithingsDisconnect(
 
     return reply.status(204).send()
   } catch (error) {
-    request.log.warn({ error }, 'Withings disconnect failed')
+    request.log.warn({ error: errorDetails(error) }, 'Withings disconnect failed')
 
     return reply.status(403).send({ error: 'Withings disconnect is not available' })
   }
