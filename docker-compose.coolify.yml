@@ -1,10 +1,20 @@
 x-backend-service: &backend-service
-  build:
-    context: .
-    dockerfile: backend/Dockerfile
-    args:
-      NODE_VERSION: ${NODE_VERSION:-24.16.0}
-  image: race-to-75-backend:${SOURCE_COMMIT:-latest}
+  image: ghcr.io/finthunderstorm/race-to-75:${IMAGE_TAG:-latest}
+
+x-backend-environment: &backend-environment
+  DATABASE_URL: ${DATABASE_URL:?}
+  WITHINGS_API_BASE_URL: ${WITHINGS_API_BASE_URL:-https://wbsapi.withings.net}
+  WITHINGS_AUTHORIZE_URL: ${WITHINGS_AUTHORIZE_URL:-https://account.withings.com/oauth2_user/authorize2}
+  WITHINGS_BOOTSTRAP_DISPLAY_NAME: ${WITHINGS_BOOTSTRAP_DISPLAY_NAME:-}
+  WITHINGS_BOOTSTRAP_EMAIL: ${WITHINGS_BOOTSTRAP_EMAIL:-}
+  WITHINGS_BOOTSTRAP_ROLE: ${WITHINGS_BOOTSTRAP_ROLE:-admin}
+  WITHINGS_CLIENT_ID: ${WITHINGS_CLIENT_ID:-}
+  WITHINGS_CLIENT_SECRET: ${WITHINGS_CLIENT_SECRET:-}
+  WITHINGS_CONNECT_TOKEN: ${WITHINGS_CONNECT_TOKEN:-}
+  WITHINGS_INITIAL_SYNC_DAYS: ${WITHINGS_INITIAL_SYNC_DAYS:-3650}
+  WITHINGS_REDIRECT_URI: ${WITHINGS_REDIRECT_URI:-}
+  WITHINGS_WEBHOOK_CALLBACK_URL: ${WITHINGS_WEBHOOK_CALLBACK_URL:-}
+  WITHINGS_WORKER_INTERVAL_SECONDS: ${WITHINGS_WORKER_INTERVAL_SECONDS:-60}
 
 services:
   postgres:
@@ -27,7 +37,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:?}
+      <<: *backend-environment
     command: npm run db:migrate
     restart: "no"
 
@@ -39,11 +49,26 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:?}
+      <<: *backend-environment
       HOST: 0.0.0.0
       PORT: 7500
     expose:
       - "7500"
+
+  withings-worker:
+    <<: *backend-service
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+    command: >
+      sh -c "while true; do
+        npm run cron:fetch-withings-measurement;
+        sleep \"$${WITHINGS_WORKER_INTERVAL_SECONDS}\";
+      done"
 
 volumes:
   postgres-data:

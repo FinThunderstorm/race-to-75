@@ -203,12 +203,17 @@ test Compose files.
 
 ### Coolify deployment
 
-For Coolify on Hetzner, use `docker-compose.coolify.yml` as the Compose file.
+The backend image is published to GitHub Container Registry by
+`.github/workflows/build-image.yml` on every push to `master`, and can also be
+published manually from GitHub Actions. For Coolify on Hetzner, use
+`docker-compose.coolify.yml` as the Compose file.
 It defines three services:
 
 - `postgres` — PostgreSQL with persistent volume storage.
 - `migrate` — a one-shot service that runs `npm run db:migrate`.
 - `backend` — starts only after `migrate` completes successfully.
+- `withings-worker` — polls queued Withings webhook events and imports weight
+  measurements.
 
 Set these Coolify environment variables:
 
@@ -218,7 +223,43 @@ POSTGRES_PASSWORD=<password>
 POSTGRES_USER=race_to_75
 POSTGRES_DB=race_to_75
 POSTGRES_VERSION=18
-NODE_VERSION=24.16.0
+IMAGE_TAG=latest
+WITHINGS_CLIENT_ID=<withings-client-id>
+WITHINGS_CLIENT_SECRET=<withings-client-secret>
+WITHINGS_API_BASE_URL=https://wbsapi.withings.net
+WITHINGS_AUTHORIZE_URL=https://account.withings.com/oauth2_user/authorize2
+WITHINGS_REDIRECT_URI=https://race-to-75.rigster.cv/integrations/withings/callback
+WITHINGS_WEBHOOK_CALLBACK_URL=https://race-to-75.rigster.cv/webhooks/withings
+WITHINGS_CONNECT_TOKEN=<long-random-temporary-connect-token>
+WITHINGS_BOOTSTRAP_EMAIL=tuomas.arokanto@gmail.com
+WITHINGS_BOOTSTRAP_DISPLAY_NAME=Tomppa
+WITHINGS_BOOTSTRAP_ROLE=admin
+WITHINGS_INITIAL_SYNC_DAYS=3650
+WITHINGS_WORKER_INTERVAL_SECONDS=60
+```
+
+Use a commit SHA instead of `latest` for `IMAGE_TAG` when you want Coolify to
+deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the GHCR package
+is private, configure Coolify registry credentials for `ghcr.io`.
+
+Until normal member login is implemented, connect the bootstrap account to
+Withings by opening:
+
+```txt
+https://race-to-75.rigster.cv/integrations/withings/connect?token=<WITHINGS_CONNECT_TOKEN>
+```
+
+Configure the Withings app with this OAuth redirect URL:
+
+```txt
+https://race-to-75.rigster.cv/integrations/withings/callback
+```
+
+Add this Withings Body & Weight notification callback URL to the app's callback
+URL allowlist:
+
+```txt
+https://race-to-75.rigster.cv/webhooks/withings
 ```
 
 Do not add custom Compose networks in Coolify; services in the stack can reach
