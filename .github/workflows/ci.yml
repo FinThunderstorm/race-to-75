@@ -39,6 +39,5 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish image
+      - run: ./deploy-scripts/05-push-image.sh
         if: github.ref == 'refs/heads/master'
-        run: ./deploy-scripts/05-push-image.sh
