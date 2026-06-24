@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
 import Fastify from 'fastify'
 
+import { authPlugin } from './auth/index.js'
 import { config } from './config.js'
 import { closeDatabase } from './database.js'
 import {
@@ -43,6 +44,8 @@ const here = dirname(fileURLToPath(import.meta.url))
 const frontendDist = join(here, '..', '..', 'frontend', 'dist')
 
 async function start() {
+  await app.register(authPlugin)
+
   if (existsSync(join(frontendDist, 'index.html'))) {
     await app.register(fastifyStatic, { root: frontendDist })
 

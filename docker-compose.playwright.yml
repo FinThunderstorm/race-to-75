@@ -23,6 +23,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/race_to_75
+      JWT_SECRET: race-to-75-test-development
+      COOKIE_SECRET: race-to-75-test-development
+      WEBAUTHN_RP_ID: backend
+      WEBAUTHN_ORIGIN: http://backend:7500
+      APP_HOST: backend:7500
     command: sh -c "npm run db:migrate && npm run start"
 
   playwright:
@@ -32,6 +37,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/race_to_75
+      JWT_SECRET: race-to-75-test-development
+      COOKIE_SECRET: race-to-75-test-development
       PLAYWRIGHT_BASE_URL: http://backend:7500
     working_dir: /work
     volumes:

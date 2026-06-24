@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-test('serves the SPA shell with the race-to-75 heading', async ({ page }) => {
+test('serves the SPA shell with the login screen for unauthenticated users', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { level: 1, name: 'race-to-75' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
 })
