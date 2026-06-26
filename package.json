@@ -13,7 +13,7 @@
     "md:fix": "markdownlint-cli2 --fix"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.0",
+    "@biomejs/biome": "2.5.1",
     "markdownlint-cli2": "0.22.1"
   }
 }
