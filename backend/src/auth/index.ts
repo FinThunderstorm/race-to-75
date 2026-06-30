@@ -6,12 +6,12 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
 import { config } from '../config.js'
-import { sql } from '../database.js'
 import {
   consumeEnrollmentTokenAndInsertCredential,
   findCredentialById,
   findCredentialsByUser,
   findUserByEnrollmentTokenHash,
+  findUserById,
   updateCredentialCounter
 } from './queries.js'
 import {
@@ -60,7 +60,8 @@ export const authPlugin = fp(async (app) => {
     }
   })
 
-  const challengeCookie = 'r2_challenge'
+  const enrollChallengeCookie = 'r2_enroll_challenge'
+  const loginChallengeCookie = 'r2_login_challenge'
   const strictAuthLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }
 
   const issueSession = (reply: FastifyReply, user: SessionUser) => {
@@ -76,12 +77,7 @@ export const authPlugin = fp(async (app) => {
   }
 
   app.get('/api/auth/me', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
-    const [user] = await sql<{ id: string; email: string; display_name: string; role: string }[]>`
-      SELECT id, email, display_name, role
-      FROM users
-      WHERE id = ${request.user.sub}
-      LIMIT 1
-    `
+    const user = await findUserById(request.user.sub)
 
     if (!user) {
       return reply.code(401).send({ error: 'Unauthorized' })
@@ -111,7 +107,7 @@ export const authPlugin = fp(async (app) => {
       })
 
       reply.setCookie(
-        challengeCookie,
+        enrollChallengeCookie,
         signChallenge(
           {
             challenge: options.challenge,
@@ -135,7 +131,7 @@ export const authPlugin = fp(async (app) => {
   app.post('/api/auth/enroll/verify', strictAuthLimit, async (request, reply) => {
     try {
       const body = enrollVerifyBodySchema.parse(request.body)
-      const rawChallenge = request.cookies[challengeCookie]
+      const rawChallenge = request.cookies[enrollChallengeCookie]
 
       if (!rawChallenge) {
         return reply.code(400).send({ error: 'Missing challenge' })
@@ -169,17 +165,9 @@ export const authPlugin = fp(async (app) => {
         deviceName: body.deviceName ?? null
       })
 
-      reply.clearCookie(challengeCookie, { path: '/' })
+      reply.clearCookie(enrollChallengeCookie, { path: '/' })
 
-      const [row] = await sql<{ role: 'admin' | 'member' }[]>`
-        SELECT role FROM users WHERE id = ${user.userId} LIMIT 1
-      `
-
-      if (!row) {
-        return reply.code(400).send({ error: 'Invalid or expired enrollment link' })
-      }
-
-      issueSession(reply, { sub: user.userId, role: row.role })
+      issueSession(reply, { sub: user.userId, role: user.role })
 
       return { ok: true }
     } catch (error) {
@@ -193,7 +181,7 @@ export const authPlugin = fp(async (app) => {
     const options = await buildAuthenticationOptions()
 
     reply.setCookie(
-      challengeCookie,
+      loginChallengeCookie,
       signChallenge(
         { challenge: options.challenge, type: 'login', exp: Math.floor(Date.now() / 1000) + 300 },
         config.cookieSecret
@@ -207,7 +195,7 @@ export const authPlugin = fp(async (app) => {
   app.post('/api/auth/login/verify', strictAuthLimit, async (request, reply) => {
     try {
       const body = loginVerifyBodySchema.parse(request.body)
-      const rawChallenge = request.cookies[challengeCookie]
+      const rawChallenge = request.cookies[loginChallengeCookie]
 
       if (!rawChallenge) {
         return reply.code(400).send({ error: 'Missing challenge' })
@@ -237,7 +225,7 @@ export const authPlugin = fp(async (app) => {
       })
 
       await updateCredentialCounter(body.response.id, result.newCounter)
-      reply.clearCookie(challengeCookie, { path: '/' })
+      reply.clearCookie(loginChallengeCookie, { path: '/' })
       issueSession(reply, { sub: credential.userId, role: credential.role })
 
       return { ok: true }

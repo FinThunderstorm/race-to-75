@@ -45,6 +45,17 @@ async function main() {
   })
 
   try {
+    const [existingAdmin] = await sql`SELECT 1 FROM users WHERE role = 'admin' LIMIT 1`
+
+    if (existingAdmin) {
+      console.error(
+        'An admin already exists; refusing to bootstrap another. Have an existing admin issue the enrollment link.'
+      )
+      process.exitCode = 1
+
+      return
+    }
+
     const [user] = await sql`
       INSERT INTO users (email, display_name, role)
       VALUES (${values.email}, ${values.name}, 'admin')

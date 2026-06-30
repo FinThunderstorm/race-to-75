@@ -1,10 +1,17 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type {
+  AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
-  PublicKeyCredentialRequestOptionsJSON
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON
 } from '@simplewebauthn/browser'
 
-export type CurrentUser = { id: string; email: string; display_name: string; role: string }
+export type CurrentUser = {
+  id: string
+  email: string
+  display_name: string
+  role: 'admin' | 'member'
+}
 
 export const authApi = createApi({
   reducerPath: 'authApi',
@@ -20,7 +27,7 @@ export const authApi = createApi({
     }),
     enrollVerify: builder.mutation<
       { ok: true },
-      { token: string; response: unknown; deviceName?: string }
+      { token: string; response: RegistrationResponseJSON; deviceName?: string }
     >({
       query: (body) => ({ url: '/enroll/verify', method: 'POST', body }),
       invalidatesTags: ['user']
@@ -28,7 +35,7 @@ export const authApi = createApi({
     loginOptions: builder.mutation<PublicKeyCredentialRequestOptionsJSON, void>({
       query: () => ({ url: '/login/options', method: 'POST' })
     }),
-    loginVerify: builder.mutation<{ ok: true }, { response: unknown }>({
+    loginVerify: builder.mutation<{ ok: true }, { response: AuthenticationResponseJSON }>({
       query: (body) => ({ url: '/login/verify', method: 'POST', body }),
       invalidatesTags: ['user']
     }),

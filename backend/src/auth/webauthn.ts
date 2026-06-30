@@ -27,7 +27,7 @@ export const buildRegistrationOptions = async (args: {
     userID: new TextEncoder().encode(args.userId),
     userName: args.email,
     attestationType: 'none',
-    authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+    authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
     excludeCredentials: args.excludeCredentials.map((credential) => ({
       id: credential.id,
       transports: credential.transports
@@ -44,7 +44,7 @@ export const verifyRegistration = async (args: {
     expectedChallenge: args.expectedChallenge,
     expectedOrigin: rpConfig.origin,
     expectedRPID: rpConfig.rpID,
-    requireUserVerification: false
+    requireUserVerification: true
   })
 
   if (!verification.verified || !verification.registrationInfo) {
@@ -64,7 +64,7 @@ export const verifyRegistration = async (args: {
 export const buildAuthenticationOptions = async () => {
   return generateAuthenticationOptions({
     rpID: rpConfig.rpID,
-    userVerification: 'preferred',
+    userVerification: 'required',
     allowCredentials: []
   })
 }
@@ -84,7 +84,7 @@ export const verifyAuthentication = async (args: {
     expectedChallenge: args.expectedChallenge,
     expectedOrigin: rpConfig.origin,
     expectedRPID: rpConfig.rpID,
-    requireUserVerification: false,
+    requireUserVerification: true,
     credential: {
       id: args.credential.id,
       publicKey: args.credential.publicKey,

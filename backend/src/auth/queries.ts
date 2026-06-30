@@ -4,9 +4,15 @@ import { sql } from '../database.js'
 
 export const findUserByEnrollmentTokenHash = async (tokenHash: string) => {
   const [row] = await sql<
-    { user_id: string; email: string; consumed_at: Date | null; expires_at: Date }[]
+    {
+      user_id: string
+      email: string
+      role: 'admin' | 'member'
+      consumed_at: Date | null
+      expires_at: Date
+    }[]
   >`
-    SELECT t.user_id, u.email, t.consumed_at, t.expires_at
+    SELECT t.user_id, u.email, u.role, t.consumed_at, t.expires_at
     FROM enrollment_token t
     JOIN users u ON u.id = t.user_id
     WHERE t.token_hash = ${tokenHash}
@@ -20,9 +26,23 @@ export const findUserByEnrollmentTokenHash = async (tokenHash: string) => {
   return {
     userId: row.user_id,
     email: row.email,
+    role: row.role,
     consumedAt: row.consumed_at ?? undefined,
     expiresAt: row.expires_at
   }
+}
+
+export const findUserById = async (userId: string) => {
+  const [row] = await sql<
+    { id: string; email: string; display_name: string; role: 'admin' | 'member' }[]
+  >`
+    SELECT id, email, display_name, role
+    FROM users
+    WHERE id = ${userId}
+    LIMIT 1
+  `
+
+  return row ?? undefined
 }
 
 export const findCredentialsByUser = async (userId: string) => {
