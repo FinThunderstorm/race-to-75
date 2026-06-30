@@ -17,6 +17,9 @@ function main() {
     info "Linting Markdown"
     npm run md
 
+    info "Checking for unused files, exports, and dependencies with knip"
+    npm run knip
+
     popd
 
     check_shell_scripts

@@ -21,6 +21,15 @@ function fix_markdown() {
     popd
 }
 
+function check_knip() {
+    info "Checking for unused files, exports, and dependencies with knip"
+    pushd "$repo"
+
+    npm run knip
+
+    popd
+}
+
 function main() {
     required_command npm
 
@@ -29,6 +38,7 @@ function main() {
     fix_biome
     fix_markdown
     check_shell_scripts
+    check_knip
 }
 
 main "$@"
