@@ -2,21 +2,15 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     "backend": {
-      "entry": [
-        "src/server.ts",
-        "src/cron/*/index.ts",
-        "scripts/*.js",
-        "src/**/*.test.ts",
-        "scripts/*.test.js"
-      ],
+      "entry": ["src/cron/*/index.ts", "scripts/*.js", "src/**/*.test.ts", "scripts/*.test.js"],
       "project": ["src/**/*.ts", "scripts/**/*.js"]
     },
     "frontend": {
-      "entry": ["src/main.tsx", "index.html"],
+      "entry": ["index.html"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "playwright": {
-      "entry": ["*.spec.ts", "playwright.config.ts"],
+      "entry": ["*.spec.ts"],
       "project": ["**/*.ts"]
     }
   }
