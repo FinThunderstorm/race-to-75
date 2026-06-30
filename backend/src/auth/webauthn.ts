@@ -10,35 +10,35 @@ import {
 
 import { config } from '../config.js'
 
-export const rpConfig = {
+const rpConfig = {
   rpID: config.webauthnRpId,
   rpName: config.webauthnRpName,
   origin: config.webauthnOrigin
 }
 
-export async function buildRegistrationOptions(args: {
+export const buildRegistrationOptions = async (args: {
   userId: string
-  userName: string
-  excludeCredentials: { id: string; transports?: string[] }[]
-}) {
+  email: string
+  excludeCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[]
+}) => {
   return generateRegistrationOptions({
     rpID: rpConfig.rpID,
     rpName: rpConfig.rpName,
     userID: new TextEncoder().encode(args.userId),
-    userName: args.userName,
+    userName: args.email,
     attestationType: 'none',
     authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
     excludeCredentials: args.excludeCredentials.map((credential) => ({
       id: credential.id,
-      transports: credential.transports as AuthenticatorTransportFuture[]
+      transports: credential.transports
     }))
   })
 }
 
-export async function verifyRegistration(args: {
+export const verifyRegistration = async (args: {
   response: RegistrationResponseJSON
   expectedChallenge: string
-}) {
+}) => {
   const verification = await verifyRegistrationResponse({
     response: args.response,
     expectedChallenge: args.expectedChallenge,
@@ -57,11 +57,11 @@ export async function verifyRegistration(args: {
     credentialId: credential.id,
     publicKey: credential.publicKey,
     counter: credential.counter,
-    transports: (args.response.response.transports ?? []) as string[]
+    transports: args.response.response.transports ?? []
   }
 }
 
-export async function buildAuthenticationOptions() {
+export const buildAuthenticationOptions = async () => {
   return generateAuthenticationOptions({
     rpID: rpConfig.rpID,
     userVerification: 'preferred',
@@ -69,11 +69,16 @@ export async function buildAuthenticationOptions() {
   })
 }
 
-export async function verifyAuthentication(args: {
+export const verifyAuthentication = async (args: {
   response: AuthenticationResponseJSON
   expectedChallenge: string
-  credential: { id: string; publicKey: Uint8Array; counter: number; transports: string[] }
-}) {
+  credential: {
+    id: string
+    publicKey: Uint8Array<ArrayBuffer>
+    counter: number
+    transports: AuthenticatorTransportFuture[]
+  }
+}) => {
   const verification = await verifyAuthenticationResponse({
     response: args.response,
     expectedChallenge: args.expectedChallenge,
@@ -82,9 +87,9 @@ export async function verifyAuthentication(args: {
     requireUserVerification: false,
     credential: {
       id: args.credential.id,
-      publicKey: args.credential.publicKey as Uint8Array<ArrayBuffer>,
+      publicKey: args.credential.publicKey,
       counter: args.credential.counter,
-      transports: args.credential.transports as AuthenticatorTransportFuture[]
+      transports: args.credential.transports
     }
   })
 

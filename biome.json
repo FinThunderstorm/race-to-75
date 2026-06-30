@@ -30,7 +30,8 @@
       "preset": "none",
       "complexity": {
         "noUselessTernary": "error",
-        "noUselessUndefinedInitialization": "error"
+        "noUselessUndefinedInitialization": "error",
+        "useArrowFunction": "error"
       },
       "style": { "useBlockStatements": "error", "useTemplate": "error" },
       "suspicious": { "noDoubleEquals": "error", "noVar": "error" }

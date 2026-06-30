@@ -16,34 +16,32 @@ const challengePayloadSchema = z.object({
   exp: z.number().int().positive()
 })
 
-export function hashEnrollmentToken(rawToken: string): string {
+export const hashEnrollmentToken = (rawToken: string): string => {
   return createHash('sha256').update(rawToken).digest('hex')
 }
 
-export function generateEnrollmentToken(): { rawToken: string; tokenHash: string } {
+export const generateEnrollmentToken = (): { rawToken: string; tokenHash: string } => {
   const rawToken = randomBytes(32).toString('base64url')
 
   return { rawToken, tokenHash: hashEnrollmentToken(rawToken) }
 }
 
-export function isEnrollmentTokenUsable(
-  row: { consumedAt: Date | null; expiresAt: Date },
+export const isEnrollmentTokenUsable = (
+  row: { consumedAt: Date | undefined; expiresAt: Date },
   now: Date
-): boolean {
-  return row.consumedAt === null && row.expiresAt.getTime() > now.getTime()
-}
+): boolean => row.consumedAt === undefined && row.expiresAt.getTime() > now.getTime()
 
-function sign(body: string, secret: string): string {
+const sign = (body: string, secret: string): string => {
   return createHmac('sha256', secret).update(body).digest('base64url')
 }
 
-export function signChallenge(payload: ChallengePayload, secret: string): string {
+export const signChallenge = (payload: ChallengePayload, secret: string): string => {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
 
   return `${body}.${sign(body, secret)}`
 }
 
-export function verifyChallenge(value: string, secret: string, now: Date): ChallengePayload {
+export const verifyChallenge = (value: string, secret: string, now: Date): ChallengePayload => {
   const [body, signature] = value.split('.')
 
   if (!body || !signature) {

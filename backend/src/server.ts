@@ -43,7 +43,7 @@ app.post<{ Body: ParsedWithingsWebhookBody }>('/webhooks/withings', handleWithin
 const here = dirname(fileURLToPath(import.meta.url))
 const frontendDist = join(here, '..', '..', 'frontend', 'dist')
 
-async function start() {
+const start = async () => {
   await app.register(authPlugin)
 
   if (existsSync(join(frontendDist, 'index.html'))) {

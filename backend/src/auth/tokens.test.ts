@@ -22,23 +22,32 @@ test('generateEnrollmentToken returns a raw token whose hash matches', () => {
   assert.equal(tokenHash, hashEnrollmentToken(rawToken))
 })
 
-test('isEnrollmentTokenUsable: fresh unconsumed token is usable', () => {
-  const now = new Date('2026-06-24T12:00:00Z')
-  const expiresAt = new Date('2026-06-24T13:00:00Z')
-  assert.equal(isEnrollmentTokenUsable({ consumedAt: null, expiresAt }, now), true)
+test('isEnrollmentTokenUsable: usable when not consumed and not expired', () => {
+  const now = new Date('2026-01-01T00:00:00Z')
+  assert.equal(
+    isEnrollmentTokenUsable(
+      { consumedAt: undefined, expiresAt: new Date('2026-01-02T00:00:00Z') },
+      now
+    ),
+    true
+  )
 })
 
-test('isEnrollmentTokenUsable: consumed token is not usable', () => {
-  const now = new Date('2026-06-24T12:00:00Z')
-  const expiresAt = new Date('2026-06-24T13:00:00Z')
-  const consumedAt = new Date('2026-06-24T11:00:00Z')
-  assert.equal(isEnrollmentTokenUsable({ consumedAt, expiresAt }, now), false)
+test('isEnrollmentTokenUsable: not usable once consumed', () => {
+  const now = new Date('2026-01-01T00:00:00Z')
+  assert.equal(
+    isEnrollmentTokenUsable(
+      { consumedAt: new Date('2026-01-01T00:00:00Z'), expiresAt: new Date('2026-01-02T00:00:00Z') },
+      now
+    ),
+    false
+  )
 })
 
 test('isEnrollmentTokenUsable: expired token is not usable', () => {
-  const now = new Date('2026-06-24T14:00:00Z')
-  const expiresAt = new Date('2026-06-24T13:00:00Z')
-  assert.equal(isEnrollmentTokenUsable({ consumedAt: null, expiresAt }, now), false)
+  const now = new Date('2026-01-02T00:00:00Z')
+  const expiresAt = new Date('2026-01-01T00:00:00Z')
+  assert.equal(isEnrollmentTokenUsable({ consumedAt: undefined, expiresAt }, now), false)
 })
 
 test('verifyChallenge round-trips a signed payload', () => {

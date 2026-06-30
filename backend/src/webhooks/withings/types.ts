@@ -18,7 +18,7 @@ export const withingsWeightWebhookPayloadSchema = z
 
 export type WithingsWebhookBody = Record<string, string>
 
-export type StoredWithingsWebhookEvent = {
+type StoredWithingsWebhookEvent = {
   id: string
   status: string
 }

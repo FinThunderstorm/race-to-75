@@ -1,10 +1,12 @@
+import type { AuthenticatorTransportFuture } from '@simplewebauthn/server'
+
 import { sql } from '../database.js'
 
-export async function findUserByEnrollmentTokenHash(tokenHash: string) {
+export const findUserByEnrollmentTokenHash = async (tokenHash: string) => {
   const [row] = await sql<
-    { user_id: string; user_name: string; consumed_at: Date | null; expires_at: Date }[]
+    { user_id: string; email: string; consumed_at: Date | null; expires_at: Date }[]
   >`
-    SELECT t.user_id, u.email AS user_name, t.consumed_at, t.expires_at
+    SELECT t.user_id, u.email, t.consumed_at, t.expires_at
     FROM enrollment_token t
     JOIN users u ON u.id = t.user_id
     WHERE t.token_hash = ${tokenHash}
@@ -17,14 +19,14 @@ export async function findUserByEnrollmentTokenHash(tokenHash: string) {
 
   return {
     userId: row.user_id,
-    userName: row.user_name,
-    consumedAt: row.consumed_at,
+    email: row.email,
+    consumedAt: row.consumed_at ?? undefined,
     expiresAt: row.expires_at
   }
 }
 
-export async function findCredentialsByUser(userId: string) {
-  const rows = await sql<{ credential_id: string; transports: string[] }[]>`
+export const findCredentialsByUser = async (userId: string) => {
+  const rows = await sql<{ credential_id: string; transports: AuthenticatorTransportFuture[] }[]>`
     SELECT credential_id, transports
     FROM credentials
     WHERE user_id = ${userId}
@@ -33,13 +35,13 @@ export async function findCredentialsByUser(userId: string) {
   return rows.map((row) => ({ credentialId: row.credential_id, transports: row.transports }))
 }
 
-export async function findCredentialById(credentialId: string) {
+export const findCredentialById = async (credentialId: string) => {
   const [row] = await sql<
     {
       user_id: string
-      public_key: Buffer
+      public_key: Uint8Array<ArrayBuffer>
       counter: string
-      transports: string[]
+      transports: AuthenticatorTransportFuture[]
       role: 'admin' | 'member'
     }[]
   >`
@@ -63,19 +65,19 @@ export async function findCredentialById(credentialId: string) {
   }
 }
 
-export async function updateCredentialCounter(credentialId: string, counter: number) {
+export const updateCredentialCounter = async (credentialId: string, counter: number) => {
   await sql`UPDATE credentials SET counter = ${counter} WHERE credential_id = ${credentialId}`
 }
 
-export async function consumeEnrollmentTokenAndInsertCredential(args: {
+export const consumeEnrollmentTokenAndInsertCredential = async (args: {
   tokenHash: string
   userId: string
   credentialId: string
   publicKey: Uint8Array
   counter: number
-  transports: string[]
+  transports: AuthenticatorTransportFuture[]
   deviceName: string | null
-}) {
+}) => {
   await sql.begin(async (tx) => {
     const consumed = await tx`
       UPDATE enrollment_token

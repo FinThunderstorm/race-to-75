@@ -33,7 +33,7 @@ import {
   verifyRegistration
 } from './webauthn.js'
 
-function errorDetails(error: unknown) {
+const errorDetails = (error: unknown) => {
   if (error instanceof Error) {
     return { message: error.message, name: error.name }
   }
@@ -63,7 +63,7 @@ export const authPlugin = fp(async (app) => {
   const challengeCookie = 'r2_challenge'
   const strictAuthLimit = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }
 
-  function issueSession(reply: FastifyReply, user: SessionUser) {
+  const issueSession = (reply: FastifyReply, user: SessionUser) => {
     const token = app.jwt.sign(user, { expiresIn: config.sessionTtlSeconds })
 
     reply.setCookie('session', token, {
@@ -75,18 +75,22 @@ export const authPlugin = fp(async (app) => {
     })
   }
 
-  app.get('/auth/me', { preHandler: app.auth([app.verifyJwt]) }, async (request) => {
+  app.get('/api/auth/me', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
     const [user] = await sql<{ id: string; email: string; display_name: string; role: string }[]>`
       SELECT id, email, display_name, role
       FROM users
-      WHERE id = ${request.user!.sub}
+      WHERE id = ${request.user.sub}
       LIMIT 1
     `
 
-    return user ?? null
+    if (!user) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    return user
   })
 
-  app.post('/auth/enroll/options', strictAuthLimit, async (request, reply) => {
+  app.post('/api/auth/enroll/options', strictAuthLimit, async (request, reply) => {
     try {
       const { token } = enrollOptionsBodySchema.parse(request.body)
       const tokenHash = hashEnrollmentToken(token)
@@ -99,7 +103,7 @@ export const authPlugin = fp(async (app) => {
       const existing = await findCredentialsByUser(user.userId)
       const options = await buildRegistrationOptions({
         userId: user.userId,
-        userName: user.userName,
+        email: user.email,
         excludeCredentials: existing.map((credential) => ({
           id: credential.credentialId,
           transports: credential.transports
@@ -128,7 +132,7 @@ export const authPlugin = fp(async (app) => {
     }
   })
 
-  app.post('/auth/enroll/verify', strictAuthLimit, async (request, reply) => {
+  app.post('/api/auth/enroll/verify', strictAuthLimit, async (request, reply) => {
     try {
       const body = enrollVerifyBodySchema.parse(request.body)
       const rawChallenge = request.cookies[challengeCookie]
@@ -185,7 +189,7 @@ export const authPlugin = fp(async (app) => {
     }
   })
 
-  app.post('/auth/login/options', strictAuthLimit, async (_request, reply) => {
+  app.post('/api/auth/login/options', strictAuthLimit, async (_request, reply) => {
     const options = await buildAuthenticationOptions()
 
     reply.setCookie(
@@ -200,7 +204,7 @@ export const authPlugin = fp(async (app) => {
     return options
   })
 
-  app.post('/auth/login/verify', strictAuthLimit, async (request, reply) => {
+  app.post('/api/auth/login/verify', strictAuthLimit, async (request, reply) => {
     try {
       const body = loginVerifyBodySchema.parse(request.body)
       const rawChallenge = request.cookies[challengeCookie]
@@ -244,7 +248,7 @@ export const authPlugin = fp(async (app) => {
     }
   })
 
-  app.post('/auth/logout', async (_request, reply) => {
+  app.post('/api/auth/logout', async (_request, reply) => {
     reply.clearCookie('session', { path: '/' })
 
     return { ok: true }

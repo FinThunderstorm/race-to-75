@@ -69,9 +69,7 @@ export function parseWithingsWebhookFormBody(
   }
 }
 
-export function createHandleWithingsWebhook(
-  store: StoreWithingsWebhookEvent = storeWithingsWebhookEvent
-) {
+function createHandleWithingsWebhook(store: StoreWithingsWebhookEvent = storeWithingsWebhookEvent) {
   return async function handleWithingsWebhook(
     request: WithingsWebhookRequest,
     reply: FastifyReply
