@@ -1,58 +1,32 @@
-import { useEffect, useState } from 'react'
+import type { ReactElement } from 'react'
+import { Navigate, Route, Routes } from 'react-router'
 
-import { authApi, type CurrentUser, fetchMe } from './api'
 import { Enroll } from './auth/Enroll'
 import { Login } from './auth/Login'
+import { Home } from './Home'
+import { useUser } from './hooks/useUser'
 
-export function App() {
-  const [user, setUser] = useState<CurrentUser | null>(null)
-  const [loaded, setLoaded] = useState(false)
+const ProtectedRoute = ({ children }: { children: ReactElement }) => {
+  const { isAuthenticated, isLoading } = useUser()
 
-  async function refresh() {
-    setUser(await fetchMe())
-    setLoaded(true)
-  }
-
-  useEffect(() => {
-    void refresh()
-  }, [])
-
-  if (!loaded) {
+  if (isLoading) {
     return <p>Loading…</p>
   }
 
-  const path = window.location.pathname
-
-  if (path === '/enroll') {
-    const token = new URLSearchParams(window.location.search).get('token') ?? ''
-
-    return (
-      <Enroll
-        token={token}
-        onEnrolled={() => {
-          window.location.assign('/')
-        }}
-      />
-    )
-  }
-
-  if (!user) {
-    return <Login onLoggedIn={refresh} />
-  }
-
-  return (
-    <main>
-      <h1>race-to-75</h1>
-      <p>Signed in as {user.display_name}</p>
-      <button
-        type="button"
-        onClick={async () => {
-          await authApi.logout()
-          await refresh()
-        }}
-      >
-        Log out
-      </button>
-    </main>
-  )
+  return isAuthenticated ? children : <Navigate to="/login" replace />
 }
+
+export const App = () => (
+  <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route path="/enroll" element={<Enroll />} />
+    <Route
+      path="/"
+      element={
+        <ProtectedRoute>
+          <Home />
+        </ProtectedRoute>
+      }
+    />
+  </Routes>
+)

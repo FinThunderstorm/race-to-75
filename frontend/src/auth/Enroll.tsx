@@ -1,18 +1,24 @@
 import { startRegistration } from '@simplewebauthn/browser'
 import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 
-import { authApi } from '../api'
+import { useEnrollOptionsMutation, useEnrollVerifyMutation } from '../api/authApi'
 
-export function Enroll({ token, onEnrolled }: { token: string; onEnrolled: () => void }) {
+export const Enroll = () => {
+  const [params] = useSearchParams()
+  const token = params.get('token') ?? ''
+  const navigate = useNavigate()
+  const [enrollOptions] = useEnrollOptionsMutation()
+  const [enrollVerify] = useEnrollVerifyMutation()
   const [status, setStatus] = useState<'idle' | 'working' | 'error'>('idle')
 
-  async function enroll() {
+  const enroll = async () => {
     setStatus('working')
     try {
-      const options = await authApi.enrollOptions(token)
+      const options = await enrollOptions({ token }).unwrap()
       const response = await startRegistration({ optionsJSON: options })
-      await authApi.enrollVerify(token, response)
-      onEnrolled()
+      await enrollVerify({ token, response }).unwrap()
+      navigate('/')
     } catch {
       setStatus('error')
     }

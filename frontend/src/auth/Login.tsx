@@ -1,18 +1,28 @@
 import { startAuthentication } from '@simplewebauthn/browser'
 import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router'
 
-import { authApi } from '../api'
+import { useLoginOptionsMutation, useLoginVerifyMutation } from '../api/authApi'
+import { useUser } from '../hooks/useUser'
 
-export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
+export const Login = () => {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useUser()
+  const [loginOptions] = useLoginOptionsMutation()
+  const [loginVerify] = useLoginVerifyMutation()
   const [status, setStatus] = useState<'idle' | 'working' | 'error'>('idle')
 
-  async function login() {
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />
+  }
+
+  const login = async () => {
     setStatus('working')
     try {
-      const options = await authApi.loginOptions()
+      const options = await loginOptions().unwrap()
       const response = await startAuthentication({ optionsJSON: options })
-      await authApi.loginVerify(response)
-      onLoggedIn()
+      await loginVerify({ response }).unwrap()
+      navigate('/')
     } catch {
       setStatus('error')
     }
