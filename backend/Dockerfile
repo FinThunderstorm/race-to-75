@@ -1,7 +1,11 @@
 # Build context is the repository root (workspaces need the root lockfile).
 ARG NODE_VERSION=24.16.0
 
-FROM node:${NODE_VERSION}-alpine AS backend-build
+FROM node:${NODE_VERSION}-alpine AS base
+# Install OS security fixes released since the Node image was published.
+RUN apk upgrade --no-cache
+
+FROM base AS backend-build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY backend/package.json ./backend/
@@ -9,7 +13,7 @@ RUN npm ci --workspace backend --include-workspace-root
 COPY backend ./backend
 RUN npm run build --workspace backend
 
-FROM node:${NODE_VERSION}-alpine AS frontend-build
+FROM base AS frontend-build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY frontend/package.json ./frontend/
@@ -17,7 +21,7 @@ RUN npm ci --workspace frontend --include-workspace-root
 COPY frontend ./frontend
 RUN npm run build --workspace frontend
 
-FROM node:${NODE_VERSION}-alpine AS runtime
+FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
