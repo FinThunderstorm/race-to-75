@@ -3,6 +3,9 @@ set -o errexit -o nounset -o pipefail
 
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)/scripts/common-functions.sh"
 
+check_node_version
+load_local_env "$@"
+
 function main() {
     required_command npm
 

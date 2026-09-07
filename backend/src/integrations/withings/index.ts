@@ -156,7 +156,6 @@ function requireTemporaryConnectConfig() {
     ['WITHINGS_CLIENT_ID', config.withingsClientId],
     ['WITHINGS_CLIENT_SECRET', config.withingsClientSecret],
     ['WITHINGS_REDIRECT_URI', config.withingsRedirectUri],
-    ['WITHINGS_WEBHOOK_CALLBACK_URL', config.withingsWebhookCallbackUrl],
     ['WITHINGS_CONNECT_TOKEN', config.withingsConnectToken],
     ['WITHINGS_BOOTSTRAP_EMAIL', config.withingsBootstrapEmail],
     ['WITHINGS_BOOTSTRAP_DISPLAY_NAME', config.withingsBootstrapDisplayName]
@@ -176,7 +175,7 @@ function requireTemporaryConnectConfig() {
     clientSecret: config.withingsClientSecret as string,
     connectToken: config.withingsConnectToken as string,
     redirectUri: config.withingsRedirectUri as string,
-    webhookCallbackUrl: config.withingsWebhookCallbackUrl as string
+    webhookCallbackUrl: config.withingsWebhookCallbackUrl
   }
 }
 
@@ -290,6 +289,9 @@ async function fetchInitialMeasurements(userId: string, accessToken: string) {
 
 async function subscribeToWithingsWeightNotifications(accessToken: string) {
   const temporaryConfig = requireTemporaryConnectConfig()
+  if (!temporaryConfig.webhookCallbackUrl) {
+    return
+  }
   const body = new URLSearchParams({
     action: 'subscribe',
     appli: withingsWeightApplication,
@@ -406,9 +408,11 @@ export async function handleWithingsCallback(
       initialMeasurementCount === undefined
         ? 'Connected. Initial measurement sync failed, but future webhook processing can still retry new measurements.'
         : `Connected. Imported ${initialMeasurementCount} Withings measurement(s).`
-    const subscriptionMessage = notificationSubscriptionSucceeded
-      ? ' Body & Weight notifications are subscribed.'
-      : ' Body & Weight notification subscription failed; reconnect after checking the callback URL in Withings.'
+    const subscriptionMessage = !temporaryConfig.webhookCallbackUrl
+      ? ' Automatic updates are not configured; reconnect to import new measurements, or configure a public webhook callback and worker.'
+      : notificationSubscriptionSucceeded
+        ? ' Body & Weight notifications are subscribed.'
+        : ' Body & Weight notification subscription failed; reconnect after checking the callback URL in Withings.'
 
     return reply
       .type('text/html')

@@ -10,9 +10,14 @@ Keep everyone's weight on record over time and make the shared target —
 
 ## Status
 
-Early planning. The concept and architecture are set; hosting is not yet decided.
+Passkey enrollment/login, a sample/live race dashboard, Withings history import,
+and a Docker/Coolify deployment setup are implemented. Manual weight entry,
+admin management, and the separate radiator are still planned.
 
 ## Features
+
+The following describes the target feature set; see Status for what is available
+and Getting started for the current local workflow.
 
 ### Accounts & roles
 
@@ -158,48 +163,172 @@ else changes.
 
 ## Getting started
 
-### Dashboard data
+### 1. Configure the local environment
 
-The **Sample data** link switches the dashboard to **Live data**; clicking it
-again restores the design preview. Live mode is also available at `/?data=live`.
-It requires login and reads all participants' imported Withings measurements
-through `/api/race`, refreshing every 30 seconds. The chart shows the complete
-imported history as daily averages in UTC, including participants with no
-readings. Dates and weight limits adjust to the data.
+Install Node.js at the version in `.nvmrc`, Docker Desktop, and tmux. Start
+Docker Desktop before launching the app.
 
-This view reads the local database; it does not call Withings when toggled.
-Withings connections and the existing webhook worker must be configured and
-running to import new measurements. The initial connection imports the window
-configured by `WITHINGS_INITIAL_SYNC_DAYS`.
+For a fresh checkout, copy the local example to `.env`:
 
-### Local environment
+```sh
+cp .env.local.example .env
+```
 
-Install local prerequisites:
+If you already have `.env`, merge any missing settings instead of overwriting it.
+The loader reads **`.env`**, not `.env.local`. The local example sets the app
+and passkeys to `http://localhost:7500`, uses the local PostgreSQL database, and
+leaves Withings credentials empty. Withings is optional for the sample dashboard.
+`.env.example` is a deployment reference with production host settings.
 
-- Node.js version from `.nvmrc`
-- Docker Desktop
-- tmux
+Local startup and each service pane load `.env`. File values override inherited
+environment variables, including values from an existing tmux server. Values
+are parsed as dotenv data, so spaces and dollar signs are not executed by a
+shell. Blank JWT/cookie secrets use local development defaults. The real `.env`
+is gitignored; keep credentials out of the example files.
 
-Start the local backend and database:
+### 2. Start the app
+
+From the repository root:
 
 ```sh
 ./start-local-env.sh
 ```
 
-This starts PostgreSQL in one tmux pane and the backend in another. The backend
-waits for PostgreSQL, runs migrations, and then starts the dev server.
+The script selects the pinned Node version, installs dependencies, builds the
+frontend, and starts three tmux panes: PostgreSQL, the frontend build watcher,
+and the backend. The backend waits for PostgreSQL and applies migrations.
+Open **<http://localhost:7500>**; Fastify serves both the UI and API on that port.
+The script does not open a browser automatically.
 
-Run migrations manually:
-
-```sh
-npm run db:migrate
-```
-
-The migration runner reads `DATABASE_URL`. For local development the default is:
+To start without attaching to tmux:
 
 ```sh
-postgres://postgres:postgres@localhost:5432/race_to_75
+./start-local-env.sh --detach
 ```
+
+Attach later with `tmux attach -t race-to-75`. Detach with `Ctrl-b`, then `d`;
+services keep running. Restart with `./start-local-env.sh` after changing `.env`.
+Restarting replaces this app's tmux session and retains the database volume.
+
+### 3. Create your admin and device passkey
+
+Do this **before connecting Withings for the first time**. In another terminal
+at the repo root, run:
+
+```sh
+node scripts/with-local-env.mjs npm run auth:bootstrap-admin -w backend -- \
+  --email "you@example.com" \
+  --name "Your Name" \
+  --base-url "http://localhost:7500"
+```
+
+Use the same email as `WITHINGS_BOOTSTRAP_EMAIL` in `.env`. It identifies your
+app account and does **not** have to match the email you use to log into Withings.
+
+Open the printed enrollment link on this computer, click **Create passkey**,
+and follow your browser's prompt. Enrollment logs you in automatically; later,
+use **Log in with passkey**. Enrollment links are single-use and expire after
+24 hours by default. Use `localhost`, matching the example's passkey settings.
+
+The bootstrap command refuses to run if any admin already exists. If you already
+have an account, use its passkey. The Withings connection can also create an
+admin, which is why passkey setup comes first. Reissuing enrollment links for
+existing accounts currently requires database access; there is no admin UI yet.
+Deleting an account also deletes its readings, connection, and passkeys.
+
+### 4. Connect Withings and import your history
+
+In your [Withings developer dashboard](https://developer.withings.com/dashboard/),
+configure an application and register this exact OAuth redirect URL:
+
+```text
+http://localhost:7500/integrations/withings/callback
+```
+
+Fill these values in `.env`:
+
+- `WITHINGS_CLIENT_ID` and `WITHINGS_CLIENT_SECRET` from the developer application.
+- `WITHINGS_BOOTSTRAP_EMAIL` and `WITHINGS_BOOTSTRAP_DISPLAY_NAME` for the app
+  account created above.
+- `WITHINGS_CONNECT_TOKEN`, a random token generated with:
+
+```sh
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Keep `WITHINGS_REDIRECT_URI` set to the localhost callback above. Set
+`WITHINGS_INITIAL_SYNC_DAYS` to the history window you want: the local example
+uses **180 days**. Leave `WITHINGS_WEBHOOK_CALLBACK_URL` empty for a local import.
+
+Restart `./start-local-env.sh`, then open the following URL in your browser,
+replacing `<WITHINGS_CONNECT_TOKEN>` with the token from `.env`:
+
+```text
+http://localhost:7500/integrations/withings/connect?token=<WITHINGS_CONNECT_TOKEN>
+```
+
+Log into Withings and approve access. The callback stores the connection and
+imports your history into the local database, then displays the imported count.
+Without a webhook callback, it also reports that automatic updates are not
+configured. Opening the connect URL and authorizing again imports the history
+window again; existing readings are updated without duplicates.
+
+### 5. View live data and keep it current
+
+Open **<http://localhost:7500/?data=live>**, or click **Sample data** in the
+header. Click **Live data** to return to the sample preview.
+
+Live mode requires login and reads every participant's imported Withings history
+through `/api/race`. It refreshes the database view every 30 seconds and plots
+all imported history as daily averages in UTC. Participants without readings
+remain visible, and the readings table shows the latest date for each person.
+
+**The dashboard refresh does not fetch from Withings.** For local use without a
+public webhook, reconnect using the URL above whenever you want fresh data.
+
+Automatic updates require a public webhook callback configured in the Withings
+application and `WITHINGS_WEBHOOK_CALLBACK_URL`, plus a running webhook worker.
+Local startup does not launch that worker. After reconnecting to subscribe to
+notifications, process queued events once with:
+
+```sh
+npm run build -w backend
+node scripts/with-local-env.mjs npm run cron:fetch-withings-measurement -w backend
+```
+
+The worker consumes received webhook events; it does not poll Withings for new
+history. Coolify's `withings-worker` service repeats this command automatically.
+
+### Local troubleshooting and checks
+
+- **Withings connect returns 403:** check the client ID/secret, connect token,
+  bootstrap email/name, and redirect URI in `.env`, then restart the app.
+- **Withings reports a redirect mismatch:** register the exact localhost callback
+  above and use it in `WITHINGS_REDIRECT_URI`.
+- **Passkey setup/login fails:** check `WEBAUTHN_RP_ID=localhost` and
+  `WEBAUTHN_ORIGIN=http://localhost:7500`; use that address in your browser.
+- **Live history is empty or stale:** confirm the connection callback reports a
+  successful import, check the history window, and reconnect for new readings.
+  Local and production databases are separate.
+
+Other commands can load `.env` through the same wrapper, for example migrations:
+
+```sh
+node scripts/with-local-env.mjs npm run db:migrate
+```
+
+Run the local checks from the repo root (the lint script also needs shellcheck):
+
+```sh
+./deploy-scripts/01-lint.sh
+npm run build -w backend
+npm run build -w frontend
+npm test -w backend
+node --test scripts/with-local-env.test.mjs backend/scripts/bootstrap-admin.test.js
+./run-tests.sh
+```
+
+The Playwright script uses an isolated Docker Compose stack and test database.
 
 ### Database migrations
 
@@ -220,10 +349,10 @@ test Compose files.
 ### Coolify deployment
 
 The backend image is published to GitHub Container Registry by
-`.github/workflows/build-image.yml` on every push to `master`, and can also be
+`.github/workflows/ci.yml` on every push to `master`, and can also be
 published manually from GitHub Actions. For Coolify on Hetzner, use
 `docker-compose.coolify.yml` as the Compose file.
-It defines three services:
+It defines four services:
 
 - `postgres` — PostgreSQL with persistent volume storage.
 - `migrate` — a one-shot service that runs `npm run db:migrate`.
@@ -241,6 +370,8 @@ POSTGRES_DB=race_to_75
 POSTGRES_VERSION=18
 APP_HOST=race-to-75.rigster.cv
 IMAGE_TAG=latest
+JWT_SECRET=<long-random-secret>
+COOKIE_SECRET=<different-long-random-secret>
 WITHINGS_CLIENT_ID=<withings-client-id>
 WITHINGS_CLIENT_SECRET=<withings-client-secret>
 WITHINGS_API_BASE_URL=https://wbsapi.withings.net
@@ -248,8 +379,8 @@ WITHINGS_AUTHORIZE_URL=https://account.withings.com/oauth2_user/authorize2
 WITHINGS_REDIRECT_URI=https://race-to-75.rigster.cv/integrations/withings/callback
 WITHINGS_WEBHOOK_CALLBACK_URL=https://race-to-75.rigster.cv/webhooks/withings
 WITHINGS_CONNECT_TOKEN=<long-random-temporary-connect-token>
-WITHINGS_BOOTSTRAP_EMAIL=tuomas.arokanto@gmail.com
-WITHINGS_BOOTSTRAP_DISPLAY_NAME=Tomppa
+WITHINGS_BOOTSTRAP_EMAIL=you@example.com
+WITHINGS_BOOTSTRAP_DISPLAY_NAME="Your Name"
 WITHINGS_BOOTSTRAP_ROLE=admin
 WITHINGS_INITIAL_SYNC_DAYS=3650
 WITHINGS_WORKER_INTERVAL_SECONDS=60
@@ -260,8 +391,8 @@ is pulled on each deploy. Use a commit SHA instead of `latest` when you want
 Coolify to deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the
 GHCR package is private, configure Coolify registry credentials for `ghcr.io`.
 
-Until normal member login is implemented, connect the bootstrap account to
-Withings by opening:
+Withings connection management still uses the temporary bootstrap flow.
+Connect the bootstrap account by opening:
 
 ```txt
 https://race-to-75.rigster.cv/integrations/withings/connect?token=<WITHINGS_CONNECT_TOKEN>

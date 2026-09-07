@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
+    ".": { "entry": ["scripts/with-local-env.mjs", "scripts/with-local-env.test.mjs"] },
     "backend": {
       "entry": ["src/cron/*/index.ts", "scripts/*.js", "src/**/*.test.ts", "scripts/*.test.js"],
       "project": ["src/**/*.ts", "scripts/**/*.js"]

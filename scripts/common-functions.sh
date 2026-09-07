@@ -31,6 +31,13 @@ readonly AMD_IMAGE="race-to-75"
 repo="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd)"
 readonly repo
 
+function load_local_env() {
+    if [[ "${RACE_TO_75_ENV_LOADED:-}" != "$repo/" ]]; then
+        exec node "$repo/scripts/with-local-env.mjs" bash "$0" "$@"
+    fi
+    unset RACE_TO_75_ENV_LOADED
+}
+
 function check_node_version() {
     pushd "$repo"
     debug "Setting up right Node version"
