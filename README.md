@@ -158,6 +158,22 @@ else changes.
 
 ## Getting started
 
+### Dashboard data
+
+The **Sample data** link switches the dashboard to **Live data**; clicking it
+again restores the design preview. Live mode is also available at `/?data=live`.
+It requires login and reads all participants' imported Withings measurements
+through `/api/race`, refreshing every 30 seconds. The chart shows the complete
+imported history as daily averages in UTC, including participants with no
+readings. Dates and weight limits adjust to the data.
+
+This view reads the local database; it does not call Withings when toggled.
+Withings connections and the existing webhook worker must be configured and
+running to import new measurements. The initial connection imports the window
+configured by `WITHINGS_INITIAL_SYNC_DAYS`.
+
+### Local environment
+
 Install local prerequisites:
 
 - Node.js version from `.nvmrc`

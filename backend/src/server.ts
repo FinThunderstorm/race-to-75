@@ -15,6 +15,7 @@ import {
   handleWithingsStatus
 } from './integrations/withings/index.js'
 import { handlePing } from './ping/handle-ping.js'
+import { registerRaceRoutes } from './race/index.js'
 import {
   handleWithingsWebhook,
   type ParsedWithingsWebhookBody,
@@ -45,6 +46,7 @@ const frontendDist = join(here, '..', '..', 'frontend', 'dist')
 
 const start = async () => {
   await app.register(authPlugin)
+  await registerRaceRoutes(app)
 
   if (existsSync(join(frontendDist, 'index.html'))) {
     await app.register(fastifyStatic, { root: frontendDist })

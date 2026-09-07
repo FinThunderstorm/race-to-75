@@ -1,15 +1,36 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useMemo, useState } from 'react'
+import { useDispatch } from 'react-redux'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { useLogoutMutation } from './api/authApi'
+import { raceApi, useGetRaceQuery } from './api/raceApi'
 import { useUser } from './hooks/useUser'
+import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
+import { sampleRace } from './race/sampleRace'
 
 export const Home = () => {
   const { user } = useUser()
   const [logout, { isLoading }] = useLogoutMutation()
   const [logoutError, setLogoutError] = useState(false)
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const [params] = useSearchParams()
+  const live = params.get('data') === 'live'
+  const {
+    data,
+    isLoading: loadingRace,
+    isFetching,
+    isError,
+    refetch
+  } = useGetRaceQuery(undefined, {
+    skip: !live,
+    pollingInterval: live ? 30_000 : 0,
+    refetchOnMountOrArgChange: true
+  })
+  const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data])
+  const toggleParams = new URLSearchParams(params)
+  toggleParams.set('data', live ? 'sample' : 'live')
 
   return (
     <main className="dashboard">
@@ -20,14 +41,48 @@ export const Home = () => {
             Weigh-in history <span>·</span> Goal 75.0 kg
           </p>
         </div>
-        <span className="sample-indicator">
-          <span /> Sample data
-        </span>
+        <Link
+          className={`sample-indicator ${live ? 'live-indicator' : ''}`}
+          to={`?${toggleParams}`}
+          title={`Switch to ${live ? 'sample' : 'live Withings'} data`}
+        >
+          <span /> {live ? 'Live data' : 'Sample data'}
+        </Link>
       </header>
-      <RaceChart />
+      {live && isError ? (
+        <div className="race-message" role="alert">
+          <p>Could not load Withings data. Please try again.</p>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Retrying…' : 'Try again'}
+          </button>
+        </div>
+      ) : live && (loadingRace || !data) ? (
+        <p className="race-message" role="status">
+          Loading Withings data…
+        </p>
+      ) : (
+        <RaceChart
+          key={live ? 'live' : 'sample'}
+          participants={live ? participants : sampleRace}
+          live={live}
+        />
+      )}
+      {live && (
+        <p className="live-note">
+          All imported Withings history · Daily averages in UTC ·{' '}
+          {isFetching ? 'Refreshing…' : 'Refreshes every 30 seconds'}
+        </p>
+      )}
       <footer className="dashboard-footer">
         <p>Signed in as {user?.display_name}</p>
-        <p className="preview-note">Design preview · Select a racer to follow their progress.</p>
+        <p className="preview-note">
+          {live ? 'Withings' : 'Design preview'} · Select a racer to follow their progress.
+        </p>
         <button
           className="text-button"
           type="button"
@@ -36,6 +91,7 @@ export const Home = () => {
             setLogoutError(false)
             try {
               await logout().unwrap()
+              dispatch(raceApi.util.resetApiState())
               navigate('/login')
             } catch {
               setLogoutError(true)
