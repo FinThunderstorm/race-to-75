@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { useLogoutMutation } from './api/authApi'
 import { raceApi, useGetRaceQuery } from './api/raceApi'
+import { withingsApi } from './api/withingsApi'
 import { useUser } from './hooks/useUser'
 import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
@@ -79,7 +80,12 @@ export const Home = () => {
         {live && <> · {isFetching ? 'Refreshing…' : 'Refreshes every 30 seconds'}</>}
       </p>
       <footer className="dashboard-footer">
-        <p>Signed in as {user?.display_name}</p>
+        <p>
+          Signed in as{' '}
+          <Link className="text-button" to="/profile">
+            {user?.display_name}
+          </Link>
+        </p>
         <p className="preview-note">
           {live ? 'Withings' : 'Design preview'} · Select a racer to follow their progress.
         </p>
@@ -92,6 +98,7 @@ export const Home = () => {
             try {
               await logout().unwrap()
               dispatch(raceApi.util.resetApiState())
+              dispatch(withingsApi.util.resetApiState())
               navigate('/login')
             } catch {
               setLogoutError(true)

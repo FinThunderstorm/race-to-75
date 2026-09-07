@@ -472,6 +472,45 @@ th:first-child {
   text-align: center;
   color: var(--cyan);
 }
+.profile-page {
+  width: min(100%, 640px);
+  margin: 0 auto;
+  padding: 40px 24px;
+  overflow-wrap: anywhere;
+}
+.profile-page header {
+  margin: 40px 0 30px;
+}
+.profile-page h1 {
+  font-size: 28px;
+}
+.profile-name {
+  margin-bottom: 0;
+  color: var(--cyan);
+  font-size: 20px;
+}
+.profile-connection {
+  padding: 24px;
+  border: 1px solid #302242;
+  background: #090615a8;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.profile-connection h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+.profile-connection .primary-button {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+.connection-status {
+  color: var(--cyan);
+}
+.disconnect-button {
+  margin-top: 24px;
+}
 
 @media (min-width: 1700px) {
   .dashboard {

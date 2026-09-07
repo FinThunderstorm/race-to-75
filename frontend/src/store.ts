@@ -2,9 +2,14 @@ import { configureStore } from '@reduxjs/toolkit'
 
 import { authApi } from './api/authApi'
 import { raceApi } from './api/raceApi'
+import { withingsApi } from './api/withingsApi'
 
 export const store = configureStore({
-  reducer: { [authApi.reducerPath]: authApi.reducer, [raceApi.reducerPath]: raceApi.reducer },
+  reducer: {
+    [authApi.reducerPath]: authApi.reducer,
+    [raceApi.reducerPath]: raceApi.reducer,
+    [withingsApi.reducerPath]: withingsApi.reducer
+  },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, raceApi.middleware)
+    getDefaultMiddleware().concat(authApi.middleware, raceApi.middleware, withingsApi.middleware)
 })

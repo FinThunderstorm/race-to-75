@@ -1,8 +1,9 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
+import { findUserById } from '../../auth/queries.js'
 import { config } from '../../config.js'
 import { fetchWithingsMeasurements } from '../../cron/fetch-withings-measurement/fetch-measurements.js'
 import { upsertMeasurements } from '../../cron/fetch-withings-measurement/queries.js'
@@ -27,6 +28,7 @@ type StatusQuery = {
 type SignedStatePayload = {
   exp: number
   nonce: string
+  userId?: string
 }
 
 type WithingsConnectionStatus = {
@@ -36,6 +38,9 @@ type WithingsConnectionStatus = {
 
 const withingsWeightApplication = '1'
 const withingsAuthorizationScope = 'user.metrics'
+const profileStatePrefix = 'profile.'
+const profileStateCookie = 'r2_withings_state'
+const profileCookiePath = '/integrations/withings/callback'
 const withingsNotifySubscribeResponseSchema = z.object({
   status: z.number().int()
 })
@@ -118,7 +123,8 @@ function parseSignedState(state: string, secret: string) {
   const parsedPayload = z
     .object({
       exp: z.number().int().positive(),
-      nonce: z.string().min(1)
+      nonce: z.string().min(1),
+      userId: z.string().uuid().optional()
     })
     .parse(payload)
 
@@ -151,11 +157,28 @@ async function findBootstrapWithingsConnection(bootstrapEmail: string) {
   return connection
 }
 
-function requireTemporaryConnectConfig() {
+function requireWithingsConfig() {
   const missing = [
     ['WITHINGS_CLIENT_ID', config.withingsClientId],
     ['WITHINGS_CLIENT_SECRET', config.withingsClientSecret],
-    ['WITHINGS_REDIRECT_URI', config.withingsRedirectUri],
+    ['WITHINGS_REDIRECT_URI', config.withingsRedirectUri]
+  ]
+    .filter(([, value]) => !value)
+    .map(([key]) => key)
+  if (missing.length > 0) {
+    throw new Error(`Missing Withings integration config: ${missing.join(', ')}`)
+  }
+  return {
+    clientId: config.withingsClientId as string,
+    clientSecret: config.withingsClientSecret as string,
+    redirectUri: config.withingsRedirectUri as string,
+    webhookCallbackUrl: config.withingsWebhookCallbackUrl
+  }
+}
+
+function requireTemporaryConnectConfig() {
+  const oauthConfig = requireWithingsConfig()
+  const missing = [
     ['WITHINGS_CONNECT_TOKEN', config.withingsConnectToken],
     ['WITHINGS_BOOTSTRAP_EMAIL', config.withingsBootstrapEmail],
     ['WITHINGS_BOOTSTRAP_DISPLAY_NAME', config.withingsBootstrapDisplayName]
@@ -168,14 +191,11 @@ function requireTemporaryConnectConfig() {
   }
 
   return {
+    ...oauthConfig,
     bootstrapDisplayName: config.withingsBootstrapDisplayName as string,
     bootstrapEmail: config.withingsBootstrapEmail as string,
     bootstrapRole: config.withingsBootstrapRole,
-    clientId: config.withingsClientId as string,
-    clientSecret: config.withingsClientSecret as string,
-    connectToken: config.withingsConnectToken as string,
-    redirectUri: config.withingsRedirectUri as string,
-    webhookCallbackUrl: config.withingsWebhookCallbackUrl
+    connectToken: config.withingsConnectToken as string
   }
 }
 
@@ -199,7 +219,7 @@ async function upsertBootstrapUser() {
 }
 
 async function exchangeAuthorizationCode(code: string) {
-  const temporaryConfig = requireTemporaryConnectConfig()
+  const temporaryConfig = requireWithingsConfig()
   const body = new URLSearchParams({
     action: 'requesttoken',
     client_id: temporaryConfig.clientId,
@@ -288,7 +308,7 @@ async function fetchInitialMeasurements(userId: string, accessToken: string) {
 }
 
 async function subscribeToWithingsWeightNotifications(accessToken: string) {
-  const temporaryConfig = requireTemporaryConnectConfig()
+  const temporaryConfig = requireWithingsConfig()
   if (!temporaryConfig.webhookCallbackUrl) {
     return
   }
@@ -360,10 +380,33 @@ export async function handleWithingsCallback(
   request: FastifyRequest<{ Querystring: CallbackQuery }>,
   reply: FastifyReply
 ) {
+  const profileFlow = request.query.state?.startsWith(profileStatePrefix) ?? false
   try {
-    const temporaryConfig = requireTemporaryConnectConfig()
+    const temporaryConfig = requireWithingsConfig()
+    let profileUserId: string | undefined
+    if (profileFlow) {
+      const state = request.query.state!
+      const cookie = request.cookies[profileStateCookie]
+      reply.clearCookie(profileStateCookie, { path: profileCookiePath })
+      if (!cookie || !safeTokenEquals(cookie, state)) {
+        throw new Error('Missing or mismatched Withings OAuth cookie')
+      }
+      const payload = parseSignedState(state.slice(profileStatePrefix.length), config.cookieSecret)
+      await request.jwtVerify()
+      if (
+        !payload.userId ||
+        payload.userId !== request.user.sub ||
+        !(await findUserById(payload.userId))
+      ) {
+        throw new Error('Withings OAuth session does not match the connecting user')
+      }
+      profileUserId = payload.userId
+    }
 
     if (request.query.error) {
+      if (profileFlow) {
+        return reply.redirect('/profile?withings=cancelled')
+      }
       return reply
         .status(400)
         .type('text/html')
@@ -376,15 +419,20 @@ export async function handleWithingsCallback(
     }
 
     if (!request.query.code || !request.query.state) {
+      if (profileFlow) {
+        return reply.redirect('/profile?withings=error')
+      }
       return reply
         .status(400)
         .type('text/html')
         .send(htmlPage('Withings connection failed', 'Missing OAuth code or state.'))
     }
 
-    parseSignedState(request.query.state, temporaryConfig.connectToken)
+    if (!profileFlow) {
+      parseSignedState(request.query.state, requireTemporaryConnectConfig().connectToken)
+    }
 
-    const user = await upsertBootstrapUser()
+    const user = profileUserId ? { id: profileUserId } : await upsertBootstrapUser()
     const token = await exchangeAuthorizationCode(request.query.code)
     await upsertWithingsConnection(user.id, token)
 
@@ -404,6 +452,17 @@ export async function handleWithingsCallback(
       request.log.error({ error: errorDetails(error) }, 'Initial Withings measurement sync failed')
     }
 
+    if (profileFlow) {
+      const params = new URLSearchParams({ withings: 'connected' })
+      if (initialMeasurementCount === undefined) {
+        params.set('sync', 'failed')
+      }
+      if (!notificationSubscriptionSucceeded) {
+        params.set('updates', 'failed')
+      }
+      return reply.redirect(`/profile?${params}`)
+    }
+
     const message =
       initialMeasurementCount === undefined
         ? 'Connected. Initial measurement sync failed, but future webhook processing can still retry new measurements.'
@@ -421,11 +480,84 @@ export async function handleWithingsCallback(
     const details = errorDetails(error)
     request.log.error({ error: details }, 'Withings OAuth callback failed')
 
+    if (profileFlow) {
+      return reply.redirect('/profile?withings=error')
+    }
+
     return reply
       .status(400)
       .type('text/html')
       .send(htmlPage('Withings connection failed', details.message))
   }
+}
+
+export async function registerWithingsProfileRoutes(app: FastifyInstance) {
+  const options = {
+    preHandler: [
+      app.verifyJwt,
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        reply.header('Cache-Control', 'no-store')
+        if (!(await findUserById(request.user.sub))) {
+          return reply.code(401).send({ error: 'Unauthorized' })
+        }
+      }
+    ]
+  }
+
+  app.get('/api/integrations/withings/status', options, async (request) => {
+    const [connection] = await sql<WithingsConnectionStatus[]>`
+      SELECT external_user_id, status FROM integration_connection
+      WHERE user_id = ${request.user.sub} AND provider = 'withings'
+    `
+    return {
+      connected: connection?.status === 'active',
+      configured: Boolean(
+        config.withingsClientId && config.withingsClientSecret && config.withingsRedirectUri
+      ),
+      automaticUpdates: Boolean(config.withingsWebhookCallbackUrl)
+    }
+  })
+
+  app.get('/api/integrations/withings/connect', options, async (request, reply) => {
+    try {
+      const oauthConfig = requireWithingsConfig()
+      const state =
+        profileStatePrefix +
+        createSignedState(
+          {
+            exp: Math.floor(Date.now() / 1000) + 600,
+            nonce: randomUUID(),
+            userId: request.user.sub
+          },
+          config.cookieSecret
+        )
+      reply.setCookie(profileStateCookie, state, {
+        path: profileCookiePath,
+        httpOnly: true,
+        secure: config.cookieSecure,
+        sameSite: 'lax',
+        maxAge: 600
+      })
+      const url = new URL(config.withingsAuthorizeUrl)
+      url.search = new URLSearchParams({
+        response_type: 'code',
+        client_id: oauthConfig.clientId,
+        scope: withingsAuthorizationScope,
+        redirect_uri: oauthConfig.redirectUri,
+        state
+      }).toString()
+      return reply.redirect(url.toString())
+    } catch (error) {
+      request.log.warn({ error: errorDetails(error) }, 'Profile Withings connect failed')
+      return reply.redirect('/profile?withings=unavailable')
+    }
+  })
+
+  app.delete('/api/integrations/withings', options, async (request, reply) => {
+    await sql`DELETE FROM integration_connection WHERE user_id = ${request.user.sub} AND provider = 'withings'`
+    reply.clearCookie(profileStateCookie, { path: profileCookiePath })
+    return reply.code(204).send()
+  })
 }
 
 export async function handleWithingsStatus(

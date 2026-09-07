@@ -222,8 +222,8 @@ node scripts/with-local-env.mjs npm run auth:bootstrap-admin -w backend -- \
   --base-url "http://localhost:7500"
 ```
 
-Use the same email as `WITHINGS_BOOTSTRAP_EMAIL` in `.env`. It identifies your
-app account and does **not** have to match the email you use to log into Withings.
+This email identifies your app account and does **not** have to match the email
+you use to log into Withings.
 
 Open the printed enrollment link on this computer, click **Create passkey**,
 and follow your browser's prompt. Enrollment logs you in automatically; later,
@@ -231,8 +231,7 @@ use **Log in with passkey**. Enrollment links are single-use and expire after
 24 hours by default. Use `localhost`, matching the example's passkey settings.
 
 The bootstrap command refuses to run if any admin already exists. If you already
-have an account, use its passkey. The Withings connection can also create an
-admin, which is why passkey setup comes first. Reissuing enrollment links for
+have an account, use its passkey. Reissuing enrollment links for
 existing accounts currently requires database access; there is no admin UI yet.
 Deleting an account also deletes its readings, connection, and passkeys.
 
@@ -245,33 +244,24 @@ configure an application and register this exact OAuth redirect URL:
 http://localhost:7500/integrations/withings/callback
 ```
 
-Fill these values in `.env`:
-
-- `WITHINGS_CLIENT_ID` and `WITHINGS_CLIENT_SECRET` from the developer application.
-- `WITHINGS_BOOTSTRAP_EMAIL` and `WITHINGS_BOOTSTRAP_DISPLAY_NAME` for the app
-  account created above.
-- `WITHINGS_CONNECT_TOKEN`, a random token generated with:
-
-```sh
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-```
+Fill `WITHINGS_CLIENT_ID` and `WITHINGS_CLIENT_SECRET` in `.env` with the values
+from the developer application.
 
 Keep `WITHINGS_REDIRECT_URI` set to the localhost callback above. Set
 `WITHINGS_INITIAL_SYNC_DAYS` to the history window you want: the local example
 uses **180 days**. Leave `WITHINGS_WEBHOOK_CALLBACK_URL` empty for a local import.
 
-Restart `./start-local-env.sh`, then open the following URL in your browser,
-replacing `<WITHINGS_CONNECT_TOKEN>` with the token from `.env`:
+Restart `./start-local-env.sh`, log in, and click your name in the dashboard footer
+to open **<http://localhost:7500/profile>**. Click **Connect Withings**, log into
+Withings, and approve access. The callback connects the signed-in app account,
+imports your history, and returns to your profile. No bootstrap email or connect
+token is needed for this flow.
 
-```text
-http://localhost:7500/integrations/withings/connect?token=<WITHINGS_CONNECT_TOKEN>
-```
-
-Log into Withings and approve access. The callback stores the connection and
-imports your history into the local database, then displays the imported count.
-Without a webhook callback, it also reports that automatic updates are not
-configured. Opening the connect URL and authorizing again imports the history
-window again; existing readings are updated without duplicates.
+The profile shows connection status and any import errors. Use **Reconnect Withings**
+to import the history window again; existing readings are updated without duplicates.
+**Disconnect Withings** removes the app's stored connection and tokens, stopping
+future imports while keeping previously imported readings. It does not revoke the
+app's authorization in Withings; that can be removed from Withings separately.
 
 ### 5. View live data and keep it current
 
@@ -291,7 +281,8 @@ use the full history and daily averages, independent of chart grouping. Particip
 without recent readings remain visible, and the table shows the latest reading date.
 
 **The dashboard refresh does not fetch from Withings.** For local use without a
-public webhook, reconnect using the URL above whenever you want fresh data.
+public webhook, use **Reconnect Withings** in your profile whenever you want
+fresh data.
 
 Automatic updates require a public webhook callback configured in the Withings
 application and `WITHINGS_WEBHOOK_CALLBACK_URL`, plus a running webhook worker.
@@ -308,8 +299,8 @@ history. Coolify's `withings-worker` service repeats this command automatically.
 
 ### Local troubleshooting and checks
 
-- **Withings connect returns 403:** check the client ID/secret, connect token,
-  bootstrap email/name, and redirect URI in `.env`, then restart the app.
+- **Withings connection is unavailable:** check the client ID/secret and redirect
+  URI in `.env`, then restart the app.
 - **Withings reports a redirect mismatch:** register the exact localhost callback
   above and use it in `WITHINGS_REDIRECT_URI`.
 - **Passkey setup/login fails:** check `WEBAUTHN_RP_ID=localhost` and
@@ -398,7 +389,10 @@ is pulled on each deploy. Use a commit SHA instead of `latest` when you want
 Coolify to deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the
 GHCR package is private, configure Coolify registry credentials for `ghcr.io`.
 
-Withings connection management still uses the temporary bootstrap flow.
+Signed-in users manage their Withings connection at `/profile`, accessible by
+clicking their name in the dashboard footer. The token-based bootstrap flow remains
+available for compatibility and requires the optional `WITHINGS_CONNECT_TOKEN`,
+`WITHINGS_BOOTSTRAP_EMAIL`, and `WITHINGS_BOOTSTRAP_DISPLAY_NAME` settings.
 Connect the bootstrap account by opening:
 
 ```txt
