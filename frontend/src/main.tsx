@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router'
 
 import { App } from './App'
 import { store } from './store'
+import './styles.css'
 
 const rootElement = document.getElementById('root')
 

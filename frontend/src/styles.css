@@ -1,0 +1,555 @@
+:root {
+  font-family: "Courier New", Courier, monospace;
+  color: #eeeaf8;
+  background: #080511;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
+  --cyan: #35dfff;
+  --green: #00eda0;
+  --secondary: #8296b6;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: repeating-linear-gradient(transparent 0 3px, #00000017 3px 4px);
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 6px;
+}
+button,
+summary {
+  touch-action: manipulation;
+}
+p {
+  margin: 0;
+}
+[role="alert"] {
+  color: #ff819f;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.dashboard {
+  min-height: 100svh;
+  padding: 48px 3% 20px;
+  background: radial-gradient(ellipse at 55% 28%, #160b292e, transparent 65%);
+  border-block: 1px solid #25172f;
+}
+.race-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+.wordmark {
+  margin: 0;
+  color: var(--cyan);
+  font-size: clamp(30px, 3.6vw, 56px);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  line-height: 1.1;
+  text-shadow:
+    3px 0 #35dfff66,
+    0 0 15px #35dfff60;
+}
+.subtitle {
+  margin-top: 14px;
+  color: var(--secondary);
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1.7;
+}
+.subtitle span {
+  padding-inline: 12px;
+}
+.sample-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 15px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sample-indicator > span {
+  width: 9px;
+  height: 9px;
+  background: #ffdf52;
+  box-shadow: 0 0 12px #ffdf5270;
+  border-radius: 50%;
+}
+.race {
+  position: relative;
+  margin-top: 26px;
+}
+.race-chart {
+  width: 61%;
+  height: clamp(460px, calc(100svh - 295px), 730px);
+}
+.race-chart svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.chart-grid {
+  stroke: #26324e;
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.chart-grid.vertical {
+  opacity: 0.22;
+}
+.chart-axis {
+  fill: none;
+  stroke: #375174;
+  stroke-width: 1;
+}
+.axis-label {
+  fill: var(--secondary);
+  font-size: 14px;
+  font-weight: bold;
+}
+.goal-line {
+  stroke: var(--green);
+  stroke-width: 1;
+  stroke-dasharray: 8 8;
+}
+.goal-label {
+  fill: var(--green);
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+.chart-series,
+.participant {
+  transition: opacity 180ms ease;
+}
+.race-standings {
+  position: absolute;
+  inset: 0 0 auto 61%;
+  height: clamp(460px, calc(100svh - 295px), 730px);
+}
+.participant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  top: var(--row-position);
+  transform: translateY(-50%);
+  width: 100%;
+  min-height: 42px;
+  padding: 5px 2px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #eeeaf8;
+  white-space: nowrap;
+}
+.participant.muted {
+  opacity: 0.35;
+}
+.participant:hover,
+.participant[aria-pressed="true"] {
+  background: #ffffff06;
+}
+.participant-dot {
+  flex: 0 0 10px;
+  height: 10px;
+  background: var(--racer-color);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--racer-color);
+}
+.participant-name {
+  font-size: clamp(17px, 1.65vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+.participant-weight {
+  color: var(--racer-color);
+  font-size: clamp(16px, 1.4vw, 22px);
+  font-weight: bold;
+}
+.participant-weight small {
+  font-size: 12px;
+  color: var(--secondary);
+  margin-left: 2px;
+}
+.remaining {
+  font-size: 12px;
+  color: var(--secondary);
+  font-weight: bold;
+}
+.race-badge {
+  padding: 5px 7px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+}
+.setback {
+  color: #ff668e;
+}
+.winner {
+  color: var(--green);
+}
+.personal-low {
+  color: var(--cyan);
+}
+.race-art {
+  position: absolute;
+  right: 1%;
+  top: -145px;
+  pointer-events: none;
+}
+.racer {
+  position: relative;
+  width: 210px;
+  height: 284px;
+  overflow: hidden;
+}
+.racer img {
+  position: absolute;
+  width: 552px;
+  height: 552px;
+  left: -165px;
+  top: -126px;
+  image-rendering: pixelated;
+}
+.race-data {
+  margin: 12px 0 18px 4%;
+  color: var(--secondary);
+  font-size: 12px;
+}
+.race-data summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 8px 0;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: min(100%, 680px);
+  margin-top: 12px;
+}
+caption {
+  text-align: left;
+  padding-bottom: 16px;
+}
+th,
+td {
+  text-align: right;
+  padding: 12px;
+  border-bottom: 1px solid #26324e;
+}
+th:first-child {
+  text-align: left;
+}
+.dashboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #21192f;
+  padding-top: 18px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--secondary);
+}
+.text-button {
+  color: var(--secondary);
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.text-button:hover {
+  color: var(--cyan);
+}
+.auth-page {
+  min-height: 100svh;
+  padding: 64px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, #1b1037, transparent 65%);
+}
+.auth-brand {
+  text-align: center;
+}
+.auth-brand .wordmark {
+  font-size: clamp(32px, 5vw, 56px);
+}
+.auth-brand .subtitle {
+  font-size: 12px;
+}
+.auth-panel {
+  width: min(100%, 750px);
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  margin: 52px 0;
+  padding: 32px;
+  border: 1px solid #302242;
+  background: #090615a8;
+  box-shadow: 0 0 50px #08051180;
+}
+.auth-panel .racer {
+  flex: 0 0 210px;
+}
+.auth-content {
+  flex: 1;
+}
+.eyebrow {
+  font-size: 11px;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+.auth-content h1 {
+  font-size: 25px;
+  margin: 14px 0;
+  letter-spacing: -0.04em;
+}
+.auth-description {
+  color: #b4adc5;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.primary-button {
+  width: 100%;
+  padding: 16px 12px;
+  margin-top: 24px;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  background: #35dfff0b;
+  box-shadow: 0 0 16px #35dfff10;
+  font-size: 13px;
+  font-weight: bold;
+}
+.primary-button:hover:not(:disabled) {
+  background: #35dfff20;
+}
+.auth-hint {
+  margin-top: 20px;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.auth-goal {
+  color: var(--green);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.auth-goal span {
+  color: var(--secondary);
+}
+.loading-screen {
+  padding: 25vh 24px;
+  text-align: center;
+  color: var(--cyan);
+}
+
+@media (min-width: 1700px) {
+  .dashboard {
+    padding-inline: max(3%, calc((100vw - 1700px) / 2));
+  }
+}
+@media (max-width: 1250px) {
+  .participant {
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .participant-name {
+    font-size: 17px;
+  }
+  .participant-weight {
+    font-size: 16px;
+  }
+  .race-badge {
+    font-size: 9px;
+    padding: 4px;
+  }
+  .remaining {
+    font-size: 10px;
+  }
+  .race-art {
+    right: 9%;
+  }
+  .preview-note {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .dashboard {
+    padding: 32px 22px 20px;
+  }
+  .race-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .subtitle {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .subtitle span {
+    padding-inline: 4px;
+  }
+  .sample-indicator {
+    font-size: 10px;
+    margin-top: 8px;
+  }
+  .race {
+    margin-top: 30px;
+  }
+  .race-art {
+    right: 0;
+    top: -166px;
+    transform: scale(0.52);
+    transform-origin: top right;
+  }
+  .race-chart {
+    width: 100%;
+    height: 420px;
+  }
+  .race-standings {
+    position: static;
+    height: auto;
+    margin: 20px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 22px;
+  }
+  .participant {
+    position: static;
+    transform: none;
+    min-height: 58px;
+    padding: 12px 4px;
+    border-bottom: 1px solid #21192f;
+    gap: 10px;
+  }
+  .participant-name {
+    font-size: 18px;
+  }
+  .participant-weight {
+    margin-left: auto;
+    font-size: 17px;
+  }
+  .remaining,
+  .race-badge {
+    font-size: 10px;
+  }
+  .race-data {
+    margin-left: 0;
+  }
+}
+@media (max-width: 580px) {
+  .dashboard {
+    padding-inline: 16px;
+  }
+  .wordmark {
+    font-size: 29px;
+  }
+  .race-art {
+    display: none;
+  }
+  .race-chart {
+    height: 340px;
+  }
+  .race-standings {
+    grid-template-columns: 1fr;
+  }
+  .axis-label {
+    font-size: 22px;
+  }
+  .goal-label {
+    font-size: 24px;
+  }
+  .participant {
+    min-height: 56px;
+  }
+  .participant-weight {
+    margin-left: 0;
+  }
+  .race-badge,
+  .remaining {
+    margin-left: auto;
+  }
+  .personal-low {
+    margin-left: 0;
+  }
+  .dashboard-footer {
+    font-size: 10px;
+  }
+  .auth-page {
+    padding: 32px 20px;
+  }
+  .auth-panel {
+    flex-direction: column;
+    gap: 0;
+    margin: 28px 0;
+    padding: 16px 24px 28px;
+  }
+  .auth-panel .racer {
+    flex-basis: auto;
+    height: 215px;
+    width: 180px;
+  }
+  .auth-panel .racer img {
+    width: 414px;
+    height: 414px;
+    left: -113px;
+    top: -94px;
+  }
+  .auth-content {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

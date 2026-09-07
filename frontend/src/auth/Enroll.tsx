@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 
 import { useEnrollOptionsMutation, useEnrollVerifyMutation } from '../api/authApi'
+import { AuthLayout } from './AuthLayout'
 
 export const Enroll = () => {
   const [params] = useSearchParams()
@@ -25,12 +26,22 @@ export const Enroll = () => {
   }
 
   return (
-    <main>
+    <AuthLayout>
+      <p className="eyebrow">Join the race</p>
       <h1>Set up your passkey</h1>
-      <button type="button" onClick={enroll} disabled={status === 'working'}>
-        Create passkey
+      <p className="auth-description">One quick setup. Then you’re on the starting line.</p>
+      <button
+        className="primary-button"
+        type="button"
+        onClick={enroll}
+        disabled={status === 'working' || !token}
+      >
+        {status === 'working' ? 'Creating passkey…' : 'Create passkey'}
       </button>
-      {status === 'error' && <p role="alert">Enrollment link is invalid or expired.</p>}
-    </main>
+      {(status === 'error' || !token) && <p role="alert">Enrollment link is invalid or expired.</p>}
+      <p className="auth-hint">
+        Use your device’s fingerprint, face recognition, or security key to sign in.
+      </p>
+    </AuthLayout>
   )
 }

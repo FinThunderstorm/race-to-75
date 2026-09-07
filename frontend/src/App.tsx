@@ -10,7 +10,11 @@ const ProtectedRoute = ({ children }: { children: ReactElement }) => {
   const { isAuthenticated, isLoading } = useUser()
 
   if (isLoading) {
-    return <p>Loading…</p>
+    return (
+      <p className="loading-screen" role="status">
+        Loading the race…
+      </p>
+    )
   }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />

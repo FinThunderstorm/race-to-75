@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router'
 
 import { useLoginOptionsMutation, useLoginVerifyMutation } from '../api/authApi'
 import { useUser } from '../hooks/useUser'
+import { AuthLayout } from './AuthLayout'
 
 export const Login = () => {
   const navigate = useNavigate()
@@ -29,12 +30,20 @@ export const Login = () => {
   }
 
   return (
-    <main>
+    <AuthLayout>
+      <p className="eyebrow">Ready, player?</p>
       <h1>Log in</h1>
-      <button type="button" onClick={login} disabled={status === 'working'}>
-        Log in with passkey
+      <p className="auth-description">Your next step toward 75 starts here.</p>
+      <button
+        className="primary-button"
+        type="button"
+        onClick={login}
+        disabled={status === 'working'}
+      >
+        {status === 'working' ? 'Waiting for passkey…' : 'Log in with passkey'}
       </button>
       {status === 'error' && <p role="alert">Login failed.</p>}
-    </main>
+      <p className="auth-hint">New to the race? Ask your admin for an invitation.</p>
+    </AuthLayout>
   )
 }
