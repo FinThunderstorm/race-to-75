@@ -7,6 +7,47 @@ const previewUser = {
   role: 'member'
 }
 
+test('live chart plots weekly averages and current-week daily averages over three months', async ({
+  page
+}) => {
+  await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
+  await page.route('**/api/race', (route) =>
+    route.fulfill({
+      json: {
+        participants: [
+          {
+            id: 'weekly',
+            name: 'Weekly Racer',
+            measurements: [
+              { measuredAt: '2020-01-01T08:00:00Z', weightKg: 150 },
+              { measuredAt: '2026-08-31T08:00:00Z', weightKg: 100 },
+              { measuredAt: '2026-08-31T12:00:00Z', weightKg: 90 },
+              { measuredAt: '2026-09-01T08:00:00Z', weightKg: 80 },
+              { measuredAt: '2026-09-07T08:00:00Z', weightKg: 85 },
+              { measuredAt: '2026-09-07T12:00:00Z', weightKg: 83 },
+              { measuredAt: '2026-09-09T08:00:00Z', weightKg: 82 }
+            ]
+          }
+        ]
+      }
+    })
+  )
+  await page.goto('/?data=live')
+  const points = page.locator('.chart-series circle title')
+  await expect(points).toHaveText([
+    'Weekly Racer: 90.0 kg · Weekly average · 2026-08-31',
+    'Weekly Racer: 84.0 kg · Daily average · 2026-09-07',
+    'Weekly Racer: 82.0 kg · Daily average · 2026-09-09'
+  ])
+  await expect(page.locator('svg')).toContainText('10 JUN 2026')
+  await expect(page.locator('svg')).toContainText('10 SEPT 2026')
+  await page.getByText('View live readings', { exact: true }).click()
+  await expect(
+    page.getByRole('row', { name: 'Weekly Racer 150.0 82.0 7.0 2026-09-09' })
+  ).toBeVisible()
+})
+
 test('serves the SPA shell with the login screen for unauthenticated users', async ({ page }) => {
   await page.goto('/')
 

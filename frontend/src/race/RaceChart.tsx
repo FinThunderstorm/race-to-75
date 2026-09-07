@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from 'react'
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
 import { Racer } from '../Racer'
 import { chartBounds, type RaceParticipant } from './prepareRace'
@@ -13,32 +13,56 @@ export const RaceChart = ({
   live?: boolean
 }) => {
   const [selected, setSelected] = useState<string | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 840, height: 640 })
+  const hasReadings = participants.some((person) => person.points.length > 0)
+
+  useLayoutEffect(() => {
+    const element = chartRef.current
+    if (!element) {
+      return
+    }
+    const update = (width: number, height: number) => {
+      if (width > 0 && height > 0) {
+        setSize((previous) =>
+          previous.width === width && previous.height === height ? previous : { width, height }
+        )
+      }
+    }
+    const initial = element.getBoundingClientRect()
+    update(initial.width, initial.height)
+    const observer = new ResizeObserver(([entry]) =>
+      update(entry.contentRect.width, entry.contentRect.height)
+    )
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [hasReadings])
+
+  // Render in CSS-pixel coordinates so resizing cannot squash circles or text.
+  const left = size.width < 500 ? 36 : 55
+  const right = size.width - (size.width < 500 ? 12 : 40)
+  const plotHeight = size.height - 40
   const bounds = chartBounds(participants)
-  const y = (weight: number) =>
-    live
-      ? ((bounds.top - weight) / (bounds.top - bounds.bottom)) * 600
-      : ((104 - weight) / 34) * 600
+  const y = (weight: number) => ((bounds.top - weight) / (bounds.top - bounds.bottom)) * plotHeight
   const x = (date: string) =>
     bounds.start === bounds.end
-      ? 427.5
-      : 55 + ((Date.parse(date) - bounds.start) / (bounds.end - bounds.start)) * 745
+      ? (left + right) / 2
+      : left + ((Date.parse(date) - bounds.start) / (bounds.end - bounds.start)) * (right - left)
   const withReadings = participants.filter((person) => person.points.length > 0)
-  const stacked =
-    participants.length > 10 || participants.some((person) => person.points.length === 0)
+  const withoutReadings = participants.filter((person) => person.points.length === 0)
+  const stacked = withReadings.length > 10
   const labelPositions = new Map<string, number>()
   // Keep nearby current weights legible without shifting their actual data points.
-  const sorted = [...withReadings].sort(
-    (a, b) => y(a.points.at(-1)!.weight) - y(b.points.at(-1)!.weight)
-  )
-  let previous = -20
+  const sorted = [...withReadings].sort((a, b) => y(a.latest!.weight) - y(b.latest!.weight))
+  let previous = 112
   for (const person of sorted) {
-    const position = Math.max(y(person.points.at(-1)!.weight), previous + 40)
+    const position = Math.max(y(person.latest!.weight), previous + 48)
     labelPositions.set(person.id, position)
     previous = position
   }
-  let next = 620
+  let next = size.height - 12
   for (const person of [...sorted].reverse()) {
-    const position = Math.min(labelPositions.get(person.id)!, next - 40)
+    const position = Math.min(labelPositions.get(person.id)!, next - 48)
     labelPositions.set(person.id, position)
     next = position
   }
@@ -52,58 +76,125 @@ export const RaceChart = ({
       })
       .toUpperCase()
 
+  const renderParticipant = (person: RaceParticipant) => {
+    const current = person.latest?.weight
+    const style = {
+      '--racer-color': person.color,
+      '--row-position': `${((labelPositions.get(person.id) ?? 0) / size.height) * 100}%`
+    } as CSSProperties
+    return (
+      <button
+        key={person.id}
+        type="button"
+        className={`participant ${selected && selected !== person.id ? 'muted' : ''}`}
+        style={style}
+        aria-pressed={selected === person.id}
+        onClick={() => setSelected(selected === person.id ? null : person.id)}
+      >
+        <span className="participant-dot" />
+        <span className="participant-name">{person.name}</span>
+        {current === undefined ? (
+          <span className="remaining">No Withings readings</span>
+        ) : (
+          <>
+            <span className="participant-weight">
+              {current.toFixed(1)}
+              <small>kg</small>
+            </span>
+            {person.streak >= 7 ? (
+              <span className="race-badge winner">✓ Goal · {person.streak} days</span>
+            ) : person.change > 0 ? (
+              <span className="race-badge setback">▲ +{person.change.toFixed(1)} kg</span>
+            ) : (
+              <span className="remaining">{Math.max(0, current - goal).toFixed(1)} to go</span>
+            )}
+            {person.personalLow && person.streak < 7 && (
+              <span className="race-badge personal-low">New personal low</span>
+            )}
+          </>
+        )}
+      </button>
+    )
+  }
+
   return (
     <section
       className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''}`}
       aria-label={`${live ? 'Live' : 'Sample'} group weight history`}
     >
-      {!live && (
-        <div className="race-art">
-          <Racer />
-        </div>
-      )}
+      <div className="race-art">
+        <Racer />
+      </div>
       {withReadings.length > 0 ? (
-        <div className="race-chart">
+        <div className="race-chart" ref={chartRef}>
           <svg
-            viewBox="0 0 840 640"
-            preserveAspectRatio="none"
+            viewBox={`0 0 ${size.width} ${size.height}`}
+            preserveAspectRatio="xMinYMin meet"
             role="img"
             aria-labelledby="chart-title chart-description"
           >
             <title id="chart-title">The race to 75 kilograms</title>
             <desc id="chart-description">
-              {live
-                ? 'All imported Withings history, plotted as daily averages in UTC.'
-                : 'Sample weight trends over eight weeks.'}{' '}
-              Starting and current weights are available in the table below. Select a participant to
-              highlight their history.
+              {live ? 'Withings' : 'Sample'} weight trends over the last three months. Completed
+              weeks show the average of all weighings; the current week shows daily averages. Weeks
+              start on Monday in UTC. Solid vertical markers indicate month boundaries; the cyan
+              dashed marker indicates the start of this week. Starting and current weights are
+              available in the table below. Select a participant to highlight their history.
             </desc>
             <defs>
+              <clipPath id="chart-weight-range">
+                <rect x="0" y="0" width={size.width} height={plotHeight} />
+              </clipPath>
               <filter id="line-glow" x="-15%" y="-15%" width="130%" height="130%">
                 <feGaussianBlur stdDeviation="2.5" />
               </filter>
             </defs>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-              <line
-                key={index}
-                className="chart-grid vertical"
-                x1={55 + (index / 7) * 745}
-                x2={55 + (index / 7) * 745}
-                y1="0"
-                y2="600"
-              />
-            ))}
-            {(live ? bounds.ticks : [100, 95, 90, 85, 80]).map((weight) => (
+            {bounds.weeks
+              .filter((week) => week !== bounds.currentWeek && !bounds.months.includes(week))
+              .map((week) => (
+                <line
+                  key={week}
+                  className="chart-grid vertical"
+                  x1={x(new Date(week).toISOString())}
+                  x2={x(new Date(week).toISOString())}
+                  y1="0"
+                  y2={plotHeight}
+                />
+              ))}
+            {bounds.ticks.map((weight) => (
               <g key={weight}>
-                <line className="chart-grid" x1="55" x2="800" y1={y(weight)} y2={y(weight)} />
-                <text className="axis-label" x="41" y={y(weight) + 5} textAnchor="end">
+                <line className="chart-grid" x1={left} x2={right} y1={y(weight)} y2={y(weight)} />
+                <text className="axis-label" x={left - 14} y={y(weight) + 5} textAnchor="end">
                   {weight}
                 </text>
               </g>
             ))}
-            <path className="chart-axis" d="M55 0 V600 H800" />
-            <line className="goal-line" x1="55" x2="840" y1={y(goal)} y2={y(goal)} />
-            <text className="goal-label" x="59" y={y(goal) - 12}>
+            <path className="chart-axis" d={`M${left} 0 V${plotHeight} H${right}`} />
+            {bounds.months.map((month) => {
+              const monthX = x(new Date(month).toISOString())
+              return (
+                <g key={month}>
+                  <line className="month-line" x1={monthX} x2={monthX} y1="0" y2={plotHeight} />
+                  <text className="month-label" x={Math.min(monthX + 6, right - 32)} y="-10">
+                    {new Date(month)
+                      .toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
+                      .toUpperCase()}
+                  </text>
+                </g>
+              )
+            })}
+            <line
+              className="current-week-line"
+              x1={x(new Date(bounds.currentWeek).toISOString())}
+              x2={x(new Date(bounds.currentWeek).toISOString())}
+              y1="0"
+              y2={plotHeight}
+            />
+            <text className="current-week-label" x={right} y="-28" textAnchor="end">
+              THIS WEEK
+            </text>
+            <line className="goal-line" x1={left} x2={right} y1={y(goal)} y2={y(goal)} />
+            <text className="goal-label" x={left + 4} y={y(goal) - 12}>
               75.0 KG — GOAL LINE
             </text>
             {withReadings.map((person) => {
@@ -115,6 +206,7 @@ export const RaceChart = ({
                 <g
                   key={person.id}
                   className="chart-series"
+                  clipPath="url(#chart-weight-range)"
                   opacity={selected && selected !== person.id ? 0.16 : 1}
                 >
                   <polyline
@@ -141,14 +233,15 @@ export const RaceChart = ({
                       fill={person.color}
                     >
                       <title>
-                        {person.name}: {point.weight.toFixed(1)} kg · {point.date}
+                        {person.name}: {point.weight.toFixed(1)} kg ·{' '}
+                        {point.period === 'week' ? 'Weekly' : 'Daily'} average · {point.date}
                       </title>
                     </circle>
                   ))}
                   {!stacked && (
                     <path
                       className="label-connector"
-                      d={`M${x(last.date)} ${y(last.weight)} L815 ${y(last.weight)} L840 ${labelPositions.get(person.id)}`}
+                      d={`M${x(last.date)} ${y(last.weight)} L${right + 15} ${y(last.weight)} L${size.width} ${labelPositions.get(person.id)}`}
                       fill="none"
                       stroke={person.color}
                       strokeWidth="2"
@@ -168,72 +261,40 @@ export const RaceChart = ({
                 </g>
               )
             })}
-            <text className="axis-label" x="55" y="630">
-              {live ? dateLabel(bounds.start) : '8 WEEKS AGO'}
+            <text className="axis-label" x={left} y={size.height - 10}>
+              {dateLabel(bounds.start)}
             </text>
-            <text className="axis-label" x="800" y="630" textAnchor="end">
-              {live ? dateLabel(bounds.end) : 'NOW'}
+            <text className="axis-label" x={right} y={size.height - 10} textAnchor="end">
+              {dateLabel(bounds.end)}
             </text>
           </svg>
         </div>
       ) : (
         <p className="race-message" role="status">
-          No Withings measurements have been imported yet.
+          {participants.some((person) => person.latest)
+            ? 'No measurements in the last three months.'
+            : 'No Withings measurements have been imported yet.'}
         </p>
       )}
       <div
         className="race-standings"
         aria-label="Participants. Select a participant to highlight their history."
       >
-        {participants.map((person) => {
-          const current = person.points.at(-1)?.weight
-          const style = {
-            '--racer-color': person.color,
-            '--row-position': `${((labelPositions.get(person.id) ?? 0) / 640) * 100}%`
-          } as CSSProperties
-          return (
-            <button
-              key={person.id}
-              type="button"
-              className={`participant ${selected && selected !== person.id ? 'muted' : ''}`}
-              style={style}
-              aria-pressed={selected === person.id}
-              onClick={() => setSelected(selected === person.id ? null : person.id)}
-            >
-              <span className="participant-dot" />
-              <span className="participant-name">{person.name}</span>
-              {current === undefined ? (
-                <span className="remaining">No Withings readings</span>
-              ) : (
-                <>
-                  <span className="participant-weight">
-                    {current.toFixed(1)}
-                    <small>kg</small>
-                  </span>
-                  {person.streak >= 7 ? (
-                    <span className="race-badge winner">✓ Goal · {person.streak} days</span>
-                  ) : person.change > 0 ? (
-                    <span className="race-badge setback">▲ +{person.change.toFixed(1)} kg</span>
-                  ) : (
-                    <span className="remaining">
-                      {Math.max(0, current - goal).toFixed(1)} to go
-                    </span>
-                  )}
-                  {person.personalLow && person.streak < 7 && (
-                    <span className="race-badge personal-low">New personal low</span>
-                  )}
-                </>
-              )}
-            </button>
-          )
-        })}
+        {withReadings.map(renderParticipant)}
       </div>
+      {withoutReadings.length > 0 && (
+        <section className="race-unplotted" aria-label="Participants without recent readings">
+          <p className="unplotted-heading">No readings in the last three months</p>
+          <div className="unplotted-list">{withoutReadings.map(renderParticipant)}</div>
+        </section>
+      )}
       <details className="race-data">
         <summary>View {live ? 'live' : 'sample'} readings</summary>
         <div className="table-scroll">
           <table>
             <caption>
-              {live ? 'Withings daily averages (UTC)' : 'Sample readings'} in kilograms · 75 kg goal
+              {live ? 'Withings' : 'Sample'} summary in kilograms · Current weight is the latest
+              daily average (UTC)
             </caption>
             <thead>
               <tr>
@@ -246,7 +307,7 @@ export const RaceChart = ({
             </thead>
             <tbody>
               {participants.map((person) => {
-                const last = person.points.at(-1)
+                const last = person.latest
                 return (
                   <tr key={person.id}>
                     <th scope="row">{person.name}</th>

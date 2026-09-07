@@ -1,4 +1,4 @@
-import type { RaceParticipant } from './prepareRace'
+import { chartWindow, prepareRace } from './prepareRace'
 
 const sampleReadings = [
   { name: 'Heikki', color: '#ffad4d', weights: [102, 100.5, 99, 98, 97, 96, 95, 94] },
@@ -14,16 +14,26 @@ const sampleReadings = [
   { name: 'Sanna', color: '#ffdf52', weights: [84, 82.5, 81, 79, 77.5, 76, 74.5, 73.2], streak: 9 }
 ]
 
-export const sampleRace: RaceParticipant[] = sampleReadings.map((person) => ({
-  id: person.name,
-  name: person.name,
-  color: person.color,
-  points: person.weights.map((weight, index) => ({
-    date: new Date(Date.UTC(2026, 6, 13 + index * 8)).toISOString().slice(0, 10),
-    weight
-  })),
-  startWeight: person.weights[0],
-  change: person.weights[person.weights.length - 1] - person.weights[person.weights.length - 2],
-  streak: person.streak ?? 0,
-  personalLow: person.personalLow ?? false
-}))
+export function createSampleRace(now = new Date()) {
+  const { start, end } = chartWindow(now)
+  const days = Math.round((end - start) / 86_400_000)
+  return sampleReadings.map((person) => {
+    const measurements = Array.from({ length: days + 1 }, (_, day) => {
+      const position = (day / days) * (person.weights.length - 1)
+      const index = Math.floor(position)
+      const from = person.weights[index]
+      const to = person.weights[Math.min(index + 1, person.weights.length - 1)]
+      return {
+        measuredAt: new Date(start + day * 86_400_000).toISOString(),
+        weightKg: Math.round((from + (to - from) * (position - index)) * 100) / 100
+      }
+    })
+    const [participant] = prepareRace([{ id: person.name, name: person.name, measurements }], now)
+    return {
+      ...participant,
+      color: person.color,
+      streak: person.streak ?? 0,
+      personalLow: person.personalLow ?? false
+    }
+  })
+}

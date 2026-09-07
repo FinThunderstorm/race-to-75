@@ -7,7 +7,7 @@ import { raceApi, useGetRaceQuery } from './api/raceApi'
 import { useUser } from './hooks/useUser'
 import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
-import { sampleRace } from './race/sampleRace'
+import { createSampleRace } from './race/sampleRace'
 
 export const Home = () => {
   const { user } = useUser()
@@ -28,7 +28,9 @@ export const Home = () => {
     pollingInterval: live ? 30_000 : 0,
     refetchOnMountOrArgChange: true
   })
-  const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data])
+  const today = new Date().toISOString().slice(0, 10)
+  const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data, today])
+  const sampleRace = useMemo(() => createSampleRace(), [today])
   const toggleParams = new URLSearchParams(params)
   toggleParams.set('data', live ? 'sample' : 'live')
 
@@ -72,12 +74,10 @@ export const Home = () => {
           live={live}
         />
       )}
-      {live && (
-        <p className="live-note">
-          All imported Withings history · Daily averages in UTC ·{' '}
-          {isFetching ? 'Refreshing…' : 'Refreshes every 30 seconds'}
-        </p>
-      )}
+      <p className="live-note">
+        Last 3 months · Weekly averages · Daily averages this week · Monday-start weeks (UTC)
+        {live && <> · {isFetching ? 'Refreshing…' : 'Refreshes every 30 seconds'}</>}
+      </p>
       <footer className="dashboard-footer">
         <p>Signed in as {user?.display_name}</p>
         <p className="preview-note">

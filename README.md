@@ -45,8 +45,8 @@ and Getting started for the current local workflow.
   separately).
 - Shows current weight (most recent daily average), kg lost since start, kg to
   go, and % of the way from start to 75 kg.
-- All-time trend chart, one point per day (that day's average). No timeframe
-  filters.
+- Three-month trend chart: one average per completed week, with daily averages
+  for the current week. No timeframe filters.
 
 ### Reactions
 
@@ -279,9 +279,16 @@ Open **<http://localhost:7500/?data=live>**, or click **Sample data** in the
 header. Click **Live data** to return to the sample preview.
 
 Live mode requires login and reads every participant's imported Withings history
-through `/api/race`. It refreshes the database view every 30 seconds and plots
-all imported history as daily averages in UTC. Participants without readings
-remain visible, and the readings table shows the latest date for each person.
+through `/api/race`. It refreshes the database view every 30 seconds. Both live
+and sample charts show the last three calendar months through today. Completed
+weeks have one point averaging every weighing in that week; the current week
+has at most one point per logged day, averaging that day's weighings. Weeks start
+on Monday in UTC. Empty weeks/days have no point, and the first partial week
+only includes readings within the displayed window.
+
+Start weight, current weight, personal records, and qualifying-day streaks still
+use the full history and daily averages, independent of chart grouping. Participants
+without recent readings remain visible, and the table shows the latest reading date.
 
 **The dashboard refresh does not fetch from Withings.** For local use without a
 public webhook, reconnect using the URL above whenever you want fresh data.

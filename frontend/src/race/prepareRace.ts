@@ -1,10 +1,13 @@
 import type { WithingsParticipant } from '../api/raceApi'
 
+type WeightPoint = { date: string; weight: number }
+
 export type RaceParticipant = {
   id: string
   name: string
   color: string
-  points: { date: string; weight: number }[]
+  points: (WeightPoint & { period: 'week' | 'day' })[]
+  latest: WeightPoint | null
   startWeight: number | null
   change: number
   streak: number
@@ -12,28 +15,86 @@ export type RaceParticipant = {
 }
 
 const colors = ['#ffad4d', '#ff668e', '#bc94ff', '#00eda0', '#35dfff', '#ffdf52']
+const dayMs = 24 * 60 * 60 * 1000
+const dateKey = (timestamp: number) => new Date(timestamp).toISOString().slice(0, 10)
+const weekStart = (timestamp: number) => {
+  const date = new Date(timestamp)
+  const midnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  return midnight - ((date.getUTCDay() + 6) % 7) * dayMs
+}
 
-export function prepareRace(participants: WithingsParticipant[]): RaceParticipant[] {
+export function chartWindow(now = new Date()) {
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth()
+  const day = now.getUTCDate()
+  const end = Date.UTC(year, month, day)
+  // Clamp the day when the month three months ago is shorter (e.g. May 31 → Feb 28).
+  const lastDay = new Date(Date.UTC(year, month - 2, 0)).getUTCDate()
+  const start = Date.UTC(year, month - 3, Math.min(day, lastDay))
+  const currentWeek = weekStart(end)
+  const weeks = []
+  for (let week = weekStart(start); week <= end; week += 7 * dayMs) {
+    if (week >= start) {
+      weeks.push(week)
+    }
+  }
+  const months = []
+  for (let offset = -3; offset <= 0; offset += 1) {
+    const boundary = Date.UTC(year, month + offset, 1)
+    if (boundary >= start && boundary <= end) {
+      months.push(boundary)
+    }
+  }
+  return { start, end, currentWeek, weeks, months }
+}
+
+export function prepareRace(
+  participants: WithingsParticipant[],
+  now = new Date()
+): RaceParticipant[] {
+  const window = chartWindow(now)
   return participants.map((participant) => {
-    // UTC keeps daily averages and qualifying days consistent for every viewer.
-    const readings = [...participant.measurements].sort((a, b) =>
-      a.measuredAt.localeCompare(b.measuredAt)
-    )
+    const readings = participant.measurements
+      .filter((reading) => Date.parse(reading.measuredAt) <= now.getTime())
+      .sort((a, b) => Date.parse(a.measuredAt) - Date.parse(b.measuredAt))
     const days = new Map<string, { total: number; count: number }>()
+    const buckets = new Map<string, { total: number; count: number; period: 'week' | 'day' }>()
     for (const reading of readings) {
-      const date = reading.measuredAt.slice(0, 10)
+      const timestamp = Date.parse(reading.measuredAt)
+      const date = dateKey(timestamp)
       const day = days.get(date) ?? { total: 0, count: 0 }
       day.total += reading.weightKg
       day.count += 1
       days.set(date, day)
+
+      if (timestamp < window.start) {
+        continue
+      }
+      const currentWeek = timestamp >= window.currentWeek
+      const bucketDate = currentWeek ? date : dateKey(Math.max(window.start, weekStart(timestamp)))
+      const bucket = buckets.get(bucketDate) ?? {
+        total: 0,
+        count: 0,
+        period: currentWeek ? 'day' : 'week'
+      }
+      // Weight every weighing equally, rather than averaging the daily averages.
+      bucket.total += reading.weightKg
+      bucket.count += 1
+      buckets.set(bucketDate, bucket)
     }
-    const points = [...days.entries()].map(([date, day]) => ({
+    const points = [...buckets.entries()].map(([date, bucket]) => ({
+      date,
+      weight: bucket.total / bucket.count,
+      period: bucket.period
+    }))
+    // Current weight, records, and qualifying-day streaks still use daily history.
+    const daily = [...days.entries()].map(([date, day]) => ({
       date,
       weight: day.total / day.count
     }))
-    const last = points.at(-1)
+    const latest = daily.at(-1) ?? null
     let streak = 0
-    for (let index = points.length - 1; index >= 0 && points[index].weight <= 75; index -= 1) {
+    for (let index = daily.length - 1; index >= 0 && daily[index].weight <= 75; index -= 1) {
       streak += 1
     }
     const colorIndex =
@@ -45,37 +106,37 @@ export function prepareRace(participants: WithingsParticipant[]): RaceParticipan
       name: participant.name,
       color: colors[colorIndex],
       points,
+      latest,
       startWeight: readings[0]?.weightKg ?? null,
-      change: last && points.length > 1 ? last.weight - points[points.length - 2].weight : 0,
+      change: latest && daily.length > 1 ? latest.weight - daily[daily.length - 2].weight : 0,
       streak,
       personalLow:
-        points.length > 1 &&
-        points.slice(0, -1).every((point) => point.weight > (last?.weight ?? 0))
+        daily.length > 1 &&
+        daily.slice(0, -1).every((point) => point.weight > (latest?.weight ?? 0))
     }
   })
 }
 
-export function chartBounds(participants: RaceParticipant[]) {
-  let minWeight = 75
+export function chartBounds(participants: RaceParticipant[], now = new Date()) {
   let maxWeight = 75
-  let start = Infinity
-  let end = -Infinity
   for (const participant of participants) {
     for (const point of participant.points) {
-      minWeight = Math.min(minWeight, point.weight)
       maxWeight = Math.max(maxWeight, point.weight)
-      start = Math.min(start, Date.parse(point.date))
-      end = Math.max(end, Date.parse(point.date))
+    }
+    if (participant.points.length && participant.latest) {
+      maxWeight = Math.max(maxWeight, participant.latest.weight)
     }
   }
-  const step = Math.max(1, Math.ceil((maxWeight - minWeight) / 25) * 5)
-  const bottom = Math.floor(minWeight / step) * step - step
-  const top = Math.ceil(maxWeight / step) * step + step
+  const bottom = 75 - 2
+  const top = maxWeight + 0.5
+  const targetStep = (top - bottom) / 6
+  const magnitude = 10 ** Math.floor(Math.log10(targetStep))
+  const step = [1, 2, 5, 10].find((value) => value * magnitude >= targetStep)! * magnitude
   const ticks = []
-  for (let tick = bottom + step; tick < top; tick += step) {
+  for (let tick = Math.ceil(bottom / step) * step; tick < top; tick += step) {
     if (tick !== 75) {
       ticks.push(tick)
     }
   }
-  return { bottom, top, start, end, ticks }
+  return { bottom, top, ticks, ...chartWindow(now) }
 }

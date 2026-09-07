@@ -130,10 +130,8 @@ p {
   text-overflow: ellipsis;
   max-width: 40%;
 }
-.race--stacked .race-chart {
-  width: 100%;
-}
-.race--stacked .race-standings {
+.race--stacked .race-standings,
+.unplotted-list {
   position: static;
   height: auto;
   display: grid;
@@ -141,7 +139,8 @@ p {
   gap: 4px 22px;
   margin-block: 20px;
 }
-.race--stacked .participant {
+.race--stacked .participant,
+.unplotted-list .participant {
   position: static;
   transform: none;
   min-height: 58px;
@@ -150,11 +149,19 @@ p {
   flex-wrap: wrap;
   gap: 10px;
 }
-.race--stacked .participant-name {
+.race--stacked .participant-name,
+.unplotted-list .participant-name {
   flex: 1 1 calc(100% - 26px);
   max-width: none;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+.race-unplotted {
+  margin: 24px 0 12px 4%;
+}
+.unplotted-heading {
+  color: var(--secondary);
+  font-size: 12px;
 }
 .sample-indicator > span {
   width: 9px;
@@ -176,6 +183,9 @@ p {
   height: 100%;
   overflow: visible;
 }
+.race-chart svg :is(line, path, polyline, circle) {
+  vector-effect: non-scaling-stroke;
+}
 .chart-grid {
   stroke: #26324e;
   stroke-width: 1;
@@ -183,6 +193,26 @@ p {
 }
 .chart-grid.vertical {
   opacity: 0.22;
+}
+.month-line {
+  stroke: #526b91;
+  stroke-width: 1;
+  opacity: 0.7;
+}
+.current-week-line {
+  stroke: var(--cyan);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+  opacity: 0.8;
+}
+.month-label,
+.current-week-label {
+  fill: var(--secondary);
+  font-size: 11px;
+  font-weight: bold;
+}
+.current-week-label {
+  fill: var(--cyan);
 }
 .chart-axis {
   fill: none;
@@ -562,10 +592,10 @@ th:first-child {
     grid-template-columns: 1fr;
   }
   .axis-label {
-    font-size: 22px;
+    font-size: 11px;
   }
   .goal-label {
-    font-size: 24px;
+    font-size: 12px;
   }
   .participant {
     min-height: 56px;
