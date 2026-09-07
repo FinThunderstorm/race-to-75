@@ -14,6 +14,7 @@ export const Home = () => {
   const { user } = useUser()
   const [logout, { isLoading }] = useLogoutMutation()
   const [logoutError, setLogoutError] = useState(false)
+  const [fullscreenError, setFullscreenError] = useState(false)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params] = useSearchParams()
@@ -75,10 +76,6 @@ export const Home = () => {
           live={live}
         />
       )}
-      <p className="live-note">
-        Last 3 months · Weekly averages · Daily averages this week · Monday-start weeks (UTC)
-        {live && <> · {isFetching ? 'Refreshing…' : 'Refreshes every 30 seconds'}</>}
-      </p>
       <footer className="dashboard-footer">
         <p>
           Signed in as{' '}
@@ -86,9 +83,23 @@ export const Home = () => {
             {user?.display_name}
           </Link>
         </p>
-        <p className="preview-note">
-          {live ? 'Withings' : 'Design preview'} · Select a racer to follow their progress.
-        </p>
+        {document.fullscreenEnabled && (
+          <button
+            className="text-button fullscreen-button"
+            type="button"
+            title="Enter full screen (Esc to exit)"
+            onClick={async () => {
+              setFullscreenError(false)
+              try {
+                await document.documentElement.requestFullscreen()
+              } catch {
+                setFullscreenError(true)
+              }
+            }}
+          >
+            Full screen
+          </button>
+        )}
         <button
           className="text-button"
           type="button"
@@ -108,6 +119,7 @@ export const Home = () => {
           {isLoading ? 'Logging out…' : 'Log out'}
         </button>
       </footer>
+      {fullscreenError && <p role="alert">Could not enter full screen. Please try again.</p>}
       {logoutError && <p role="alert">Could not log out. Please try again.</p>}
     </main>
   )

@@ -120,12 +120,6 @@ p {
   color: var(--secondary);
   line-height: 1.8;
 }
-.live-note {
-  color: var(--secondary);
-  font-size: 11px;
-  line-height: 1.8;
-  margin: 12px 0 20px;
-}
 .race--live .participant-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -385,6 +379,9 @@ th:first-child {
   text-underline-offset: 4px;
   white-space: nowrap;
 }
+:fullscreen .fullscreen-button {
+  display: none;
+}
 .text-button:hover {
   color: var(--cyan);
 }
@@ -538,9 +535,6 @@ th:first-child {
   }
   .race-art {
     right: 9%;
-  }
-  .preview-note {
-    display: none;
   }
 }
 @media (max-width: 900px) {
