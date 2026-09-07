@@ -1,5 +1,5 @@
 :root {
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Fira Code", monospace;
   color: #eeeaf8;
   background: #080511;
   font-synthesis: none;
@@ -71,8 +71,9 @@ p {
 .wordmark {
   margin: 0;
   color: var(--cyan);
+  font-family: "Workbench", monospace;
   font-size: clamp(30px, 3.6vw, 56px);
-  font-weight: 900;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   line-height: 1.1;
@@ -276,7 +277,7 @@ p {
 }
 .participant-name {
   font-size: clamp(17px, 1.65vw, 26px);
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
