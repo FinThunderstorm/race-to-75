@@ -85,7 +85,7 @@ test('allowed network can view real data, enroll, log out and log back in with a
   }
   await page.goto('/')
   await expect(page.locator('.dashboard--radiator')).toBeVisible()
-  await expect(page.locator('.dashboard-footer')).toHaveCount(0)
+  await expect(page.locator('.dashboard-footer')).toHaveText('Full screen')
   await addVirtualAuthenticator(page)
   await page.goto(`/enroll?token=${enrollment.rawToken}`)
   await page.getByRole('button', { name: 'Create passkey' }).click()

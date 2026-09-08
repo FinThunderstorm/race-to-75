@@ -465,10 +465,6 @@ th:first-child {
 :fullscreen .fullscreen-button {
   display: none;
 }
-.race-header .fullscreen-button {
-  margin-left: auto;
-  font-size: 11px;
-}
 .text-button:hover {
   color: var(--cyan);
 }
@@ -890,8 +886,18 @@ th:first-child {
 }
 .dashboard--radiator {
   height: 100dvh;
+  padding-bottom: 32px;
   display: flex;
   flex-direction: column;
+}
+.dashboard-footer--radiator {
+  position: fixed;
+  left: max(10px, env(safe-area-inset-left));
+  bottom: max(6px, env(safe-area-inset-bottom));
+  z-index: 5;
+  padding: 0;
+  border: 0;
+  background: #080511e6;
 }
 .dashboard--radiator .race-header {
   flex: 0 0 auto;

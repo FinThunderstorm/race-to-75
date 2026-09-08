@@ -71,7 +71,7 @@ test('IP visitor gets live data without account links and the chart fills and re
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/')
   await expect(page.getByRole('button', { name: /Office Racer/ })).toBeVisible()
-  await expect(page.locator('.dashboard-footer')).toHaveCount(0)
+  await expect(page.locator('.dashboard-footer')).toHaveText('Full screen')
   await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Sample data|Live data/ })).toHaveCount(0)
@@ -122,7 +122,7 @@ test('IP radiator can enter fullscreen without showing profile or logout control
   await page.goto('/')
   const fullscreen = page.getByRole('button', { name: 'Full screen', exact: true })
   await expect(fullscreen).toBeVisible()
-  await expect(page.locator('.dashboard-footer')).toHaveCount(0)
+  await expect(page.locator('.dashboard-footer')).toHaveText('Full screen')
   await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
   await fullscreen.click()
@@ -132,6 +132,27 @@ test('IP radiator can enter fullscreen without showing profile or logout control
   await expect(fullscreen).toBeHidden()
   await page.evaluate(() => document.exitFullscreen())
   await expect(fullscreen).toBeVisible()
+})
+
+test('anonymous radiator keeps its fullscreen footer visible when the browser blocks fullscreen', async ({
+  page
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: false })
+  })
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({ status: 401, json: { error: 'Unauthorized' } })
+  )
+  await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
+  await page.goto('/')
+  const footer = page.locator('.dashboard-footer')
+  await expect(footer).toHaveText('Full screen')
+  await footer.getByRole('button', { name: 'Full screen', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText(
+    'Full screen is unavailable in this browser or embedded view. Use your browser’s full-screen option.'
+  )
+  await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
 })
 
 test('radiator standings stay aligned to the graph when other participants have no readings', async ({

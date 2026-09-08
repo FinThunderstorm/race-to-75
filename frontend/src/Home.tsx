@@ -15,7 +15,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const { user } = useUser()
   const [logout, { isLoading }] = useLogoutMutation()
   const [logoutError, setLogoutError] = useState(false)
-  const [fullscreenError, setFullscreenError] = useState(false)
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params] = useSearchParams()
@@ -36,17 +36,23 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const sampleRace = useMemo(() => createSampleRace(), [today])
   const toggleParams = new URLSearchParams(params)
   toggleParams.set('data', live ? 'sample' : 'live')
-  const fullscreenButton = document.fullscreenEnabled && (
+  const fullscreenButton = (
     <button
       className="text-button fullscreen-button"
       type="button"
       title="Enter full screen (Esc to exit)"
       onClick={async () => {
-        setFullscreenError(false)
+        setFullscreenError(null)
+        if (!document.fullscreenEnabled || !document.documentElement.requestFullscreen) {
+          setFullscreenError(
+            'Full screen is unavailable in this browser or embedded view. Use your browser’s full-screen option.'
+          )
+          return
+        }
         try {
           await document.documentElement.requestFullscreen()
         } catch {
-          setFullscreenError(true)
+          setFullscreenError('Could not enter full screen. Please try again.')
         }
       }}
     >
@@ -76,7 +82,6 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
             <span /> {live ? 'Live data' : 'Sample data'}
           </Link>
         )}
-        {radiator && fullscreenButton}
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
@@ -102,15 +107,17 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           radiator={radiator}
         />
       )}
-      {!radiator && (
-        <footer className="dashboard-footer">
+      <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>
+        {!radiator && (
           <p>
             Signed in as{' '}
             <Link className="text-button" to="/settings">
               {user?.display_name}
             </Link>
           </p>
-          {fullscreenButton}
+        )}
+        {fullscreenButton}
+        {!radiator && (
           <button
             className="text-button"
             type="button"
@@ -131,9 +138,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           >
             {isLoading ? 'Logging out…' : 'Log out'}
           </button>
-        </footer>
-      )}
-      {fullscreenError && <p role="alert">Could not enter full screen. Please try again.</p>}
+        )}
+      </footer>
+      {fullscreenError && <p role="alert">{fullscreenError}</p>}
       {logoutError && <p role="alert">Could not log out. Please try again.</p>}
     </main>
   )

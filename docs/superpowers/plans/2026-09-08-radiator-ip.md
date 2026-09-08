@@ -7,8 +7,9 @@ can view the live race at `/`. This is read-only access to a separate radiator
 endpoint, never a user session. Authenticated visitors keep the existing dashboard,
 settings and logout. `/login` and enrollment remain available from every network.
 
-The radiator hides the entire footer and sample-data toggle, but keeps the Full
-screen control in its header. Its chart grows with
+The radiator hides account controls and the sample-data toggle, but keeps a compact
+fullscreen-only footer at the bottom left, even when the browser blocks the API.
+Clicking it then displays guidance instead of silently hiding the control. Its chart grows with
 the viewport without the normal maximum height; narrow screens and large standings
 remain readable. Live data continues refreshing every 30 seconds.
 
