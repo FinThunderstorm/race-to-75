@@ -56,8 +56,14 @@ export const authPlugin = fp(async (app) => {
     } catch (error) {
       request.log.info({ error: errorDetails(error) }, 'JWT verification failed')
       await reply.code(401).send({ error: 'Unauthorized' })
-      throw error
+      return
     }
+    const user = await findUserById(request.user.sub)
+    if (!user) {
+      await reply.code(401).send({ error: 'Unauthorized' })
+      return
+    }
+    request.user.role = user.role
   })
 
   const enrollChallengeCookie = 'r2_enroll_challenge'
@@ -77,6 +83,7 @@ export const authPlugin = fp(async (app) => {
   }
 
   app.get('/api/auth/me', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store')
     const user = await findUserById(request.user.sub)
 
     if (!user) {

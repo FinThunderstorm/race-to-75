@@ -209,9 +209,8 @@ async function upsertBootstrapUser() {
       ${temporaryConfig.bootstrapRole}
     )
     ON CONFLICT (email)
-    DO UPDATE SET
-      display_name = EXCLUDED.display_name,
-      role = EXCLUDED.role
+    -- Preserve roles and details managed by admins when an existing user reconnects.
+    DO UPDATE SET email = EXCLUDED.email
     RETURNING id
   `
 

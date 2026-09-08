@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
 import Fastify from 'fastify'
 
+import { registerAdminRoutes } from './admin/index.js'
 import { authPlugin } from './auth/index.js'
 import { config } from './config.js'
 import { closeDatabase } from './database.js'
@@ -23,7 +24,20 @@ import {
   parseWithingsWebhookFormBody
 } from './webhooks/withings/index.js'
 
-const app = Fastify({ logger: true })
+const app = Fastify({
+  logger: {
+    serializers: {
+      req(request) {
+        // Enrollment and OAuth URLs contain credentials; omit query strings.
+        return {
+          method: request.method,
+          url: request.url?.split('?')[0],
+          hostname: request.hostname
+        }
+      }
+    }
+  }
+})
 
 app.addHook('onClose', async () => {
   await closeDatabase()
@@ -47,6 +61,7 @@ const frontendDist = join(here, '..', '..', 'frontend', 'dist')
 
 const start = async () => {
   await app.register(authPlugin)
+  await registerAdminRoutes(app)
   await registerRaceRoutes(app)
   await registerWithingsProfileRoutes(app)
 

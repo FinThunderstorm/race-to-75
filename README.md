@@ -10,9 +10,9 @@ Keep everyone's weight on record over time and make the shared target —
 
 ## Status
 
-Passkey enrollment/login, a sample/live race dashboard, Withings history import,
-and a Docker/Coolify deployment setup are implemented. Manual weight entry,
-admin management, and the separate radiator are still planned.
+Passkey enrollment/login, admin user management, a sample/live race dashboard,
+Withings history import, and a Docker/Coolify deployment setup are implemented.
+Manual weight entry and the separate radiator are still planned.
 
 ## Features
 
@@ -23,9 +23,10 @@ and Getting started for the current local workflow.
 
 - Two roles: **admin** and **member**; multiple admins allowed.
 - Admins provision users (email + display name), issue one-time passkey
-  enrollment links, disable/remove users, and grant `admin` to others.
-- The first admin is set **manually in the database** (bootstrap); after that,
-  admins promote others from the admin UI.
+  enrollment links, disable/re-enable users, and grant or revoke `admin` access.
+  Permanent account removal is still planned.
+- The first admin is created with the **bootstrap command**; after that,
+  admins invite users and promote others from the admin UI.
 - Members can log weight and view progress, the leaderboard, and manage their
   own passkeys and integrations.
 
@@ -231,9 +232,36 @@ use **Log in with passkey**. Enrollment links are single-use and expire after
 24 hours by default. Use `localhost`, matching the example's passkey settings.
 
 The bootstrap command refuses to run if any admin already exists. If you already
-have an account, use its passkey. Reissuing enrollment links for
-existing accounts currently requires database access; there is no admin UI yet.
-Deleting an account also deletes its readings, connection, and passkeys.
+have an account, use its passkey. An existing admin can issue a new enrollment
+link from **Manage users**. If no admin can sign in, recovery still requires
+database access.
+
+#### Invite and manage other users
+
+As an admin, open **Manage users** from the dashboard footer or your profile
+(direct URL: `/admin`). Enter an email and display name, select **Create
+invitation**, and copy the enrollment link to share privately with that person.
+The app does not send email. Opening the link lets them create a passkey and
+sign in as a member. Links are single-use and expire after 24 hours by default
+(`ENROLLMENT_TOKEN_TTL_SECONDS`).
+
+The user list lets admins edit details, promote members to admin, demote other
+admins, and disable or re-enable accounts. **New enrollment link** replaces
+previous unused links while retaining existing passkeys. Admins cannot demote
+or disable themselves; another enabled admin must make those changes.
+
+Role changes apply to existing sessions immediately on the next API request;
+open pages refresh access within 30 seconds. Disabled accounts cannot sign in,
+enroll, or use an existing session. Disabling invalidates unused enrollment links
+and preserves readings, passkeys, and Withings imports. Re-enabling restores
+passkey access and may restore an unexpired session. There is no permanent delete
+action in this view.
+
+For an existing deployment, run `npm run db:migrate` against its database before
+starting the updated app. Migration `0005_user_disablement.sql` adds account
+disablement support and leaves existing users enabled. In production, configure
+`WEBAUTHN_ORIGIN` to the public HTTPS origin and `WEBAUTHN_RP_ID` to its hostname
+so generated enrollment links and passkeys match the deployment.
 
 ### 4. Connect Withings and import your history
 

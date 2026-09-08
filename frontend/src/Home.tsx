@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
+import { adminApi } from './api/adminApi'
 import { useLogoutMutation } from './api/authApi'
 import { raceApi, useGetRaceQuery } from './api/raceApi'
 import { withingsApi } from './api/withingsApi'
@@ -83,6 +84,11 @@ export const Home = () => {
             {user?.display_name}
           </Link>
         </p>
+        {user?.role === 'admin' && (
+          <Link className="text-button" to="/admin">
+            Manage users
+          </Link>
+        )}
         {document.fullscreenEnabled && (
           <button
             className="text-button fullscreen-button"
@@ -110,6 +116,7 @@ export const Home = () => {
               await logout().unwrap()
               dispatch(raceApi.util.resetApiState())
               dispatch(withingsApi.util.resetApiState())
+              dispatch(adminApi.util.resetApiState())
               navigate('/login')
             } catch {
               setLogoutError(true)

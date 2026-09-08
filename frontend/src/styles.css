@@ -567,6 +567,122 @@ th:first-child {
   margin-top: 24px;
 }
 
+.admin-page {
+  width: min(100%, 1040px);
+}
+.admin-page h2 {
+  font-size: 20px;
+}
+.admin-form {
+  margin-top: 24px;
+}
+.admin-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.admin-page label {
+  display: block;
+  font-size: 12px;
+  color: #b4adc5;
+}
+.admin-page input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #45335a;
+  border-radius: 0;
+  color: #eeeaf8;
+  background: #080511;
+  font-size: 14px;
+}
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 18px;
+}
+.admin-actions .primary-button {
+  width: auto;
+  margin: 0;
+  padding-inline: 24px;
+}
+.admin-invitation {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--green);
+  background: #00eda008;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.admin-invitation h2 {
+  margin-top: 0;
+  color: var(--green);
+}
+.admin-invitation label {
+  margin-top: 20px;
+}
+.admin-users {
+  margin-top: 40px;
+}
+.admin-user {
+  padding: 24px;
+  margin-top: 16px;
+  border: 1px solid #302242;
+  background: #090615a8;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.admin-user-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.admin-user h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  color: var(--cyan);
+}
+.admin-you,
+.admin-count {
+  color: var(--secondary);
+  font-size: 12px;
+}
+.admin-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--secondary);
+}
+.admin-success {
+  color: var(--green);
+  margin-top: 12px;
+}
+.danger-button {
+  color: #ff819f;
+}
+.dashboard-footer {
+  flex-wrap: wrap;
+}
+@media (max-width: 580px) {
+  .admin-fields {
+    grid-template-columns: 1fr;
+  }
+  .admin-page {
+    padding-inline: 16px;
+  }
+  .admin-user,
+  .admin-invitation,
+  .admin-page .profile-connection {
+    padding: 20px 16px;
+  }
+}
+
 @media (min-width: 1700px) {
   .dashboard {
     padding-inline: max(3%, calc((100vw - 1700px) / 2));

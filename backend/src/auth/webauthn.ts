@@ -10,20 +10,14 @@ import {
 
 import { config } from '../config.js'
 
-const rpConfig = {
-  rpID: config.webauthnRpId,
-  rpName: config.webauthnRpName,
-  origin: config.webauthnOrigin
-}
-
 export const buildRegistrationOptions = async (args: {
   userId: string
   email: string
   excludeCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[]
 }) => {
   return generateRegistrationOptions({
-    rpID: rpConfig.rpID,
-    rpName: rpConfig.rpName,
+    rpID: config.webauthnRpId,
+    rpName: config.webauthnRpName,
     userID: new TextEncoder().encode(args.userId),
     userName: args.email,
     attestationType: 'none',
@@ -42,8 +36,8 @@ export const verifyRegistration = async (args: {
   const verification = await verifyRegistrationResponse({
     response: args.response,
     expectedChallenge: args.expectedChallenge,
-    expectedOrigin: rpConfig.origin,
-    expectedRPID: rpConfig.rpID,
+    expectedOrigin: config.webauthnOrigin,
+    expectedRPID: config.webauthnRpId,
     requireUserVerification: true
   })
 
@@ -63,7 +57,7 @@ export const verifyRegistration = async (args: {
 
 export const buildAuthenticationOptions = async () => {
   return generateAuthenticationOptions({
-    rpID: rpConfig.rpID,
+    rpID: config.webauthnRpId,
     userVerification: 'required',
     allowCredentials: []
   })
@@ -82,8 +76,8 @@ export const verifyAuthentication = async (args: {
   const verification = await verifyAuthenticationResponse({
     response: args.response,
     expectedChallenge: args.expectedChallenge,
-    expectedOrigin: rpConfig.origin,
-    expectedRPID: rpConfig.rpID,
+    expectedOrigin: config.webauthnOrigin,
+    expectedRPID: config.webauthnRpId,
     requireUserVerification: true,
     credential: {
       id: args.credential.id,

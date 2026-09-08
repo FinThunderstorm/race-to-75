@@ -15,7 +15,7 @@ export const findUserByEnrollmentTokenHash = async (tokenHash: string) => {
     SELECT t.user_id, u.email, u.role, t.consumed_at, t.expires_at
     FROM enrollment_token t
     JOIN users u ON u.id = t.user_id
-    WHERE t.token_hash = ${tokenHash}
+    WHERE t.token_hash = ${tokenHash} AND u.disabled_at IS NULL
     LIMIT 1
   `
 
@@ -38,7 +38,7 @@ export const findUserById = async (userId: string) => {
   >`
     SELECT id, email, display_name, role
     FROM users
-    WHERE id = ${userId}
+    WHERE id = ${userId} AND disabled_at IS NULL
     LIMIT 1
   `
 
@@ -68,7 +68,7 @@ export const findCredentialById = async (credentialId: string) => {
     SELECT c.user_id, c.public_key, c.counter, c.transports, u.role
     FROM credentials c
     JOIN users u ON u.id = c.user_id
-    WHERE c.credential_id = ${credentialId}
+    WHERE c.credential_id = ${credentialId} AND u.disabled_at IS NULL
     LIMIT 1
   `
 
@@ -99,10 +99,18 @@ export const consumeEnrollmentTokenAndInsertCredential = async (args: {
   deviceName: string | null
 }) => {
   await sql.begin(async (tx) => {
+    // Lock the account before tokens, matching admin disable/reissue lock order.
+    const [user] = await tx`
+      SELECT id FROM users WHERE id = ${args.userId} AND disabled_at IS NULL FOR UPDATE
+    `
+    if (!user) {
+      throw new Error('Account is no longer available')
+    }
     const consumed = await tx`
       UPDATE enrollment_token
       SET consumed_at = now()
       WHERE token_hash = ${args.tokenHash}
+        AND user_id = ${args.userId}
         AND consumed_at IS NULL
         AND expires_at > now()
       RETURNING id

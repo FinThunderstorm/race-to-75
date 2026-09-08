@@ -22,6 +22,11 @@ export const Profile = () => {
         <h1>Your profile</h1>
         <p className="profile-name">{user?.display_name}</p>
         <p className="auth-description">{user?.email}</p>
+        {user?.role === 'admin' && (
+          <Link className="text-button" to="/admin">
+            Manage users
+          </Link>
+        )}
       </header>
       <section className="profile-connection" aria-labelledby="withings-heading">
         <h2 id="withings-heading">Withings</h2>

@@ -10,9 +10,11 @@ export const raceApi = createApi({
   reducerPath: 'raceApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
   keepUnusedDataFor: 0,
+  tagTypes: ['race'],
   endpoints: (builder) => ({
     getRace: builder.query<{ participants: WithingsParticipant[] }, void>({
-      query: () => '/race'
+      query: () => '/race',
+      providesTags: ['race']
     })
   })
 })
