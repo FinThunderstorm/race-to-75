@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 
 import { UserManagement } from './admin/UserManagement'
 import { useUser } from './hooks/useUser'
+import { EufySettings } from './settings/EufySettings'
 import { WithingsSettings } from './settings/WithingsSettings'
 
 export const Settings = () => {
@@ -20,6 +21,7 @@ export const Settings = () => {
         <p className="auth-description">{user?.email}</p>
       </header>
       <WithingsSettings />
+      <EufySettings />
       {isAdmin && <UserManagement />}
     </main>
   )

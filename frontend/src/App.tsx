@@ -8,6 +8,7 @@ import { Home } from './Home'
 import { useUser } from './hooks/useUser'
 import { IpAccessIndicator } from './race/IpAccessIndicator'
 import { Settings } from './Settings'
+import { EufyReconnectNotice } from './settings/EufyReconnectNotice'
 
 const ProtectedRoute = ({ children }: { children: ReactElement }) => {
   const { isAuthenticated, isLoading } = useUser()
@@ -58,6 +59,7 @@ const RaceRoute = () => {
 
 export const App = () => (
   <>
+    <EufyReconnectNotice />
     <Routes>
       <Route path="/admin" element={<SettingsRedirect />} />
       <Route path="/profile" element={<SettingsRedirect />} />

@@ -110,7 +110,7 @@ test('live data errors can be retried and empty responses never show sample part
       : route.fulfill({ json: { participants: [] } })
   )
   await page.goto('/?data=live')
-  await expect(page.getByRole('alert')).toContainText('Could not load Withings data')
+  await expect(page.getByRole('alert')).toContainText('Could not load weight history')
   fail = false
   await page.getByRole('button', { name: 'Try again' }).click()
   await expect(page.getByRole('status')).toHaveText(

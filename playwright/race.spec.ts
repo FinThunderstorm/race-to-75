@@ -23,7 +23,7 @@ test('race history requires authentication', async ({ request }) => {
   expect((await request.get('/api/race')).status()).toBe(401)
 })
 
-test('members can read all participants and all imported Withings history, without private account fields', async ({
+test('members can read all participants and history from multiple sources without private account fields', async ({
   request
 }) => {
   const sql = postgres(databaseUrl)
@@ -36,7 +36,8 @@ test('members can read all participants and all imported Withings history, witho
       (${ids[0]}, 120.5, '2010-01-01T08:00:00Z', 'withings', ${randomUUID()}),
       (${ids[0]}, 80.2, '2026-09-01T08:00:00Z', 'withings', ${randomUUID()}),
       (${ids[1]}, 74.1, '2026-09-02T09:00:00Z', 'withings', ${randomUUID()}),
-      (${ids[1]}, 50, '2026-09-03T09:00:00Z', 'manual', NULL)`
+      (${ids[1]}, 50, '2026-09-03T09:00:00Z', 'manual', NULL),
+      (${ids[0]}, 79.5, '2026-09-03T08:00:00Z', 'eufy', ${randomUUID()})`
 
     const headers = { cookie: sessionCookie(ids[0]) }
     const response = await request.get('/api/race', { headers })
@@ -50,13 +51,17 @@ test('members can read all participants and all imported Withings history, witho
           name: 'Race member 0',
           measurements: [
             { measuredAt: '2010-01-01T08:00:00.000Z', weightKg: 120.5 },
-            { measuredAt: '2026-09-01T08:00:00.000Z', weightKg: 80.2 }
+            { measuredAt: '2026-09-01T08:00:00.000Z', weightKg: 80.2 },
+            { measuredAt: '2026-09-03T08:00:00.000Z', weightKg: 79.5 }
           ]
         },
         {
           id: ids[1],
           name: 'Race member 1',
-          measurements: [{ measuredAt: '2026-09-02T09:00:00.000Z', weightKg: 74.1 }]
+          measurements: [
+            { measuredAt: '2026-09-02T09:00:00.000Z', weightKg: 74.1 },
+            { measuredAt: '2026-09-03T09:00:00.000Z', weightKg: 50 }
+          ]
         },
         { id: ids[2], name: 'Race member 2', measurements: [] }
       ])

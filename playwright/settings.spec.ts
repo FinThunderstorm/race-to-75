@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/integrations/eufy/status', (route) =>
+    route.fulfill({ json: { status: 'disconnected' } })
+  )
+})
+
 test('signed-in name opens settings with connection controls and retryable failures', async ({
   page
 }) => {

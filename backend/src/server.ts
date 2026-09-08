@@ -9,6 +9,8 @@ import { registerAdminRoutes } from './admin/index.js'
 import { authPlugin } from './auth/index.js'
 import { config } from './config.js'
 import { closeDatabase } from './database.js'
+import { registerEufyRoutes } from './integrations/eufy/index.js'
+import { startEufySync } from './integrations/eufy/sync.js'
 import {
   handleWithingsCallback,
   handleWithingsConnect,
@@ -27,6 +29,13 @@ import {
 const app = Fastify({
   trustProxy: config.trustProxy,
   logger: {
+    redact: [
+      'req.body.password',
+      'req.body.email',
+      'req.headers.token',
+      'req.headers.authorization',
+      'req.headers.cookie'
+    ],
     serializers: {
       req(request) {
         // Enrollment and OAuth URLs contain credentials; omit query strings.
@@ -65,6 +74,10 @@ const start = async () => {
   await registerAdminRoutes(app)
   await registerRaceRoutes(app)
   await registerWithingsProfileRoutes(app)
+  await registerEufyRoutes(app)
+  if (config.eufySyncEnabled) {
+    startEufySync(app)
+  }
 
   if (existsSync(join(frontendDist, 'index.html'))) {
     await app.register(fastifyStatic, { root: frontendDist })

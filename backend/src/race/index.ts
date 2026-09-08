@@ -30,7 +30,7 @@ async function loadRace() {
         reading.weight_kg::float8 AS weight_kg
       FROM users app_user
       LEFT JOIN measurement reading
-        ON reading.user_id = app_user.id AND reading.source = 'withings'
+        ON reading.user_id = app_user.id
       ORDER BY app_user.created_at, app_user.id, reading.measured_at, reading.id
     `
   const participants = new Map<

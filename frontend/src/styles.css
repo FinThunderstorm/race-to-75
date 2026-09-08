@@ -17,6 +17,40 @@ body {
   margin: 0;
   min-width: 320px;
 }
+.eufy-reconnect-notice {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px clamp(20px, 5vw, 64px);
+  border-bottom: 3px solid #ff819f;
+  background: #391525;
+  box-shadow: 0 8px 32px #0008;
+}
+.eufy-reconnect-notice h2 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 3vw, 30px);
+}
+.eufy-reconnect-notice p {
+  max-width: 850px;
+  color: #fff0f4;
+  line-height: 1.6;
+}
+.eufy-reconnect-notice .primary-button {
+  flex-shrink: 0;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .eufy-reconnect-notice {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+}
 body::after {
   content: "";
   position: fixed;
@@ -615,17 +649,25 @@ th:first-child {
 .admin-form {
   margin-top: 24px;
 }
+.integration-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
 .admin-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
-.user-management label {
+.user-management label,
+.integration-form label {
   display: block;
   font-size: 12px;
   color: #b4adc5;
 }
-.user-management input {
+.user-management input,
+.integration-form input,
+.integration-form select {
   display: block;
   width: 100%;
   min-width: 0;

@@ -28,6 +28,7 @@ services:
       WEBAUTHN_RP_ID: backend
       WEBAUTHN_ORIGIN: http://backend:7500
       APP_HOST: backend:7500
+      EUFY_SYNC_ENABLED: "false"
     command: sh -c "npm run db:migrate && npm run start"
 
   playwright:
