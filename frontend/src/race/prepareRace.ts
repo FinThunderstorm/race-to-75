@@ -1,4 +1,4 @@
-import type { WithingsParticipant } from '../api/raceApi'
+import type { RaceHistoryParticipant } from '../api/raceApi'
 
 type WeightPoint = { date: string; weight: number }
 
@@ -49,7 +49,7 @@ export function chartWindow(now = new Date()) {
 }
 
 export function prepareRace(
-  participants: WithingsParticipant[],
+  participants: RaceHistoryParticipant[],
   now = new Date()
 ): RaceParticipant[] {
   const window = chartWindow(now)

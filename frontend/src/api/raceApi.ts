@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-export type WithingsParticipant = {
+export type RaceHistoryParticipant = {
   id: string
   name: string
   measurements: { measuredAt: string; weightKg: number }[]
@@ -15,7 +15,7 @@ export const raceApi = createApi({
     getRadiatorAccess: builder.query<{ allowed: boolean }, void>({
       query: () => '/radiator/access'
     }),
-    getRace: builder.query<{ participants: WithingsParticipant[] }, 'radiator' | void>({
+    getRace: builder.query<{ participants: RaceHistoryParticipant[] }, 'radiator' | void>({
       query: (mode) => (mode === 'radiator' ? '/radiator' : '/race'),
       providesTags: ['race']
     })

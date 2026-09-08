@@ -77,7 +77,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           <Link
             className={`sample-indicator ${live ? 'live-indicator' : ''}`}
             to={`?${toggleParams}`}
-            title={`Switch to ${live ? 'sample' : 'live Withings'} data`}
+            title={`Switch to ${live ? 'sample' : 'live'} data`}
           >
             <span /> {live ? 'Live data' : 'Sample data'}
           </Link>
@@ -85,7 +85,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
-          <p>Could not load Withings data. Please try again.</p>
+          <p>Could not load weight history. Please try again.</p>
           <button
             className="text-button"
             type="button"
@@ -97,7 +97,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         </div>
       ) : live && (loadingRace || !data) ? (
         <p className="race-message" role="status">
-          Loading Withings data…
+          Loading weight history…
         </p>
       ) : (
         <RaceChart

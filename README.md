@@ -11,8 +11,8 @@ Keep everyone's weight on record over time and make the shared target —
 ## Status
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
-Withings history import, an IP-allowed radiator, and a Docker/Coolify deployment
-setup are implemented. Manual weight entry is still planned.
+Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
+deployment setup are implemented. Manual weight entry is still planned.
 
 ## Features
 
@@ -164,10 +164,10 @@ itself is phishing-resistant and inherently multi-factor, so no separate MFA.
 
 ### Integrations
 
-Each weight service is a pluggable adapter behind one `WeightProvider`
-interface (`authorizeUrl`, `exchangeCode`, `refresh`, `fetchMeasurements`,
-optional `verifyWebhook`). Adding a service means adding one adapter; nothing
-else changes.
+Integrations have provider-specific connection and sync code and share the
+`measurement` table. Users can connect both Withings and Eufy Life in Settings.
+Withings uses OAuth and a webhook worker. Eufy Life uses a temporary sign-in,
+profile selection, and polling inside the backend process.
 
 - Sync is webhook-driven where supported (Withings), with a scheduled poll as
   fallback. New readings are normalized to kg and upserted idempotently
@@ -316,12 +316,47 @@ to import the history window again; existing readings are updated without duplic
 future imports while keeping previously imported readings. It does not revoke the
 app's authorization in Withings; that can be removed from Withings separately.
 
+### Connect Eufy Life
+
+Open **<http://localhost:7500/settings>**, choose **Connect Eufy Life**, sign in
+with your Eufy Life account, and select your own profile. A user may connect both
+Withings and Eufy Life; different users may select different profiles from the
+same Eufy account. A profile cannot be connected to two race participants at once.
+
+The initial import includes weight readings from **one calendar month before
+connection**. The backend checks for new readings every 15 minutes; **Sync now**
+runs an immediate check. Only data uploaded to Eufy Life can be imported. Older
+imports can change the starting weight used for race progress. Repeated imports
+update matching readings without duplicates within Eufy; the same weighing
+imported through two different providers is not automatically merged.
+
+The app never saves your Eufy email or password and never automatically signs
+in again. It stores an encrypted access token, account ID, and selected profile.
+Temporary profile-selection tokens expire after 10 minutes. When the access
+token expires or is rejected, Settings prompts you to **Reconnect Eufy Life**.
+Reconnecting the same profile preserves the original history boundary to recover
+missed readings. Disconnecting removes the token and stops imports; existing
+weight readings remain.
+
+Eufy uses an unofficial cloud protocol, based on the
+[Home Assistant integration](https://github.com/m4ary/eufylife-api-hacs) and
+[Homey client](https://github.com/johnsonkw/homey-eufylife).
+Compatibility, history availability, and token lifetime depend on Eufy's service.
+No Eufy developer application or webhook configuration is required.
+
+The polling worker runs inside the backend in both local development and Coolify;
+there is no extra container to start. It claims work in PostgreSQL so multiple
+backend instances do not import the same connection concurrently. Set
+`EUFY_SYNC_ENABLED=false` to disable background polling for isolated tests.
+Access tokens are encrypted with a key derived from `COOKIE_SECRET`; changing
+that secret requires users to reconnect Eufy. Keep it stable across instances.
+
 ### 5. View live data and keep it current
 
 Open **<http://localhost:7500/?data=live>**, or click **Sample data** in the
 header. Click **Live data** to return to the sample preview.
 
-Live mode requires login and reads every participant's imported Withings history
+Live mode requires login and reads every participant's recorded weight history
 through `/api/race`. It refreshes the database view every 30 seconds. Both live
 and sample charts show the last three calendar months through today. Completed
 weeks have one point averaging every weighing in that week; the current week
