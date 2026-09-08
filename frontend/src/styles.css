@@ -465,6 +465,10 @@ th:first-child {
 :fullscreen .fullscreen-button {
   display: none;
 }
+.race-header .fullscreen-button {
+  margin-left: auto;
+  font-size: 11px;
+}
 .text-button:hover {
   color: var(--cyan);
 }

@@ -111,6 +111,29 @@ test('login and settings remain protected by a real session on an allowed networ
   await expect(page.locator('.dashboard--radiator')).toHaveCount(0)
 })
 
+test('IP radiator can enter fullscreen without showing profile or logout controls', async ({
+  page
+}) => {
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({ status: 401, json: { error: 'Unauthorized' } })
+  )
+  await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await page.goto('/')
+  const fullscreen = page.getByRole('button', { name: 'Full screen', exact: true })
+  await expect(fullscreen).toBeVisible()
+  await expect(page.locator('.dashboard-footer')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
+  await fullscreen.click()
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement === document.documentElement))
+    .toBe(true)
+  await expect(fullscreen).toBeHidden()
+  await page.evaluate(() => document.exitFullscreen())
+  await expect(fullscreen).toBeVisible()
+})
+
 test('radiator standings stay aligned to the graph when other participants have no readings', async ({
   page
 }) => {

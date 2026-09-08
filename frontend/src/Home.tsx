@@ -36,6 +36,23 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const sampleRace = useMemo(() => createSampleRace(), [today])
   const toggleParams = new URLSearchParams(params)
   toggleParams.set('data', live ? 'sample' : 'live')
+  const fullscreenButton = document.fullscreenEnabled && (
+    <button
+      className="text-button fullscreen-button"
+      type="button"
+      title="Enter full screen (Esc to exit)"
+      onClick={async () => {
+        setFullscreenError(false)
+        try {
+          await document.documentElement.requestFullscreen()
+        } catch {
+          setFullscreenError(true)
+        }
+      }}
+    >
+      Full screen
+    </button>
+  )
 
   return (
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
@@ -59,6 +76,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
             <span /> {live ? 'Live data' : 'Sample data'}
           </Link>
         )}
+        {radiator && fullscreenButton}
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
@@ -92,23 +110,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               {user?.display_name}
             </Link>
           </p>
-          {document.fullscreenEnabled && (
-            <button
-              className="text-button fullscreen-button"
-              type="button"
-              title="Enter full screen (Esc to exit)"
-              onClick={async () => {
-                setFullscreenError(false)
-                try {
-                  await document.documentElement.requestFullscreen()
-                } catch {
-                  setFullscreenError(true)
-                }
-              }}
-            >
-              Full screen
-            </button>
-          )}
+          {fullscreenButton}
           <button
             className="text-button"
             type="button"

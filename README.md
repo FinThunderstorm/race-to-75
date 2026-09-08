@@ -84,7 +84,8 @@ race to 75 — glanceable, no interaction, auto-updating.
   `RADIATOR_ALLOWED_IP` to see the live group graph and standings, refreshing
   every 30 seconds. Server-Sent Events and live reaction events remain planned.
 - IP access hides the profile/settings link, logout, footer, and sample-data
-  switch. The graph expands vertically with the browser window, including tall
+  switch. **Full screen** remains available in the radiator header (Esc to exit).
+  The graph expands vertically with the browser window, including tall
   displays; small screens and large participant lists can scroll as needed.
 - Signed-in visitors keep the normal dashboard, including settings and logout,
   even at the allowed address. Open `/login` to sign in from the internal
