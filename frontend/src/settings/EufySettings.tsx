@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 type Connection = {
   status: 'disconnected' | 'connected' | 'reconnect_required'
@@ -19,16 +20,27 @@ async function eufyRequest<T>(path: string, method = 'GET', body?: unknown): Pro
     const data = await response.json().catch(() => null)
     throw new Error(data?.error || 'Could not reach Eufy Life. Please try again.')
   }
-  return response.status === 204 ? (undefined as T) : response.json()
+  const result = response.status === 204 ? (undefined as T) : await response.json()
+  if (method !== 'GET') {
+    window.dispatchEvent(new Event('eufy-connection-changed'))
+  }
+  return result
 }
 
 export const EufySettings = () => {
+  const [params] = useSearchParams()
   const [connection, setConnection] = useState<Connection>()
   const [setup, setSetup] = useState<Setup>()
   const [profileId, setProfileId] = useState('')
   const [signingIn, setSigningIn] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (params.get('eufy') === 'reconnect') {
+      setSigningIn(true)
+    }
+  }, [params])
 
   const refresh = async () => {
     setConnection(await eufyRequest<Connection>('/status'))
