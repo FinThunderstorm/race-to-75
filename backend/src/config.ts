@@ -10,6 +10,15 @@ const envSchema = z
     PORT: z.coerce.number().int().positive().default(7500),
     HOST: z.string().default('0.0.0.0'),
     APP_HOST: z.string().default('localhost:7500'),
+    RADIATOR_ALLOWED_IP: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.union([z.ipv4(), z.ipv6()]).optional()
+    ),
+    TRUST_PROXY: z
+      .string()
+      .default('')
+      .transform((value) => (value.trim() ? value.split(',').map((address) => address.trim()) : []))
+      .pipe(z.array(z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]))),
     JWT_SECRET: z.string().min(16),
     COOKIE_SECRET: z.string().min(16),
     WEBAUTHN_RP_ID: z.string().default('localhost'),
@@ -35,6 +44,8 @@ const envSchema = z
     port: env.PORT,
     host: env.HOST,
     appHost: env.APP_HOST,
+    radiatorAllowedIp: env.RADIATOR_ALLOWED_IP,
+    trustProxy: env.TRUST_PROXY,
     jwtSecret: env.JWT_SECRET,
     cookieSecret: env.COOKIE_SECRET,
     webauthnRpId: env.WEBAUTHN_RP_ID,

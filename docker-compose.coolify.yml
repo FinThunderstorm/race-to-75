@@ -4,6 +4,8 @@ x-backend-service: &backend-service
 
 x-backend-environment: &backend-environment
   APP_HOST: ${APP_HOST:-race-to-75.rigster.cv}
+  RADIATOR_ALLOWED_IP: ${RADIATOR_ALLOWED_IP:-}
+  TRUST_PROXY: ${TRUST_PROXY:-}
   JWT_SECRET: ${JWT_SECRET:?}
   COOKIE_SECRET: ${COOKIE_SECRET:?}
   WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-race-to-75.rigster.cv}

@@ -7,10 +7,12 @@ const goal = 75
 
 export const RaceChart = ({
   participants,
-  live = false
+  live = false,
+  radiator = false
 }: {
   participants: RaceParticipant[]
   live?: boolean
+  radiator?: boolean
 }) => {
   const [selected, setSelected] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
@@ -120,6 +122,13 @@ export const RaceChart = ({
   return (
     <section
       className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''}`}
+      style={
+        radiator
+          ? ({
+              '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, withReadings.length * 48 + 40)}px`
+            } as CSSProperties)
+          : undefined
+      }
       aria-label={`${live ? 'Live' : 'Sample'} group weight history`}
     >
       <div className="race-art">
@@ -288,40 +297,42 @@ export const RaceChart = ({
           <div className="unplotted-list">{withoutReadings.map(renderParticipant)}</div>
         </section>
       )}
-      <details className="race-data">
-        <summary>View {live ? 'live' : 'sample'} readings</summary>
-        <div className="table-scroll">
-          <table>
-            <caption>
-              {live ? 'Withings' : 'Sample'} summary in kilograms · Current weight is the latest
-              daily average (UTC)
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Participant</th>
-                <th scope="col">Start</th>
-                <th scope="col">Current</th>
-                <th scope="col">To go</th>
-                {live && <th scope="col">Last reading (UTC)</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {participants.map((person) => {
-                const last = person.latest
-                return (
-                  <tr key={person.id}>
-                    <th scope="row">{person.name}</th>
-                    <td>{person.startWeight?.toFixed(1) ?? '—'}</td>
-                    <td>{last?.weight.toFixed(1) ?? '—'}</td>
-                    <td>{last ? Math.max(0, last.weight - goal).toFixed(1) : '—'}</td>
-                    {live && <td>{last?.date ?? '—'}</td>}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      {!radiator && (
+        <details className="race-data">
+          <summary>View {live ? 'live' : 'sample'} readings</summary>
+          <div className="table-scroll">
+            <table>
+              <caption>
+                {live ? 'Withings' : 'Sample'} summary in kilograms · Current weight is the latest
+                daily average (UTC)
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Participant</th>
+                  <th scope="col">Start</th>
+                  <th scope="col">Current</th>
+                  <th scope="col">To go</th>
+                  {live && <th scope="col">Last reading (UTC)</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map((person) => {
+                  const last = person.latest
+                  return (
+                    <tr key={person.id}>
+                      <th scope="row">{person.name}</th>
+                      <td>{person.startWeight?.toFixed(1) ?? '—'}</td>
+                      <td>{last?.weight.toFixed(1) ?? '—'}</td>
+                      <td>{last ? Math.max(0, last.weight - goal).toFixed(1) : '—'}</td>
+                      {live && <td>{last?.date ?? '—'}</td>}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
     </section>
   )
 }

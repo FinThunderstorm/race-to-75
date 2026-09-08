@@ -12,11 +12,14 @@ export const raceApi = createApi({
   keepUnusedDataFor: 0,
   tagTypes: ['race'],
   endpoints: (builder) => ({
-    getRace: builder.query<{ participants: WithingsParticipant[] }, void>({
-      query: () => '/race',
+    getRadiatorAccess: builder.query<{ allowed: boolean }, void>({
+      query: () => '/radiator/access'
+    }),
+    getRace: builder.query<{ participants: WithingsParticipant[] }, 'radiator' | void>({
+      query: (mode) => (mode === 'radiator' ? '/radiator' : '/race'),
       providesTags: ['race']
     })
   })
 })
 
-export const { useGetRaceQuery } = raceApi
+export const { useGetRaceQuery, useGetRadiatorAccessQuery } = raceApi

@@ -11,8 +11,8 @@ Keep everyone's weight on record over time and make the shared target —
 ## Status
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
-Withings history import, and a Docker/Coolify deployment setup are implemented.
-Manual weight entry and the separate radiator are still planned.
+Withings history import, an IP-allowed radiator, and a Docker/Coolify deployment
+setup are implemented. Manual weight entry is still planned.
 
 ## Features
 
@@ -80,14 +80,32 @@ Light "juice" on logging, derived from existing measurements — no new data.
 An ambient, read-only big-screen display (office TV/monitor) of the group's
 race to 75 — glanceable, no interaction, auto-updating.
 
-- Shows the **group race to 75** (each participant's current weight, kg to go,
-  % progress), the **leaderboard** with goal-reached badges, and **live
-  reactions** (personal-low celebrations and "buu" moments) as they happen.
-- Updates over **Server-Sent Events**, so standings re-rank and celebrations
-  appear in real time as weights are logged or synced.
-- Access is **authenticated OR IP-allowlisted**: logged-in users view it from
-  anywhere, while unauthenticated requests are allowed only from an
-  admin-managed IP allowlist (the office-TV case). Read-only either way.
+- Open `/` without a session from the address configured in
+  `RADIATOR_ALLOWED_IP` to see the live group graph and standings, refreshing
+  every 30 seconds. Server-Sent Events and live reaction events remain planned.
+- IP access hides the profile/settings link, logout, footer, and sample-data
+  switch. The graph expands vertically with the browser window, including tall
+  displays; small screens and large participant lists can scroll as needed.
+- Signed-in visitors keep the normal dashboard, including settings and logout,
+  even at the allowed address. Open `/login` to sign in from the internal
+  network; enrollment links also work normally. IP access never creates a user
+  session or grants access to account, admin, or integration APIs.
+- Set `RADIATOR_ALLOWED_IP` to one IPv4 or IPv6 address; leave it empty to disable
+  anonymous access. IPv4-mapped IPv6 addresses are matched as well. No URL query
+  parameter can grant IP access.
+- A small bottom-right indicator shows **IP allowed** or **IP not allowed** on
+  every screen, including login and the signed-in dashboard. It checks the
+  current network every 30 seconds independently of your session. A failed
+  check shows **IP check unavailable** until the next successful check.
+- When using a reverse proxy, set `TRUST_PROXY` to a comma-separated list of
+  trusted proxy IPs or CIDRs. Forwarded client addresses are ignored by default.
+  Use the actual proxy address/subnet, and ensure that proxy sets or appends the
+  real client address in `X-Forwarded-For`. Do not trust arbitrary clients.
+  For Coolify, configure both variables in its environment and redeploy.
+- Use the address the server sees: usually the office's **public egress IP**
+  when opening the public deployment, or the client's private address over a
+  direct internal connection. Allowing an office egress IP grants read-only
+  weight-history access to everyone sharing that address.
 
 ## Architecture
 
@@ -399,6 +417,8 @@ POSTGRES_USER=race_to_75
 POSTGRES_DB=race_to_75
 POSTGRES_VERSION=18
 APP_HOST=race-to-75.rigster.cv
+RADIATOR_ALLOWED_IP=
+TRUST_PROXY=
 IMAGE_TAG=latest
 JWT_SECRET=<long-random-secret>
 COOKIE_SECRET=<different-long-random-secret>

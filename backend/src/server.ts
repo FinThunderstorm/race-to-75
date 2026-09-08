@@ -25,6 +25,7 @@ import {
 } from './webhooks/withings/index.js'
 
 const app = Fastify({
+  trustProxy: config.trustProxy,
   logger: {
     serializers: {
       req(request) {

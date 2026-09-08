@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { adminApi } from './api/adminApi'
-import { useLogoutMutation } from './api/authApi'
+import { authApi, useLogoutMutation } from './api/authApi'
 import { raceApi, useGetRaceQuery } from './api/raceApi'
 import { withingsApi } from './api/withingsApi'
 import { useUser } from './hooks/useUser'
@@ -11,7 +11,7 @@ import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
 import { createSampleRace } from './race/sampleRace'
 
-export const Home = () => {
+export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const { user } = useUser()
   const [logout, { isLoading }] = useLogoutMutation()
   const [logoutError, setLogoutError] = useState(false)
@@ -19,14 +19,14 @@ export const Home = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params] = useSearchParams()
-  const live = params.get('data') === 'live'
+  const live = radiator || params.get('data') === 'live'
   const {
     data,
     isLoading: loadingRace,
     isFetching,
     isError,
     refetch
-  } = useGetRaceQuery(undefined, {
+  } = useGetRaceQuery(radiator ? 'radiator' : undefined, {
     skip: !live,
     pollingInterval: live ? 30_000 : 0,
     refetchOnMountOrArgChange: true
@@ -38,7 +38,7 @@ export const Home = () => {
   toggleParams.set('data', live ? 'sample' : 'live')
 
   return (
-    <main className="dashboard">
+    <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
       <header className="race-header">
         <div>
           <h1 className="wordmark">Race to 75</h1>
@@ -46,13 +46,19 @@ export const Home = () => {
             Weigh-in history <span>·</span> Goal 75.0 kg
           </p>
         </div>
-        <Link
-          className={`sample-indicator ${live ? 'live-indicator' : ''}`}
-          to={`?${toggleParams}`}
-          title={`Switch to ${live ? 'sample' : 'live Withings'} data`}
-        >
-          <span /> {live ? 'Live data' : 'Sample data'}
-        </Link>
+        {radiator ? (
+          <span className="sample-indicator live-indicator">
+            <span /> Live data
+          </span>
+        ) : (
+          <Link
+            className={`sample-indicator ${live ? 'live-indicator' : ''}`}
+            to={`?${toggleParams}`}
+            title={`Switch to ${live ? 'sample' : 'live Withings'} data`}
+          >
+            <span /> {live ? 'Live data' : 'Sample data'}
+          </Link>
+        )}
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
@@ -75,52 +81,56 @@ export const Home = () => {
           key={live ? 'live' : 'sample'}
           participants={live ? participants : sampleRace}
           live={live}
+          radiator={radiator}
         />
       )}
-      <footer className="dashboard-footer">
-        <p>
-          Signed in as{' '}
-          <Link className="text-button" to="/settings">
-            {user?.display_name}
-          </Link>
-        </p>
-        {document.fullscreenEnabled && (
+      {!radiator && (
+        <footer className="dashboard-footer">
+          <p>
+            Signed in as{' '}
+            <Link className="text-button" to="/settings">
+              {user?.display_name}
+            </Link>
+          </p>
+          {document.fullscreenEnabled && (
+            <button
+              className="text-button fullscreen-button"
+              type="button"
+              title="Enter full screen (Esc to exit)"
+              onClick={async () => {
+                setFullscreenError(false)
+                try {
+                  await document.documentElement.requestFullscreen()
+                } catch {
+                  setFullscreenError(true)
+                }
+              }}
+            >
+              Full screen
+            </button>
+          )}
           <button
-            className="text-button fullscreen-button"
+            className="text-button"
             type="button"
-            title="Enter full screen (Esc to exit)"
+            disabled={isLoading}
             onClick={async () => {
-              setFullscreenError(false)
+              setLogoutError(false)
               try {
-                await document.documentElement.requestFullscreen()
+                await logout().unwrap()
+                dispatch(authApi.util.resetApiState())
+                dispatch(raceApi.util.resetApiState())
+                dispatch(withingsApi.util.resetApiState())
+                dispatch(adminApi.util.resetApiState())
+                navigate('/login')
               } catch {
-                setFullscreenError(true)
+                setLogoutError(true)
               }
             }}
           >
-            Full screen
+            {isLoading ? 'Logging out…' : 'Log out'}
           </button>
-        )}
-        <button
-          className="text-button"
-          type="button"
-          disabled={isLoading}
-          onClick={async () => {
-            setLogoutError(false)
-            try {
-              await logout().unwrap()
-              dispatch(raceApi.util.resetApiState())
-              dispatch(withingsApi.util.resetApiState())
-              dispatch(adminApi.util.resetApiState())
-              navigate('/login')
-            } catch {
-              setLogoutError(true)
-            }
-          }}
-        >
-          {isLoading ? 'Logging out…' : 'Log out'}
-        </button>
-      </footer>
+        </footer>
+      )}
       {fullscreenError && <p role="alert">Could not enter full screen. Please try again.</p>}
       {logoutError && <p role="alert">Could not log out. Please try again.</p>}
     </main>
