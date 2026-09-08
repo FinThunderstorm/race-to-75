@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Link } from 'react-router'
 
 import { adminApi, type Invitation, useGetUsersQuery, useInviteUserMutation } from '../api/adminApi'
 import { useUser } from '../hooks/useUser'
@@ -8,7 +7,7 @@ import { adminErrorMessage } from './errors'
 import { UserCard } from './UserCard'
 import { UserDetailsForm } from './UserDetailsForm'
 
-export const Admin = () => {
+export const UserManagement = () => {
   const { user } = useUser()
   const dispatch = useDispatch()
   const { data, isLoading, isFetching, isError, refetch } = useGetUsersQuery(undefined, {
@@ -38,13 +37,9 @@ export const Admin = () => {
   }
 
   return (
-    <main className="profile-page admin-page">
-      <Link className="text-button" to="/">
-        ← Back to the race
-      </Link>
-      <header>
-        <p className="eyebrow">Race to 75 · Administration</p>
-        <h1>Manage users</h1>
+    <section className="user-management" aria-labelledby="manage-users-heading">
+      <header className="settings-section-header">
+        <h2 id="manage-users-heading">Manage users</h2>
         <p className="auth-description">Invite people to the race and manage their access.</p>
       </header>
       {isLoading ? (
@@ -63,8 +58,8 @@ export const Admin = () => {
         </div>
       ) : (
         <>
-          <section className="profile-connection" aria-labelledby="invite-heading">
-            <h2 id="invite-heading">Invite user</h2>
+          <section className="settings-panel" aria-labelledby="invite-heading">
+            <h3 id="invite-heading">Invite user</h3>
             <p className="auth-description">
               Create a member account, then share their one-time passkey enrollment link.
             </p>
@@ -90,7 +85,7 @@ export const Admin = () => {
           </section>
           {invitation && (
             <section className="admin-invitation" aria-labelledby="link-heading">
-              <h2 id="link-heading">Enrollment link ready</h2>
+              <h3 id="link-heading">Enrollment link ready</h3>
               <p role="status">
                 Share this link with {invitation.user.display_name} ({invitation.user.email}).
               </p>
@@ -129,9 +124,9 @@ export const Admin = () => {
           )}
           <section className="admin-users" aria-labelledby="users-heading">
             <div className="admin-user-header">
-              <h2 id="users-heading">
+              <h3 id="users-heading">
                 Users <span className="admin-count">{data?.users.length ?? 0}</span>
-              </h2>
+              </h3>
               <button
                 className="text-button"
                 type="button"
@@ -154,6 +149,6 @@ export const Admin = () => {
           </section>
         </>
       )}
-    </main>
+    </section>
   )
 }

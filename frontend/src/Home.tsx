@@ -80,15 +80,10 @@ export const Home = () => {
       <footer className="dashboard-footer">
         <p>
           Signed in as{' '}
-          <Link className="text-button" to="/profile">
+          <Link className="text-button" to="/settings">
             {user?.display_name}
           </Link>
         </p>
-        {user?.role === 'admin' && (
-          <Link className="text-button" to="/admin">
-            Manage users
-          </Link>
-        )}
         {document.fullscreenEnabled && (
           <button
             className="text-button fullscreen-button"

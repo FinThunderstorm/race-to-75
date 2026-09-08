@@ -404,7 +404,7 @@ export async function handleWithingsCallback(
 
     if (request.query.error) {
       if (profileFlow) {
-        return reply.redirect('/profile?withings=cancelled')
+        return reply.redirect('/settings?withings=cancelled')
       }
       return reply
         .status(400)
@@ -419,7 +419,7 @@ export async function handleWithingsCallback(
 
     if (!request.query.code || !request.query.state) {
       if (profileFlow) {
-        return reply.redirect('/profile?withings=error')
+        return reply.redirect('/settings?withings=error')
       }
       return reply
         .status(400)
@@ -459,7 +459,7 @@ export async function handleWithingsCallback(
       if (!notificationSubscriptionSucceeded) {
         params.set('updates', 'failed')
       }
-      return reply.redirect(`/profile?${params}`)
+      return reply.redirect(`/settings?${params}`)
     }
 
     const message =
@@ -480,7 +480,7 @@ export async function handleWithingsCallback(
     request.log.error({ error: details }, 'Withings OAuth callback failed')
 
     if (profileFlow) {
-      return reply.redirect('/profile?withings=error')
+      return reply.redirect('/settings?withings=error')
     }
 
     return reply
@@ -548,7 +548,7 @@ export async function registerWithingsProfileRoutes(app: FastifyInstance) {
       return reply.redirect(url.toString())
     } catch (error) {
       request.log.warn({ error: errorDetails(error) }, 'Profile Withings connect failed')
-      return reply.redirect('/profile?withings=unavailable')
+      return reply.redirect('/settings?withings=unavailable')
     }
   })
 

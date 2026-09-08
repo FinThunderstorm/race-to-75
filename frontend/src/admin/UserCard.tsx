@@ -53,10 +53,10 @@ export const UserCard = ({
     <article className="admin-user" aria-labelledby={`user-${user.id}`}>
       <div className="admin-user-header">
         <div>
-          <h3 id={`user-${user.id}`}>
+          <h4 id={`user-${user.id}`}>
             {user.display_name}
             {self && <span className="admin-you"> (you)</span>}
-          </h3>
+          </h4>
           <p className="auth-description">{user.email}</p>
         </div>
         <div className="admin-badges">

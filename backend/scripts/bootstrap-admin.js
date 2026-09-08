@@ -49,7 +49,7 @@ async function main() {
 
     if (existingAdmin) {
       console.error(
-        'An admin already exists; refusing to bootstrap another. Sign in and use Manage users (/admin) to invite users or issue an enrollment link. If no admin can sign in, recovery requires database access.'
+        'An admin already exists; refusing to bootstrap another. Sign in and open Settings (/settings) and use Manage users to invite users or issue an enrollment link. If no admin can sign in, recovery requires database access.'
       )
       process.exitCode = 1
 

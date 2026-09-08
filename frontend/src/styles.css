@@ -527,35 +527,36 @@ th:first-child {
   text-align: center;
   color: var(--cyan);
 }
-.profile-page {
+.settings-page {
   width: min(100%, 640px);
   margin: 0 auto;
   padding: 40px 24px;
   overflow-wrap: anywhere;
 }
-.profile-page header {
+.settings-page > header {
   margin: 40px 0 30px;
 }
-.profile-page h1 {
+.settings-page h1 {
   font-size: 28px;
 }
-.profile-name {
+.settings-name {
   margin-bottom: 0;
   color: var(--cyan);
   font-size: 20px;
 }
-.profile-connection {
+.settings-panel {
   padding: 24px;
   border: 1px solid #302242;
   background: #090615a8;
   font-size: 13px;
   line-height: 1.7;
 }
-.profile-connection h2 {
+.settings-panel h2,
+.settings-panel h3 {
   margin-top: 0;
   font-size: 20px;
 }
-.profile-connection .primary-button {
+.settings-panel .primary-button {
   display: block;
   text-align: center;
   text-decoration: none;
@@ -567,10 +568,22 @@ th:first-child {
   margin-top: 24px;
 }
 
-.admin-page {
+.user-management {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #302242;
+}
+.settings-section-header {
+  margin-bottom: 24px;
+}
+.settings-section-header h2 {
+  margin-top: 0;
+  font-size: 22px;
+}
+.settings-page--admin {
   width: min(100%, 1040px);
 }
-.admin-page h2 {
+.user-management h3 {
   font-size: 20px;
 }
 .admin-form {
@@ -581,12 +594,12 @@ th:first-child {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
-.admin-page label {
+.user-management label {
   display: block;
   font-size: 12px;
   color: #b4adc5;
 }
-.admin-page input {
+.user-management input {
   display: block;
   width: 100%;
   min-width: 0;
@@ -618,7 +631,7 @@ th:first-child {
   font-size: 13px;
   line-height: 1.7;
 }
-.admin-invitation h2 {
+.admin-invitation h3 {
   margin-top: 0;
   color: var(--green);
 }
@@ -643,7 +656,7 @@ th:first-child {
   justify-content: space-between;
   gap: 16px;
 }
-.admin-user h3 {
+.admin-user h4 {
   margin: 0 0 4px;
   font-size: 17px;
   color: var(--cyan);
@@ -673,12 +686,12 @@ th:first-child {
   .admin-fields {
     grid-template-columns: 1fr;
   }
-  .admin-page {
+  .settings-page--admin {
     padding-inline: 16px;
   }
   .admin-user,
   .admin-invitation,
-  .admin-page .profile-connection {
+  .settings-page--admin .settings-panel {
     padding: 20px 16px;
   }
 }

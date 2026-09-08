@@ -26,7 +26,7 @@ and Getting started for the current local workflow.
   enrollment links, disable/re-enable users, and grant or revoke `admin` access.
   Permanent account removal is still planned.
 - The first admin is created with the **bootstrap command**; after that,
-  admins invite users and promote others from the admin UI.
+  admins invite users and promote others from settings.
 - Members can log weight and view progress, the leaderboard, and manage their
   own passkeys and integrations.
 
@@ -233,14 +233,16 @@ use **Log in with passkey**. Enrollment links are single-use and expire after
 
 The bootstrap command refuses to run if any admin already exists. If you already
 have an account, use its passkey. An existing admin can issue a new enrollment
-link from **Manage users**. If no admin can sign in, recovery still requires
-database access.
+link from **Manage users** in settings. If no admin can sign in, recovery still
+requires database access.
 
 #### Invite and manage other users
 
-As an admin, open **Manage users** from the dashboard footer or your profile
-(direct URL: `/admin`). Enter an email and display name, select **Create
-invitation**, and copy the enrollment link to share privately with that person.
+Click your signed-in name in the dashboard footer to open **Settings**
+(direct URL: `/settings`). All users see their account details and Withings
+connection controls. Admins also see **Manage users** on this page. Enter an email
+and display name, select **Create invitation**, and copy the enrollment link to
+share privately with that person.
 The app does not send email. Opening the link lets them create a passkey and
 sign in as a member. Links are single-use and expire after 24 hours by default
 (`ENROLLMENT_TOKEN_TTL_SECONDS`).
@@ -251,11 +253,13 @@ previous unused links while retaining existing passkeys. Admins cannot demote
 or disable themselves; another enabled admin must make those changes.
 
 Role changes apply to existing sessions immediately on the next API request;
-open pages refresh access within 30 seconds. Disabled accounts cannot sign in,
+open pages refresh access within 30 seconds. Demotion hides user management
+while keeping personal settings available. Disabled accounts cannot sign in,
 enroll, or use an existing session. Disabling invalidates unused enrollment links
 and preserves readings, passkeys, and Withings imports. Re-enabling restores
 passkey access and may restore an unexpired session. There is no permanent delete
-action in this view.
+action in this view. Old `/profile` and `/admin` links redirect to settings,
+including any integration result messages.
 
 For an existing deployment, run `npm run db:migrate` against its database before
 starting the updated app. Migration `0005_user_disablement.sql` adds account
@@ -280,9 +284,9 @@ Keep `WITHINGS_REDIRECT_URI` set to the localhost callback above. Set
 uses **180 days**. Leave `WITHINGS_WEBHOOK_CALLBACK_URL` empty for a local import.
 
 Restart `./start-local-env.sh`, log in, and click your name in the dashboard footer
-to open **<http://localhost:7500/profile>**. Click **Connect Withings**, log into
+to open **<http://localhost:7500/settings>**. Click **Connect Withings**, log into
 Withings, and approve access. The callback connects the signed-in app account,
-imports your history, and returns to your profile. No bootstrap email or connect
+imports your history, and returns to settings. No bootstrap email or connect
 token is needed for this flow.
 
 The profile shows connection status and any import errors. Use **Reconnect Withings**
@@ -417,9 +421,9 @@ is pulled on each deploy. Use a commit SHA instead of `latest` when you want
 Coolify to deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the
 GHCR package is private, configure Coolify registry credentials for `ghcr.io`.
 
-Signed-in users manage their Withings connection at `/profile`, accessible by
-clicking their name in the dashboard footer. The token-based bootstrap flow remains
-available for compatibility and requires the optional `WITHINGS_CONNECT_TOKEN`,
+Signed-in users manage their Withings connection at `/settings`, accessible by
+clicking their name in the dashboard footer. The token-based bootstrap flow
+remains available for compatibility and requires the optional `WITHINGS_CONNECT_TOKEN`,
 `WITHINGS_BOOTSTRAP_EMAIL`, and `WITHINGS_BOOTSTRAP_DISPLAY_NAME` settings.
 Connect the bootstrap account by opening:
 

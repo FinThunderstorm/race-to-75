@@ -123,14 +123,14 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
       { session, r2_withings_state: 'wrong' }
     ]) {
       const rejected = await app.inject({ url: callback, cookies })
-      expect(rejected.headers.location).toBe('/profile?withings=error')
+      expect(rejected.headers.location).toBe('/settings?withings=error')
     }
     expect(exchanges).toBe(0)
     const connected = await app.inject({
       url: callback,
       cookies: { session, r2_withings_state: state }
     })
-    expect(connected.headers.location).toBe('/profile?withings=connected')
+    expect(connected.headers.location).toBe('/settings?withings=connected')
     expect(connected.cookies.find((cookie) => cookie.name === 'r2_withings_state')?.value).toBe('')
     expect(exchanges).toBe(1)
     expect(
@@ -151,12 +151,12 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
       url: `/integrations/withings/callback?code=retry&state=${encodeURIComponent(retryState)}`,
       cookies: { session, r2_withings_state: retryState }
     })
-    expect(partial.headers.location).toBe('/profile?withings=connected&sync=failed')
+    expect(partial.headers.location).toBe('/settings?withings=connected&sync=failed')
     const cancelled = await app.inject({
       url: `/integrations/withings/callback?error=access_denied&state=${encodeURIComponent(retryState)}`,
       cookies: { session, r2_withings_state: retryState }
     })
-    expect(cancelled.headers.location).toBe('/profile?withings=cancelled')
+    expect(cancelled.headers.location).toBe('/settings?withings=cancelled')
     const disconnected = await app.inject({
       method: 'DELETE',
       url: '/api/integrations/withings',
