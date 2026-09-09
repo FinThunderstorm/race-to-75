@@ -17,7 +17,7 @@ const sampleReadings = [
 export function createSampleRace(now = new Date()) {
   const { start, end } = chartWindow(now)
   const days = Math.round((end - start) / 86_400_000)
-  return sampleReadings.map((person) => {
+  return sampleReadings.map((person, index) => {
     const measurements = Array.from({ length: days + 1 }, (_, day) => {
       const position = (day / days) * (person.weights.length - 1)
       const index = Math.floor(position)
@@ -32,6 +32,7 @@ export function createSampleRace(now = new Date()) {
     return {
       ...participant,
       color: person.color,
+      heightCm: [185, 180, 178, 175, 172, null][index],
       streak: person.streak ?? 0,
       personalLow: person.personalLow ?? false
     }

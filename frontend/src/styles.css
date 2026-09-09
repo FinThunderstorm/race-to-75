@@ -128,6 +128,33 @@ p {
   align-items: flex-start;
   gap: 24px;
 }
+.race-header > div {
+  min-width: 0;
+}
+.race-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--secondary);
+  font-size: 14px;
+}
+.race-mode select {
+  max-width: 100%;
+  padding: 7px 12px;
+  border: 1px solid #453452;
+  border-radius: 4px;
+  background: #100b1b;
+  color: var(--cyan);
+  font: inherit;
+}
+.bmi-note {
+  max-width: 660px;
+  margin: 10px 0 0;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .wordmark {
   margin: 0;
   color: var(--cyan);

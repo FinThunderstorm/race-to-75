@@ -73,6 +73,7 @@ test('allowed network can view real data, enroll, log out and log back in with a
   expect((await response.json()).participants).toContainEqual({
     id: userId,
     name: 'Radiator Login Tester',
+    heightCm: null,
     measurements: []
   })
   for (const path of [

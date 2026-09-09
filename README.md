@@ -386,6 +386,29 @@ node scripts/with-local-env.mjs npm run cron:fetch-withings-measurement -w backe
 The worker consumes received webhook events; it does not poll Withings for new
 history. Coolify's `withings-worker` service repeats this command automatically.
 
+### BMI view
+
+Select **BMI** from **Race mode**, or open **<http://localhost:7500/?mode=bmi>**.
+Classic (75 kg) remains the default mode; both modes use live data by default.
+Add your height in centimetres under **Settings → Race profile**, then save.
+Height accepts 50–300 cm with one decimal place; leave it blank and save to
+remove it.
+
+BMI is calculated as weight in kg divided by height in metres squared. The chart,
+tooltips, and readings table use BMI, with a reference line at 25 and neutral changes
+between recorded daily averages. The reference is not an individual target, and
+there is no lowest-BMI winner. BMI cannot distinguish fat from muscle; see
+[CDC's explanation of BMI](https://www.cdc.gov/bmi/about/index.html).
+
+Participants without height remain listed below the chart. Correcting height
+recalculates historical BMI. Saving height makes BMI visible to the existing group
+and IP-allowed shared display. The shared display supports `?mode=bmi` but cannot
+edit profiles. Switching modes preserves participant colors and live/sample choice.
+
+Apply database migration `0007_user_height.sql` through `npm run db:migrate` before
+running this version against an existing database. Raw imported weights stay
+in kg.
+
 ### Local troubleshooting and checks
 
 - **Withings connection is unavailable:** check the client ID/secret and redirect

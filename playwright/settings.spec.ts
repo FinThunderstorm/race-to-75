@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/profile', (route) => route.fulfill({ json: { heightCm: null } }))
   await page.route('**/api/integrations/eufy/status', (route) =>
     route.fulfill({ json: { status: 'disconnected' } })
   )

@@ -22,11 +22,13 @@ async function loadRace() {
     {
       id: string
       display_name: string
+      height_cm: number | null
       measured_at: Date | null
       weight_kg: number | null
     }[]
   >`
       SELECT app_user.id, app_user.display_name, reading.measured_at,
+        app_user.height_cm::float8 AS height_cm,
         reading.weight_kg::float8 AS weight_kg
       FROM users app_user
       LEFT JOIN measurement reading
@@ -38,6 +40,7 @@ async function loadRace() {
     {
       id: string
       name: string
+      heightCm: number | null
       measurements: { measuredAt: string; weightKg: number }[]
     }
   >()
@@ -45,7 +48,12 @@ async function loadRace() {
   for (const row of rows) {
     let participant = participants.get(row.id)
     if (!participant) {
-      participant = { id: row.id, name: row.display_name, measurements: [] }
+      participant = {
+        id: row.id,
+        name: row.display_name,
+        heightCm: row.height_cm,
+        measurements: []
+      }
       participants.set(row.id, participant)
     }
     if (row.measured_at !== null && row.weight_kg !== null) {

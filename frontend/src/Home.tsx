@@ -4,11 +4,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 
 import { adminApi } from './api/adminApi'
 import { authApi, useLogoutMutation } from './api/authApi'
+import { profileApi } from './api/profileApi'
 import { raceApi, useGetRaceQuery } from './api/raceApi'
 import { withingsApi } from './api/withingsApi'
 import { useUser } from './hooks/useUser'
 import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
+import { createRaceView, type RaceMode } from './race/raceModes'
 import { createSampleRace } from './race/sampleRace'
 
 export const Home = ({ radiator = false }: { radiator?: boolean }) => {
@@ -18,7 +20,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const mode: RaceMode = params.get('mode') === 'bmi' ? 'bmi' : 'classic'
+  const settingsUrl = mode === 'bmi' ? '/settings?mode=bmi' : '/settings'
   const live = radiator || params.get('data') !== 'sample'
   const {
     data,
@@ -34,6 +38,10 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const today = new Date().toISOString().slice(0, 10)
   const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data, today])
   const sampleRace = useMemo(() => createSampleRace(), [today])
+  const view = useMemo(
+    () => createRaceView(live ? participants : sampleRace, mode),
+    [live, participants, sampleRace, mode]
+  )
   const toggleParams = new URLSearchParams(params)
   toggleParams.set('data', live ? 'sample' : 'live')
   const fullscreenButton = (
@@ -66,8 +74,39 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         <div>
           <h1 className="wordmark">Race to 75</h1>
           <p className="subtitle">
-            Weigh-in history <span>·</span> Goal 75.0 kg
+            {mode === 'bmi' ? 'BMI history' : 'Weigh-in history'} <span>·</span>{' '}
+            {mode === 'bmi' ? 'Reference 25.0' : 'Goal 75.0 kg'}
           </p>
+          <label className="race-mode">
+            Race mode
+            <select
+              value={mode}
+              onChange={(event) => {
+                const next = new URLSearchParams(params)
+                next.set('mode', event.target.value)
+                setParams(next)
+              }}
+            >
+              <option value="classic">Classic · 75 kg</option>
+              <option value="bmi">BMI</option>
+            </select>
+          </label>
+          {mode === 'bmi' && (
+            <p className="bmi-note">
+              BMI compares weight to height; it does not distinguish muscle from fat. 25 is a
+              reference, not a personal goal.
+              {!radiator &&
+                live &&
+                view.some((person) => person.id === user?.id && person.needsHeight) && (
+                  <>
+                    {' '}
+                    <Link className="text-button" to={settingsUrl}>
+                      Add your height
+                    </Link>
+                  </>
+                )}
+            </p>
+          )}
         </div>
         {radiator ? (
           <span className="sample-indicator live-indicator">
@@ -101,8 +140,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         </p>
       ) : (
         <RaceChart
-          key={live ? 'live' : 'sample'}
-          participants={live ? participants : sampleRace}
+          key={`${live ? 'live' : 'sample'}-${mode}`}
+          participants={view}
+          mode={mode}
           live={live}
           radiator={radiator}
         />
@@ -111,7 +151,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         {!radiator && (
           <p>
             Signed in as{' '}
-            <Link className="text-button" to="/settings">
+            <Link className="text-button" to={settingsUrl}>
               {user?.display_name}
             </Link>
           </p>
@@ -127,6 +167,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               try {
                 await logout().unwrap()
                 dispatch(authApi.util.resetApiState())
+                dispatch(profileApi.util.resetApiState())
                 dispatch(raceApi.util.resetApiState())
                 dispatch(withingsApi.util.resetApiState())
                 dispatch(adminApi.util.resetApiState())

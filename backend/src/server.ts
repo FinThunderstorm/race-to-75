@@ -19,6 +19,7 @@ import {
   registerWithingsProfileRoutes
 } from './integrations/withings/index.js'
 import { handlePing } from './ping/handle-ping.js'
+import { registerProfileRoutes } from './profile/index.js'
 import { registerRaceRoutes } from './race/index.js'
 import {
   handleWithingsWebhook,
@@ -73,6 +74,7 @@ const start = async () => {
   await app.register(authPlugin)
   await registerAdminRoutes(app)
   await registerRaceRoutes(app)
+  await registerProfileRoutes(app)
   await registerWithingsProfileRoutes(app)
   await registerEufyRoutes(app)
   if (config.eufySyncEnabled) {

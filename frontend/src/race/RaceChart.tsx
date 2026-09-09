@@ -1,19 +1,26 @@
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
 import { Racer } from '../Racer'
-import { chartBounds, type RaceParticipant } from './prepareRace'
+import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
 
-const goal = 75
+const formatBmiChange = (change: number) => {
+  const rounded = Number(change.toFixed(1))
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}`
+}
 
 export const RaceChart = ({
   participants,
   live = false,
-  radiator = false
+  radiator = false,
+  mode = 'classic'
 }: {
-  participants: RaceParticipant[]
+  participants: RaceViewParticipant[]
   live?: boolean
   radiator?: boolean
+  mode?: RaceMode
 }) => {
+  const { unit, metric, reference: goal, title, referenceLabel } = raceModes[mode]
+  const bmi = mode === 'bmi'
   const [selected, setSelected] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 840, height: 640 })
@@ -44,21 +51,24 @@ export const RaceChart = ({
   const left = size.width < 500 ? 36 : 55
   const right = size.width - (size.width < 500 ? 12 : 40)
   const plotHeight = size.height - 40
-  const bounds = chartBounds(participants)
+  const bounds = raceViewBounds(participants, mode)
   const y = (weight: number) => ((bounds.top - weight) / (bounds.top - bounds.bottom)) * plotHeight
   const x = (date: string) =>
     bounds.start === bounds.end
       ? (left + right) / 2
       : left + ((Date.parse(date) - bounds.start) / (bounds.end - bounds.start)) * (right - left)
   const withReadings = participants.filter((person) => person.points.length > 0)
-  const withoutReadings = participants.filter((person) => person.points.length === 0)
+  const withoutReadings = participants.filter(
+    (person) => person.points.length === 0 && !person.needsHeight
+  )
+  const needingHeight = participants.filter((person) => person.needsHeight)
   const stacked = withReadings.length > 10
   const labelPositions = new Map<string, number>()
   // Keep nearby current weights legible without shifting their actual data points.
-  const sorted = [...withReadings].sort((a, b) => y(a.latest!.weight) - y(b.latest!.weight))
+  const sorted = [...withReadings].sort((a, b) => y(a.latest!.value) - y(b.latest!.value))
   let previous = 112
   for (const person of sorted) {
-    const position = Math.max(y(person.latest!.weight), previous + 48)
+    const position = Math.max(y(person.latest!.value), previous + 48)
     labelPositions.set(person.id, position)
     previous = position
   }
@@ -78,8 +88,8 @@ export const RaceChart = ({
       })
       .toUpperCase()
 
-  const renderParticipant = (person: RaceParticipant) => {
-    const current = person.latest?.weight
+  const renderParticipant = (person: RaceViewParticipant) => {
+    const current = person.latest?.value
     const style = {
       '--racer-color': person.color,
       '--row-position': `${((labelPositions.get(person.id) ?? 0) / size.height) * 100}%`
@@ -96,14 +106,22 @@ export const RaceChart = ({
         <span className="participant-dot" />
         <span className="participant-name">{person.name}</span>
         {current === undefined ? (
-          <span className="remaining">No Withings readings</span>
+          <span className="remaining">
+            {person.needsHeight
+              ? radiator
+                ? 'Height needed for BMI'
+                : 'Add height in Settings'
+              : 'No readings'}
+          </span>
         ) : (
           <>
             <span className="participant-weight">
               {current.toFixed(1)}
-              <small>kg</small>
+              <small>{unit}</small>
             </span>
-            {person.streak >= 7 ? (
+            {bmi ? (
+              <span className="remaining">Change {formatBmiChange(person.change)} BMI</span>
+            ) : person.streak >= 7 ? (
               <span className="race-badge winner">✓ Goal · {person.streak} days</span>
             ) : person.change > 0 ? (
               <span className="race-badge setback">▲ +{person.change.toFixed(1)} kg</span>
@@ -129,7 +147,7 @@ export const RaceChart = ({
             } as CSSProperties)
           : undefined
       }
-      aria-label={`${live ? 'Live' : 'Sample'} group weight history`}
+      aria-label={`${live ? 'Live' : 'Sample'} group ${metric} history`}
     >
       <div className="race-art">
         <Racer />
@@ -142,13 +160,13 @@ export const RaceChart = ({
             role="img"
             aria-labelledby="chart-title chart-description"
           >
-            <title id="chart-title">The race to 75 kilograms</title>
+            <title id="chart-title">{title}</title>
             <desc id="chart-description">
-              {live ? 'Withings' : 'Sample'} weight trends over the last three months. Completed
-              weeks show the average of all weighings; the current week shows daily averages. Weeks
-              start on Monday in UTC. Solid vertical markers indicate month boundaries; the cyan
-              dashed marker indicates the start of this week. Starting and current weights are
-              available in the table below. Select a participant to highlight their history.
+              {live ? 'Live' : 'Sample'} {metric} trends over the last three months. Completed weeks
+              show the average of all weighings; the current week shows daily averages. Weeks start
+              on Monday in UTC. Solid vertical markers indicate month boundaries; the cyan dashed
+              marker indicates the start of this week. Starting and current values are available in
+              the table below. Select a participant to highlight their history.
             </desc>
             <defs>
               <clipPath id="chart-weight-range">
@@ -204,11 +222,11 @@ export const RaceChart = ({
             </text>
             <line className="goal-line" x1={left} x2={right} y1={y(goal)} y2={y(goal)} />
             <text className="goal-label" x={left + 4} y={y(goal) - 12}>
-              75.0 KG — GOAL LINE
+              {referenceLabel}
             </text>
             {withReadings.map((person) => {
               const points = person.points
-                .map((point) => `${x(point.date)},${y(point.weight)}`)
+                .map((point) => `${x(point.date)},${y(point.value)}`)
                 .join(' ')
               const last = person.points[person.points.length - 1]
               return (
@@ -237,12 +255,12 @@ export const RaceChart = ({
                     <circle
                       key={point.date}
                       cx={x(point.date)}
-                      cy={y(point.weight)}
+                      cy={y(point.value)}
                       r="3"
                       fill={person.color}
                     >
                       <title>
-                        {person.name}: {point.weight.toFixed(1)} kg ·{' '}
+                        {person.name}: {point.value.toFixed(1)} {unit} ·{' '}
                         {point.period === 'week' ? 'Weekly' : 'Daily'} average · {point.date}
                       </title>
                     </circle>
@@ -250,7 +268,7 @@ export const RaceChart = ({
                   {!stacked && (
                     <path
                       className="label-connector"
-                      d={`M${x(last.date)} ${y(last.weight)} L${right + 15} ${y(last.weight)} L${size.width} ${labelPositions.get(person.id)}`}
+                      d={`M${x(last.date)} ${y(last.value)} L${right + 15} ${y(last.value)} L${size.width} ${labelPositions.get(person.id)}`}
                       fill="none"
                       stroke={person.color}
                       strokeWidth="2"
@@ -260,13 +278,13 @@ export const RaceChart = ({
                   )}
                   <circle
                     cx={x(last.date)}
-                    cy={y(last.weight)}
+                    cy={y(last.value)}
                     r="7"
                     fill="#080513"
                     stroke={person.color}
                     strokeWidth="1"
                   />
-                  <circle cx={x(last.date)} cy={y(last.weight)} r="4.5" fill={person.color} />
+                  <circle cx={x(last.date)} cy={y(last.value)} r="4.5" fill={person.color} />
                 </g>
               )
             })}
@@ -280,9 +298,13 @@ export const RaceChart = ({
         </div>
       ) : (
         <p className="race-message" role="status">
-          {participants.some((person) => person.latest)
-            ? 'No measurements in the last three months.'
-            : 'No Withings measurements have been imported yet.'}
+          {needingHeight.length > 0
+            ? radiator
+              ? 'Height is needed to show BMI history.'
+              : 'Add height in Settings to show BMI history.'
+            : participants.some((person) => person.latest)
+              ? 'No measurements in the last three months.'
+              : 'No measurements have been imported yet.'}
         </p>
       )}
       <div
@@ -297,21 +319,27 @@ export const RaceChart = ({
           <div className="unplotted-list">{withoutReadings.map(renderParticipant)}</div>
         </section>
       )}
+      {needingHeight.length > 0 && (
+        <section className="race-unplotted" aria-label="Participants needing height">
+          <p className="unplotted-heading">Height needed for BMI</p>
+          <div className="unplotted-list">{needingHeight.map(renderParticipant)}</div>
+        </section>
+      )}
       {!radiator && (
         <details className="race-data">
           <summary>View {live ? 'live' : 'sample'} readings</summary>
           <div className="table-scroll">
             <table>
               <caption>
-                {live ? 'Withings' : 'Sample'} summary in kilograms · Current weight is the latest
-                daily average (UTC)
+                {live ? 'Live' : 'Sample'} summary in {bmi ? 'BMI' : 'kilograms'} · Current value is
+                the latest daily average (UTC)
               </caption>
               <thead>
                 <tr>
                   <th scope="col">Participant</th>
                   <th scope="col">Start</th>
                   <th scope="col">Current</th>
-                  <th scope="col">To go</th>
+                  <th scope="col">{bmi ? 'Change' : 'To go'}</th>
                   {live && <th scope="col">Last reading (UTC)</th>}
                 </tr>
               </thead>
@@ -321,9 +349,15 @@ export const RaceChart = ({
                   return (
                     <tr key={person.id}>
                       <th scope="row">{person.name}</th>
-                      <td>{person.startWeight?.toFixed(1) ?? '—'}</td>
-                      <td>{last?.weight.toFixed(1) ?? '—'}</td>
-                      <td>{last ? Math.max(0, last.weight - goal).toFixed(1) : '—'}</td>
+                      <td>{person.startValue?.toFixed(1) ?? '—'}</td>
+                      <td>{last?.value.toFixed(1) ?? '—'}</td>
+                      <td>
+                        {last
+                          ? bmi
+                            ? formatBmiChange(person.change)
+                            : Math.max(0, last.value - goal).toFixed(1)
+                          : '—'}
+                      </td>
                       {live && <td>{last?.date ?? '—'}</td>}
                     </tr>
                   )

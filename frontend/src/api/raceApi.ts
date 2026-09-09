@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 export type RaceHistoryParticipant = {
   id: string
   name: string
+  heightCm?: number | null
   measurements: { measuredAt: string; weightKg: number }[]
 }
 

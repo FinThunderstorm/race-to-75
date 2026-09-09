@@ -6,6 +6,7 @@ export type RaceParticipant = {
   id: string
   name: string
   color: string
+  heightCm?: number | null
   points: (WeightPoint & { period: 'week' | 'day' })[]
   latest: WeightPoint | null
   startWeight: number | null
@@ -101,6 +102,7 @@ export function prepareRace(
       id: participant.id,
       name: participant.name,
       color: colors[index % colors.length],
+      heightCm: participant.heightCm ?? null,
       points,
       latest,
       startWeight: readings[0]?.weightKg ?? null,

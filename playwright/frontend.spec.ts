@@ -81,9 +81,7 @@ test('defaults to live history, persists on reload, and switches between sample 
   await expect(page.getByRole('link', { name: 'Live data' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer 85.0/ })).toBeVisible()
   expect(requests).toBeGreaterThan(0)
-  await expect(
-    page.getByRole('button', { name: /Waiting Racer No Withings readings/ })
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: /Waiting Racer No readings/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Heikki/ })).toHaveCount(0)
   await page.getByText('View live readings', { exact: true }).click()
   await expect(
@@ -120,9 +118,7 @@ test('live data errors can be retried and empty responses never show sample part
   await expect(page.getByRole('alert')).toContainText('Could not load weight history')
   fail = false
   await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByRole('status')).toHaveText(
-    'No Withings measurements have been imported yet.'
-  )
+  await expect(page.getByRole('status')).toHaveText('No measurements have been imported yet.')
   await expect(page.getByRole('button', { name: /Heikki/ })).toHaveCount(0)
   await page.getByRole('link', { name: 'Live data' }).click()
   await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()

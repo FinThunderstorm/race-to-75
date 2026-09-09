@@ -49,6 +49,7 @@ test('members can read all participants and history from multiple sources withou
         {
           id: ids[0],
           name: 'Race member 0',
+          heightCm: null,
           measurements: [
             { measuredAt: '2010-01-01T08:00:00.000Z', weightKg: 120.5 },
             { measuredAt: '2026-09-01T08:00:00.000Z', weightKg: 80.2 },
@@ -58,16 +59,17 @@ test('members can read all participants and history from multiple sources withou
         {
           id: ids[1],
           name: 'Race member 1',
+          heightCm: null,
           measurements: [
             { measuredAt: '2026-09-02T09:00:00.000Z', weightKg: 74.1 },
             { measuredAt: '2026-09-03T09:00:00.000Z', weightKg: 50 }
           ]
         },
-        { id: ids[2], name: 'Race member 2', measurements: [] }
+        { id: ids[2], name: 'Race member 2', heightCm: null, measurements: [] }
       ])
     )
     for (const participant of participants) {
-      expect(Object.keys(participant).sort()).toEqual(['id', 'measurements', 'name'])
+      expect(Object.keys(participant).sort()).toEqual(['heightCm', 'id', 'measurements', 'name'])
     }
     await sql`DELETE FROM users WHERE id = ${ids[0]}`
     expect((await request.get('/api/race', { headers })).status()).toBe(401)

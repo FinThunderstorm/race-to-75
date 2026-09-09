@@ -57,6 +57,20 @@ const expectUndistortedChart = async (page: Page) => {
   }).toPass()
 }
 
+test('BMI uses the same undistorted chart geometry on desktop and mobile', async ({ page }) => {
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
+  await page.goto('/?mode=bmi&data=sample')
+  await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+  for (const viewport of [
+    { width: 1600, height: 1000 },
+    { width: 390, height: 844 }
+  ]) {
+    await page.setViewportSize(viewport)
+    await expectUndistortedChart(page)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+})
+
 test('live data retains the preview chart size and character when participants have no recent readings', async ({
   page
 }) => {
