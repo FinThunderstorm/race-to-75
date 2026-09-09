@@ -205,18 +205,21 @@ export const authPlugin = fp(async (app) => {
       const rawChallenge = request.cookies[loginChallengeCookie]
 
       if (!rawChallenge) {
+        request.log.info({ reason: 'missing_challenge' }, 'Login rejected')
         return reply.code(400).send({ error: 'Missing challenge' })
       }
 
       const challenge = verifyChallenge(rawChallenge, config.cookieSecret, new Date())
 
       if (challenge.type !== 'login') {
+        request.log.info({ reason: 'invalid_challenge_type' }, 'Login rejected')
         return reply.code(400).send({ error: 'Invalid challenge' })
       }
 
       const credential = await findCredentialById(body.response.id)
 
       if (!credential) {
+        request.log.info({ reason: 'unknown_credential' }, 'Login rejected')
         return reply.code(400).send({ error: 'Unknown credential' })
       }
 
