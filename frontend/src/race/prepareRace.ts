@@ -53,7 +53,7 @@ export function prepareRace(
   now = new Date()
 ): RaceParticipant[] {
   const window = chartWindow(now)
-  return participants.map((participant) => {
+  return participants.map((participant, index) => {
     const readings = participant.measurements
       .filter((reading) => Date.parse(reading.measuredAt) <= now.getTime())
       .sort((a, b) => Date.parse(a.measuredAt) - Date.parse(b.measuredAt))
@@ -97,14 +97,10 @@ export function prepareRace(
     for (let index = daily.length - 1; index >= 0 && daily[index].weight <= 75; index -= 1) {
       streak += 1
     }
-    const colorIndex =
-      [...participant.id].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 0) %
-      colors.length
-
     return {
       id: participant.id,
       name: participant.name,
-      color: colors[colorIndex],
+      color: colors[index % colors.length],
       points,
       latest,
       startWeight: readings[0]?.weightKg ?? null,
