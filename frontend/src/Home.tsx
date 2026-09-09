@@ -19,7 +19,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params] = useSearchParams()
-  const live = radiator || params.get('data') === 'live'
+  const live = radiator || params.get('data') !== 'sample'
   const {
     data,
     isLoading: loadingRace,

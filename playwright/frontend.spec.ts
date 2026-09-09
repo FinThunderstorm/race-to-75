@@ -54,7 +54,7 @@ test('serves the SPA shell with the login screen for unauthenticated users', asy
   await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
 })
 
-test('sample/live link loads Withings history, persists on reload, and switches back', async ({
+test('defaults to live history, persists on reload, and switches between sample and live', async ({
   page
 }) => {
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
@@ -78,11 +78,9 @@ test('sample/live link loads Withings history, persists on reload, and switches 
     })
   })
   await page.goto('/')
-  await expect(page.getByRole('link', { name: 'Sample data' })).toBeVisible()
-  expect(requests).toBe(0)
-  await page.getByRole('link', { name: 'Sample data' }).click()
-  await expect(page).toHaveURL(/data=live/)
+  await expect(page.getByRole('link', { name: 'Live data' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer 85.0/ })).toBeVisible()
+  expect(requests).toBeGreaterThan(0)
   await expect(
     page.getByRole('button', { name: /Waiting Racer No Withings readings/ })
   ).toBeVisible()
@@ -95,8 +93,17 @@ test('sample/live link loads Withings history, persists on reload, and switches 
   await expect(page.getByRole('link', { name: 'Live data' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer/ })).toBeVisible()
   await page.getByRole('link', { name: 'Live data' }).click()
+  await expect(page).toHaveURL(/data=sample/)
   await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer/ })).toHaveCount(0)
+  const liveRequests = requests
+  await page.reload()
+  await expect(page.getByRole('link', { name: 'Sample data' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()
+  expect(requests).toBe(liveRequests)
+  await page.getByRole('link', { name: 'Sample data' }).click()
+  await expect(page).toHaveURL(/data=live/)
+  await expect(page.getByRole('button', { name: /Live Racer 85.0/ })).toBeVisible()
 })
 
 test('live data errors can be retried and empty responses never show sample participants', async ({
@@ -135,7 +142,7 @@ test('sample dashboard supports highlighting racers and reading the data on mobi
     })
   )
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/')
+  await page.goto('/?data=sample')
 
   await expect(page.getByText('Sample data', { exact: true })).toBeVisible()
   const racer = page.getByRole('button', { name: /Mikko/ })

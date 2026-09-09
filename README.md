@@ -353,8 +353,9 @@ that secret requires users to reconnect Eufy. Keep it stable across instances.
 
 ### 5. View live data and keep it current
 
-Open **<http://localhost:7500/?data=live>**, or click **Sample data** in the
-header. Click **Live data** to return to the sample preview.
+Open **<http://localhost:7500/>** to view live data by default. Click **Live data**
+in the header to open the sample preview (`?data=sample`), and click **Sample data**
+to switch back to live data.
 
 Live mode requires login and reads every participant's recorded weight history
 through `/api/race`. It refreshes the database view every 30 seconds. Both live

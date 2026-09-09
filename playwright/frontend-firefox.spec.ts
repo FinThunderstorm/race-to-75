@@ -81,7 +81,7 @@ test('live data retains the preview chart size and character when participants h
       }
     })
   )
-  await page.goto('/')
+  await page.goto('/?data=sample')
   await expect(page.locator('.race-art img')).toBeVisible()
   await expectUndistortedChart(page)
   const preview = await page.locator('.race-chart').boundingBox()
