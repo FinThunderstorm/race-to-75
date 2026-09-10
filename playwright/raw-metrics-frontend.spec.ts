@@ -10,6 +10,37 @@ const participant = {
   bloodPressureMeasurements: [{ measuredAt: '2026-09-09', systolic: 160, diastolic: 100 }]
 }
 
+test('every chart mode leaves room above and below readings on desktop and mobile', async ({
+  page
+}) => {
+  await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
+  await page.route('**/api/race', (route) =>
+    route.fulfill({ json: { participants: [participant] } })
+  )
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    for (const mode of ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']) {
+      await page.goto(`/?mode=${mode}`)
+      await expect(page.locator('.chart-series circle').first()).toBeVisible()
+      await expect
+        .poll(() =>
+          page.locator('.race-chart svg').evaluate((svg) => {
+            const height = (svg as SVGSVGElement).viewBox.baseVal.height - 40
+            return [...svg.querySelectorAll<SVGCircleElement>('.chart-series circle')].every(
+              (circle) => {
+                const position = circle.cy.baseVal.value / height
+                return position >= 0.045 && position <= 0.955
+              }
+            )
+          })
+        )
+        .toBe(true)
+    }
+  }
+})
+
 test('raw metrics show component points and full scoring bands on desktop and mobile', async ({
   page
 }) => {

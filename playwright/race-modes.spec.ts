@@ -45,10 +45,10 @@ test('Classic keeps existing values and bounds', () => {
   expect(raceViewBounds(view, 'classic', now)).toEqual(chartBounds(prepared, now))
 })
 
-test('Classic scales below low historical and current weights with two kilograms of padding', () => {
-  for (const [earlier, current] of [
-    [68, 74],
-    [80, 67]
+test('Classic scales around low historical and current weights with proportional padding', () => {
+  for (const [earlier, current, bottom, top] of [
+    [68, 74, 38.25, 76.75],
+    [80, 67, 38, 82]
   ]) {
     const prepared = prepareRace(
       [
@@ -69,7 +69,8 @@ test('Classic scales below low historical and current weights with two kilograms
       now
     )
     const bounds = raceViewBounds(createRaceView(prepared, 'classic'), 'classic', now)
-    expect(bounds.bottom).toBe(Math.min(40, earlier, current) - 2)
+    expect(bounds.bottom).toBe(bottom)
+    expect(bounds.top).toBe(top)
     expect(bounds.top).toBeGreaterThan(75)
     expect(bounds).toEqual(chartBounds(prepared, now))
   }

@@ -1,4 +1,5 @@
 import type { RaceHistoryParticipant } from '../api/raceApi'
+import { paddedChartRange } from './chartScale'
 
 type WeightPoint = { date: string; weight: number }
 
@@ -171,8 +172,7 @@ export function chartBounds(participants: RaceParticipant[], now = new Date()) {
       maxWeight = Math.max(maxWeight, participant.latest.weight)
     }
   }
-  const bottom = minWeight - 2
-  const top = maxWeight + 0.5
+  const { bottom, top } = paddedChartRange(minWeight, maxWeight)
   const targetStep = (top - bottom) / 6
   const magnitude = 10 ** Math.floor(Math.log10(targetStep))
   const step = [1, 2, 5, 10].find((value) => value * magnitude >= targetStep)! * magnitude

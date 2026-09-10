@@ -1,3 +1,4 @@
+import { paddedChartRange } from './chartScale'
 import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 import {
   bicepsIndex,
@@ -218,8 +219,7 @@ export function raceViewBounds(
     minValue = 15
     maxValue = 25
   }
-  const bottom = mode === 'classic' ? minValue - 2 : Math.max(0, minValue - 1)
-  const top = maxValue + 0.5
+  const { bottom, top } = paddedChartRange(minValue, maxValue)
   const targetStep = (top - bottom) / 6
   const magnitude = 10 ** Math.floor(Math.log10(targetStep))
   const step = [1, 2, 5, 10].find((value) => value * magnitude >= targetStep)! * magnitude
