@@ -16,7 +16,18 @@ export type RaceParticipant = {
   personalLow: boolean
 }
 
-const colors = ['#ffad4d', '#ff668e', '#bc94ff', '#00eda0', '#35dfff', '#ffdf52']
+const colors = [
+  '#ffad4d', // Orange
+  '#ff668e', // Rose
+  '#bc94ff', // Lavender
+  '#00eda0', // Mint
+  '#35dfff', // Cyan
+  '#ffdf52', // Yellow
+  '#6385ff', // Blue
+  '#ff54e8', // Magenta
+  '#a8eb32', // Lime
+  '#f2f4ff' // Ice white
+]
 const dayMs = 24 * 60 * 60 * 1000
 const dateKey = (timestamp: number) => new Date(timestamp).toISOString().slice(0, 10)
 const weekStart = (timestamp: number) => {
