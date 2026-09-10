@@ -175,6 +175,9 @@ p {
 .race-subtitles .subtitle[aria-hidden="true"] {
   visibility: hidden;
 }
+.layout-placeholder {
+  visibility: hidden;
+}
 .wordmark {
   margin: 0;
   color: var(--cyan);
@@ -1026,6 +1029,7 @@ th:first-child {
   .dashboard--radiator .race-standings {
     grid-area: auto / 1;
     height: auto;
+    grid-auto-rows: minmax(90px, auto);
   }
 }
 

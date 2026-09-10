@@ -11,11 +11,15 @@ const formatBmiChange = (change: number) => {
 
 export const RaceChart = ({
   participants,
+  classicParticipants = participants,
+  bmiParticipants = participants,
   live = false,
   radiator = false,
   mode = 'classic'
 }: {
   participants: RaceViewParticipant[]
+  classicParticipants?: RaceViewParticipant[]
+  bmiParticipants?: RaceViewParticipant[]
   live?: boolean
   radiator?: boolean
   mode?: RaceMode
@@ -86,7 +90,13 @@ export const RaceChart = ({
     (person) => person.points.length === 0 && !person.needsHeight
   )
   const needingHeight = participants.filter((person) => person.needsHeight)
-  const stacked = withReadings.length > 10
+  const reservedHeightParticipants = bmiParticipants.filter((person) => person.needsHeight)
+  const standingsParticipants = radiator
+    ? participants.filter((person) =>
+        classicParticipants.some((classic) => classic.id === person.id && classic.points.length > 0)
+      )
+    : withReadings
+  const stacked = classicParticipants.filter((person) => person.points.length > 0).length > 10
   const targetCoordinates = useMemo(() => {
     const y = (value: number) => ((bounds.top - value) / (bounds.top - bounds.bottom)) * plotHeight
     const coordinates: Record<string, number> = { goal: y(goal) }
@@ -116,7 +126,7 @@ export const RaceChart = ({
   const coordinate = (key: string) => animatedCoordinates[key] ?? targetCoordinates[key]
   const pointY = (person: RaceViewParticipant, date: string) =>
     coordinate(`point:${person.id}:${date}`)
-  const renderParticipant = (person: RaceViewParticipant) => {
+  const renderParticipant = (person: RaceViewParticipant, placeholder = false) => {
     const current = person.latest?.value
     const style = {
       '--racer-color': person.color,
@@ -126,7 +136,9 @@ export const RaceChart = ({
       <button
         key={person.id}
         type="button"
-        className={`participant ${selected && selected !== person.id ? 'muted' : ''}`}
+        className={`participant ${selected && selected !== person.id ? 'muted' : ''} ${placeholder ? 'layout-placeholder' : ''}`}
+        aria-hidden={placeholder || undefined}
+        tabIndex={placeholder ? -1 : undefined}
         style={style}
         aria-pressed={selected === person.id}
         onClick={() => setSelected(selected === person.id ? null : person.id)}
@@ -171,7 +183,7 @@ export const RaceChart = ({
       style={
         radiator
           ? ({
-              '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, withReadings.length * 48 + 40)}px`
+              '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, standingsParticipants.length * 48 + 40)}px`
             } as CSSProperties)
           : undefined
       }
@@ -356,18 +368,29 @@ export const RaceChart = ({
         className="race-standings"
         aria-label="Participants. Select a participant to highlight their history."
       >
-        {withReadings.map(renderParticipant)}
+        {standingsParticipants.map((person) => renderParticipant(person, person.needsHeight))}
       </div>
       {withoutReadings.length > 0 && (
         <section className="race-unplotted" aria-label="Participants without recent readings">
           <p className="unplotted-heading">No readings in the last three months</p>
-          <div className="unplotted-list">{withoutReadings.map(renderParticipant)}</div>
+          <div className="unplotted-list">
+            {withoutReadings.map((person) => renderParticipant(person))}
+          </div>
         </section>
       )}
-      {needingHeight.length > 0 && (
-        <section className="race-unplotted" aria-label="Participants needing height">
+      {(radiator ? reservedHeightParticipants.length > 0 : needingHeight.length > 0) && (
+        <section
+          className={`race-unplotted ${!bmi ? 'layout-placeholder' : ''}`}
+          aria-label="Participants needing height"
+          aria-hidden={!bmi || undefined}
+          inert={!bmi}
+        >
           <p className="unplotted-heading">Height needed for BMI</p>
-          <div className="unplotted-list">{needingHeight.map(renderParticipant)}</div>
+          <div className="unplotted-list">
+            {(radiator ? reservedHeightParticipants : needingHeight).map((person) =>
+              renderParticipant(person)
+            )}
+          </div>
         </section>
       )}
       {!radiator && (

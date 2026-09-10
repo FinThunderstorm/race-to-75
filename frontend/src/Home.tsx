@@ -50,10 +50,14 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const today = new Date().toISOString().slice(0, 10)
   const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data, today])
   const sampleRace = useMemo(() => createSampleRace(), [today])
-  const view = useMemo(
-    () => createRaceView(live ? participants : sampleRace, mode),
-    [live, participants, sampleRace, mode]
+  const views = useMemo(
+    () => ({
+      classic: createRaceView(live ? participants : sampleRace, 'classic'),
+      bmi: createRaceView(live ? participants : sampleRace, 'bmi')
+    }),
+    [live, participants, sampleRace]
   )
+  const view = views[mode]
   const toggleParams = new URLSearchParams(params)
   toggleParams.set('data', live ? 'sample' : 'live')
   const fullscreenButton = (
@@ -163,6 +167,8 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         <RaceChart
           key={live ? 'live' : 'sample'}
           participants={view}
+          classicParticipants={views.classic}
+          bmiParticipants={views.bmi}
           mode={mode}
           live={live}
           radiator={radiator}
