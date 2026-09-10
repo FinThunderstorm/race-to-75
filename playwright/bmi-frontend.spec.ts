@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
 
+// Keep the pause time safely beyond page loading and the test timeout.
+const pausedTime = new Date('2026-09-10T13:00:00Z')
+
 const user = { id: 'bmi-user', display_name: 'BMI Racer', email: 'bmi@example.com', role: 'member' }
 const participants = [
   {
@@ -185,8 +188,8 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   const bmi = page.getByRole('button', { name: 'BMI', exact: true })
   await expect(classic).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('button', { name: 'Pause automatic mode switching' })).toBeVisible()
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
   await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.clock.pauseAt(pausedTime)
   await page.getByRole('button', { name: 'Play automatic mode switching' }).click()
   const historyLength = await page.evaluate(() => history.length)
   await page.clock.runFor(9999)
@@ -216,8 +219,8 @@ test('manual mode selection restarts the automatic countdown on the radiator', a
   const classic = page.getByRole('button', { name: 'Classic · 75 kg', exact: true })
   const bmi = page.getByRole('button', { name: 'BMI', exact: true })
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
   await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.clock.pauseAt(pausedTime)
   await page.getByRole('button', { name: 'Play automatic mode switching' }).click()
   await page.clock.runFor(5000)
   await classic.click()
@@ -262,7 +265,7 @@ test('chart lines and markers interpolate between modes without remounting or lo
 }) => {
   await page.goto('/?data=sample')
   await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  await page.clock.pauseAt(pausedTime)
   await page.getByRole('button', { name: /Heikki/ }).click()
   const series = page.locator('.chart-series').first()
   const line = await series.locator('polyline').last().elementHandle()
@@ -292,7 +295,7 @@ test('reduced motion switches chart positions immediately', async ({ page }) => 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/?data=sample')
   await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  await page.clock.pauseAt(pausedTime)
   const line = page.locator('.chart-series').first().locator('polyline').last()
   const before = await line.getAttribute('points')
   await page.getByRole('button', { name: 'BMI', exact: true }).click()
