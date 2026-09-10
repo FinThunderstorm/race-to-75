@@ -1,5 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
+export type BloodPressureMeasurement = {
+  id: string
+  measuredAt: string
+  systolic: number
+  diastolic: number
+}
+
 export type BicepsMeasurement = { id: string; measuredAt: string; circumferenceCm: number }
 
 export type RaceHistoryParticipant = {
@@ -7,6 +14,7 @@ export type RaceHistoryParticipant = {
   name: string
   heightCm?: number | null
   measurements: { measuredAt: string; weightKg: number }[]
+  bloodPressureMeasurements?: Omit<BloodPressureMeasurement, 'id'>[]
   bicepsMeasurements?: Omit<BicepsMeasurement, 'id'>[]
 }
 
@@ -14,7 +22,7 @@ export const raceApi = createApi({
   reducerPath: 'raceApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
   keepUnusedDataFor: 0,
-  tagTypes: ['race', 'biceps'],
+  tagTypes: ['race', 'biceps', 'bloodPressure'],
   endpoints: (builder) => ({
     getBicepsMeasurements: builder.query<{ measurements: BicepsMeasurement[] }, void>({
       query: () => '/biceps-measurements',
@@ -28,6 +36,23 @@ export const raceApi = createApi({
       query: (id) => ({ url: `/biceps-measurements/${id}`, method: 'DELETE' }),
       invalidatesTags: (_result, error) => (error ? [] : ['biceps', 'race'])
     }),
+    getBloodPressureMeasurements: builder.query<{ measurements: BloodPressureMeasurement[] }, void>(
+      {
+        query: () => '/blood-pressure-measurements',
+        providesTags: ['bloodPressure']
+      }
+    ),
+    addBloodPressureMeasurement: builder.mutation<
+      BloodPressureMeasurement,
+      Omit<BloodPressureMeasurement, 'id'>
+    >({
+      query: (body) => ({ url: '/blood-pressure-measurements', method: 'POST', body }),
+      invalidatesTags: (_result, error) => (error ? [] : ['bloodPressure', 'race'])
+    }),
+    deleteBloodPressureMeasurement: builder.mutation<void, string>({
+      query: (id) => ({ url: `/blood-pressure-measurements/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, error) => (error ? [] : ['bloodPressure', 'race'])
+    }),
     getRadiatorAccess: builder.query<{ allowed: boolean }, void>({
       query: () => '/radiator/access'
     }),
@@ -39,6 +64,9 @@ export const raceApi = createApi({
 })
 
 export const {
+  useGetBloodPressureMeasurementsQuery,
+  useAddBloodPressureMeasurementMutation,
+  useDeleteBloodPressureMeasurementMutation,
   useGetRaceQuery,
   useGetRadiatorAccessQuery,
   useGetBicepsMeasurementsQuery,

@@ -1,8 +1,8 @@
 import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 import { bicepsIndex, bmiIndex, prepareScoreHistory, type ScoreComponents } from './raceIndices'
 
-export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score'
-export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'score']
+export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure'
+export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'score', 'blood-pressure']
 export function parseRaceMode(value: string | null): RaceMode {
   return raceModeOrder.find((mode) => mode === value) ?? 'classic'
 }
@@ -35,6 +35,15 @@ export const raceModes = {
     title: 'Ryhmän hauisindeksin historia',
     referenceLabel: null
   },
+  'blood-pressure': {
+    label: 'Verenpaine',
+    unit: 'mmHg',
+    unitLabel: 'mmHg',
+    metric: 'verenpaine',
+    reference: null,
+    title: 'Ryhmän verenpainehistoria',
+    referenceLabel: null
+  },
   score: {
     label: 'Ihmisarvo',
     unit: 'kp',
@@ -52,6 +61,7 @@ export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 's
   startValue: number | null
   needsHeight: boolean
   rawLatest: number | null
+  diastolic?: ReturnType<typeof prepareMeasurementHistory>
   scoreComponents: ScoreComponents | null
 }
 
@@ -63,7 +73,9 @@ export function createRaceView(
   return participants.map(({ points, latest, startWeight, ...person }) => {
     const height = person.heightCm
     const needsHeight =
-      mode !== 'classic' && (!height || !Number.isFinite(height) || height < 50 || height > 300)
+      mode !== 'classic' &&
+      mode !== 'blood-pressure' &&
+      (!height || !Number.isFinite(height) || height < 50 || height > 300)
     const base = {
       ...person,
       needsHeight,
@@ -78,6 +90,25 @@ export function createRaceView(
     }
     if (needsHeight) {
       return base
+    }
+    if (mode === 'blood-pressure') {
+      const readings = person.bloodPressureMeasurements ?? []
+      const systolic = prepareMeasurementHistory(
+        readings.map(({ measuredAt, systolic }) => ({ measuredAt, value: systolic })),
+        now
+      )
+      const diastolic = prepareMeasurementHistory(
+        readings.map(({ measuredAt, diastolic }) => ({ measuredAt, value: diastolic })),
+        now
+      )
+      return {
+        ...base,
+        points: systolic.points,
+        latest: systolic.latest,
+        startValue: systolic.startValue,
+        change: systolic.change,
+        diastolic
+      }
     }
     if (mode === 'score') {
       const history = prepareScoreHistory({ ...person, points, latest, startWeight }, height!, now)
@@ -138,12 +169,16 @@ export function raceViewBounds(
   let minValue: number = reference ?? Number.POSITIVE_INFINITY
   let maxValue: number = reference ?? Number.NEGATIVE_INFINITY
   for (const person of participants) {
-    for (const point of person.points) {
+    for (const point of [...person.points, ...(person.diastolic?.points ?? [])]) {
       minValue = Math.min(minValue, point.value)
       maxValue = Math.max(maxValue, point.value)
     }
     if (person.points.length && person.latest) {
-      minValue = Math.min(minValue, person.latest.value)
+      minValue = Math.min(
+        minValue,
+        person.latest.value,
+        person.diastolic?.latest?.value ?? Infinity
+      )
       maxValue = Math.max(maxValue, person.latest.value)
     }
   }

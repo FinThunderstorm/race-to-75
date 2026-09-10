@@ -1,5 +1,6 @@
 import { formatDate, formatNumber } from '../format'
 
+import { BloodPressureIndexExplanation } from './BloodPressureIndexExplanation'
 import type { RaceMode, RaceViewParticipant } from './raceModes'
 
 export const RaceReadings = ({
@@ -31,20 +32,22 @@ export const RaceReadings = ({
           {score && (
             <>
               <p>
-                Ihmisarvo = hauisindeksi × BMI-indeksi / 100. Yksikkö on kansalaispiste (kp).
-                Laskentaan tarvitaan molemmat mittaukset ja pituus.
+                Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10 000. Yksikkö on
+                kansalaispiste (kp). Laskentaan tarvitaan paino-, hauis- ja verenpainemittaus sekä
+                pituus.
               </p>
               <p>
-                Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon ja
-                hauiksen päiväkeskiarvoja. Alla näkyvät kummankin mittauksen päivämäärät.
+                Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon, hauiksen
+                ja verenpaineen päiväkeskiarvoja. Alla näkyvät kaikkien mittausten päivämäärät.
                 Päättyneiltä viikoilta näytetään näiden kansalaispisteiden keskiarvo.
               </p>
+              <BloodPressureIndexExplanation />
             </>
           )}
           <p>
             Suurempi indeksi antaa paremman tuloksen. Pisteet on tarkoitettu yhteiseen kisaan. Niitä
             ei ole validoitu terveysmittariksi. Hauisindeksi huomioi pituuden, mutta ei
-            sukupuolieroja. Verenpaine ei vielä sisälly laskentaan.
+            sukupuolieroja.
           </p>
         </div>
       )}
@@ -72,6 +75,8 @@ export const RaceReadings = ({
                   <th scope="col">Hauiksen mittauspäivä (UTC)</th>
                   <th scope="col">BMI-indeksi (BMI)</th>
                   <th scope="col">Punnituspäivä (UTC)</th>
+                  <th scope="col">Verenpaineindeksi (mmHg)</th>
+                  <th scope="col">Verenpaineen mittauspäivä (UTC)</th>
                 </>
               )}
               {live && <th scope="col">Viimeisin mittaus (UTC)</th>}
@@ -111,6 +116,12 @@ export const RaceReadings = ({
                           : '—'}
                       </td>
                       <td>{components ? formatDate(components.weight.date) : '—'}</td>
+                      <td>
+                        {components
+                          ? `${formatNumber(components.bloodPressureIndex)} (${formatNumber(components.bloodPressure.systolic)} / ${formatNumber(components.bloodPressure.diastolic)} mmHg)`
+                          : '—'}
+                      </td>
+                      <td>{components ? formatDate(components.bloodPressure.date) : '—'}</td>
                     </>
                   )}
                   {live && <td>{last ? formatDate(last.date) : '—'}</td>}

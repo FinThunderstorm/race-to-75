@@ -7,6 +7,7 @@ export type RaceParticipant = {
   name: string
   color: string
   heightCm?: number | null
+  bloodPressureMeasurements?: RaceHistoryParticipant['bloodPressureMeasurements']
   bicepsMeasurements?: RaceHistoryParticipant['bicepsMeasurements']
   dailyWeights: WeightPoint[]
   points: (WeightPoint & { period: 'week' | 'day' })[]
@@ -147,6 +148,7 @@ export function prepareRace(
       latest,
       startWeight: history.startValue,
       bicepsMeasurements: participant.bicepsMeasurements,
+      bloodPressureMeasurements: participant.bloodPressureMeasurements,
       change: latest && daily.length > 1 ? latest.weight - daily[daily.length - 2].weight : 0,
       streak,
       personalLow:

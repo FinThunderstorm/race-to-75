@@ -3,10 +3,12 @@ import type { FastifyInstance } from 'fastify'
 import { findUserById } from '../auth/queries.js'
 import { sql } from '../database.js'
 import { registerBicepsRoutes } from './biceps.js'
+import { registerBloodPressureRoutes } from './blood-pressure.js'
 import { registerRadiatorRoutes } from './radiator.js'
 
 export async function registerRaceRoutes(app: FastifyInstance) {
   await registerBicepsRoutes(app)
+  await registerBloodPressureRoutes(app)
   app.get('/api/race', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store')
 
@@ -44,6 +46,7 @@ async function loadRace() {
       name: string
       heightCm: number | null
       measurements: { measuredAt: string; weightKg: number }[]
+      bloodPressureMeasurements: { measuredAt: string; systolic: number; diastolic: number }[]
       bicepsMeasurements: { measuredAt: string; circumferenceCm: number }[]
     }
   >()
@@ -56,7 +59,8 @@ async function loadRace() {
         name: row.display_name,
         heightCm: row.height_cm,
         measurements: [],
-        bicepsMeasurements: []
+        bicepsMeasurements: [],
+        bloodPressureMeasurements: []
       }
       participants.set(row.id, participant)
     }
@@ -76,6 +80,19 @@ async function loadRace() {
     participants.get(reading.user_id)?.bicepsMeasurements.push({
       measuredAt: reading.measured_at,
       circumferenceCm: reading.circumference_cm
+    })
+  }
+  const bloodPressure = await sql<
+    { user_id: string; measured_at: string; systolic: number; diastolic: number }[]
+  >`
+    SELECT user_id, measured_at::text, systolic, diastolic
+    FROM blood_pressure_measurement ORDER BY measured_at, created_at, id
+  `
+  for (const reading of bloodPressure) {
+    participants.get(reading.user_id)?.bloodPressureMeasurements.push({
+      measuredAt: reading.measured_at,
+      systolic: reading.systolic,
+      diastolic: reading.diastolic
     })
   }
   return { participants: [...participants.values()] }

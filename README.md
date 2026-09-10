@@ -16,9 +16,32 @@ Keep everyone's weight on record over time and make the shared target —
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Paino, BMI, Hauis and Ihmisarvo modes
+deployment setup are implemented. Paino, BMI, Hauis, Ihmisarvo and Verenpaine modes
 are available.
 Manual weight entry is still planned.
+
+### Blood pressure
+
+Select **Verenpaine** or open `/?mode=blood-pressure`. In **Asetukset →
+Verenpainemittaukset**, enter your systolic (yläpaine) and diastolic (alapaine)
+pressures in mmHg and the measurement date (UTC, default today). Backdating and
+multiple readings per day are supported. Delete your own entries and add them
+again to correct mistakes. Saving or deleting refreshes the shared history.
+
+The three-month chart shows systolic pressure as a solid line and diastolic
+pressure as a dashed line in each participant's color. Completed weeks average
+all readings; the current week uses daily averages. Latest values show both
+pressures and their measurement date in the readings table. Height and weight
+are not required. The mode supports sample data, automatic rotation, and the
+read-only shared display. The readings also contribute a blood pressure index
+to Ihmisarvo.
+
+Inputs accept whole numbers from 1–300 mmHg, with systolic greater than diastolic,
+and valid dates no later than today (UTC). These are input bounds, not clinical
+categories. Entries are visible to the existing group and IP-allowed display.
+
+Existing databases need `0012_blood_pressure_measurement.sql`; apply it with
+`npm run db:migrate` using the target `DATABASE_URL` before running the backend.
 
 ### Biceps circumference
 
@@ -457,30 +480,45 @@ in kg.
 Select **Ihmisarvo** or open `/?mode=score`. The shared formula is:
 
 ```text
-Ihmisarvo = hauisindeksi × BMI-indeksi / 100
+Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10,000
+Verenpaineindeksi = 100 × min(1, systolic/90, 120/systolic,
+                               diastolic/60, 80/diastolic)
 ```
 
-For example, a biceps index of 20 and BMI of 30 give a BMI index of 83.33…
-and a combined score of 16.67…. Higher scores are better.
-These are game rules, not a clinically validated health index. The biceps formula
-adjusts for height but does not correct sex differences. There are no personal
-targets, and the combined score has no fixed maximum of 100.
+The blood pressure index gives 100 points when systolic is 90–120 mmHg and
+diastolic is 60–80 mmHg, inclusive. Outside those ranges, each pressure loses
+points proportionally to its nearest boundary. The lower component index wins:
+a normal pressure does not cancel an out-of-range pressure. The upper boundaries
+are informed by [Käypä hoito](https://www.kaypahoito.fi/hoi04010), and lower
+boundaries by [NHS](https://www.nhs.uk/conditions/low-blood-pressure-hypotension/).
+The inclusive plateau, ratios and combined score are game rules, not clinical
+categories, a validated health index, or individual treatment targets.
 
-Height, weight and a biceps measurement are all required. Missing components
-never produce a partial score. Each UTC day with a weight or biceps measurement
-uses that day's average and the latest preceding daily average of the other
-measurement. History begins only when both are available; future readings never
-fill earlier dates. Completed weeks average those observed-day scores, while
-the current week shows them daily. Calculations retain full precision and the
-display rounds to one decimal using a Finnish decimal comma.
+For example, biceps index 20, BMI 25 and blood pressure 120/80 give 20 kp.
+At 160/100, the blood pressure index is 75 and the same participant gets 15 kp.
+At BMI 30 and blood pressure 160/100, the BMI index is 83.33… and the combined
+score is 12.5 kp. Higher scores are better. The biceps formula adjusts for height
+but does not correct sex differences. There are no personal targets, and the
+combined score has no fixed maximum of 100.
 
-Expand **Näytä mittaukset** to see the formulas, both component indices, raw
+Height, weight, biceps and blood pressure are all required. Missing components
+never produce a partial score. Each UTC day with any measurement uses that day's
+average and the latest preceding daily averages of the other measurements.
+Systolic and diastolic are averaged before computing their index. History begins
+only when all components are available; future readings never fill earlier dates.
+Completed weeks average observed-day scores, while the current week shows them
+daily. Calculations retain full precision; the display rounds to one decimal
+using a Finnish decimal comma.
+
+Expand **Näytä mittaukset** to see the formulas, all component indices, raw
 values and their measurement dates. Old component readings can be carried forward;
 their original dates remain visible. Ihmisarvo supports live and sample data, the
 read-only radiator, automatic mode switching and returning from Asetukset.
+Use **Lisää verenpainemittaus** in either Verenpaine or Ihmisarvo to record a
+reading. Adding or deleting readings recalculates the score, including history.
 
-Blood pressure is not included yet. The current score uses existing data and
-requires no new database migration.
+This calculation uses the existing blood pressure data and needs no migration
+beyond `0012_blood_pressure_measurement.sql` from the manual-entry feature.
 
 ### Local troubleshooting and checks
 

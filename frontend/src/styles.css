@@ -478,6 +478,11 @@ td {
 th:first-child {
   text-align: left;
 }
+.measurement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
 .dashboard-footer {
   display: flex;
   align-items: center;

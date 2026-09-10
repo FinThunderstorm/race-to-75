@@ -55,6 +55,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       classic: createRaceView(live ? participants : sampleRace, 'classic'),
       bmi: createRaceView(live ? participants : sampleRace, 'bmi'),
       biceps: createRaceView(live ? participants : sampleRace, 'biceps'),
+      'blood-pressure': createRaceView(live ? participants : sampleRace, 'blood-pressure'),
       score: createRaceView(live ? participants : sampleRace, 'score')
     }),
     [live, participants, sampleRace]
@@ -100,6 +101,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
             </p>
             <p className="subtitle" aria-hidden={mode !== 'biceps'}>
               Hauisindeksi <span>·</span> 100 × ympärys / pituus
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'blood-pressure'}>
+              Verenpaine <span>·</span> Yläpaine ━ / alapaine ┄ · mmHg
             </p>
             <p className="subtitle" aria-hidden={mode !== 'score'}>
               Ihmisarvo <span>·</span> Kansalaispisteet
@@ -188,16 +192,25 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           radiator={radiator}
         />
       )}
-      {!radiator && live && view.some((person) => person.id === user?.id && person.needsHeight) && (
-        <Link className="text-button" to={settingsUrl}>
-          Lisää pituutesi
-        </Link>
-      )}
-      {!radiator && (mode === 'biceps' || mode === 'score') && (
-        <Link className="text-button" to={`${settingsUrl}#biceps`}>
-          Lisää hauismittaus
-        </Link>
-      )}
+      <div className="measurement-actions">
+        {!radiator &&
+          live &&
+          view.some((person) => person.id === user?.id && person.needsHeight) && (
+            <Link className="text-button" to={settingsUrl}>
+              Lisää pituutesi
+            </Link>
+          )}
+        {!radiator && (mode === 'biceps' || mode === 'score') && (
+          <Link className="text-button" to={`${settingsUrl}#biceps`}>
+            Lisää hauismittaus
+          </Link>
+        )}
+        {!radiator && (mode === 'blood-pressure' || mode === 'score') && (
+          <Link className="text-button" to={`${settingsUrl}#blood-pressure`}>
+            Lisää verenpainemittaus
+          </Link>
+        )}
+      </div>
       <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>
         {!radiator && (
           <p>

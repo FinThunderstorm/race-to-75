@@ -4,6 +4,7 @@ import { UserManagement } from './admin/UserManagement'
 import { useUser } from './hooks/useUser'
 import { parseRaceMode } from './race/raceModes'
 import { BicepsSettings } from './settings/BicepsSettings'
+import { BloodPressureSettings } from './settings/BloodPressureSettings'
 import { EufySettings } from './settings/EufySettings'
 import { RaceProfileSettings } from './settings/RaceProfileSettings'
 import { WithingsSettings } from './settings/WithingsSettings'
@@ -27,6 +28,7 @@ export const Settings = () => {
       </header>
       <RaceProfileSettings />
       <BicepsSettings />
+      <BloodPressureSettings />
       <WithingsSettings />
       <EufySettings />
       {isAdmin && <UserManagement />}

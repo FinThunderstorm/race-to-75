@@ -17,9 +17,9 @@ export const RaceProfileSettings = () => {
     >
       <h2 id="race-profile-heading">Kisaprofiili</h2>
       <p className="auth-description">
-        Lisää pituutesi, niin näet BMI-indeksisi, hauisindeksisi ja niistä lasketun ihmisarvosi
-        kansalaispisteinä. Arvot näkyvät ryhmälle ja yhteisellä kisanäytöllä. Pituuden päivittäminen
-        laskee koko indeksihistorian uudelleen.
+        Lisää pituutesi, niin näet BMI-indeksisi, hauisindeksisi ja ihmisarvosi kansalaispisteinä.
+        Ihmisarvoon tarvitaan lisäksi verenpainemittaus. Arvot näkyvät ryhmälle ja yhteisellä
+        kisanäytöllä. Pituuden päivittäminen laskee koko indeksihistorian uudelleen.
       </p>
       {isLoading ? (
         <p>Ladataan pituutta…</p>

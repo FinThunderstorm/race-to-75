@@ -50,6 +50,7 @@ test('members can read all participants and history from multiple sources withou
           id: ids[0],
           name: 'Race member 0',
           heightCm: null,
+          bloodPressureMeasurements: [],
           bicepsMeasurements: [],
           measurements: [
             { measuredAt: '2010-01-01T08:00:00.000Z', weightKg: 120.5 },
@@ -61,6 +62,7 @@ test('members can read all participants and history from multiple sources withou
           id: ids[1],
           name: 'Race member 1',
           heightCm: null,
+          bloodPressureMeasurements: [],
           bicepsMeasurements: [],
           measurements: [
             { measuredAt: '2026-09-02T09:00:00.000Z', weightKg: 74.1 },
@@ -72,6 +74,7 @@ test('members can read all participants and history from multiple sources withou
           name: 'Race member 2',
           heightCm: null,
           measurements: [],
+          bloodPressureMeasurements: [],
           bicepsMeasurements: []
         }
       ])
@@ -79,6 +82,7 @@ test('members can read all participants and history from multiple sources withou
     for (const participant of participants) {
       expect(Object.keys(participant).sort()).toEqual([
         'bicepsMeasurements',
+        'bloodPressureMeasurements',
         'heightCm',
         'id',
         'measurements',

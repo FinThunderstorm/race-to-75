@@ -2,6 +2,7 @@ import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from '
 
 import { formatDate, formatNumber } from '../format'
 import { Racer } from '../Racer'
+import { BloodPressureReadings } from './BloodPressureReadings'
 import { RaceReadings } from './RaceReadings'
 import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
 import { useAnimatedCoordinates } from './useAnimatedCoordinates'
@@ -27,6 +28,7 @@ export const RaceChart = ({
   mode?: RaceMode
 }) => {
   const { unit, unitLabel, metric, reference: goal, title, referenceLabel } = raceModes[mode]
+  const bloodPressure = mode === 'blood-pressure'
   const bmi = mode === 'bmi'
   const classic = mode === 'classic'
   const [selected, setSelected] = useState<string | null>(null)
@@ -116,6 +118,9 @@ export const RaceChart = ({
     const coordinates: Record<string, number> = goal === null ? {} : { goal: y(goal) }
     const plotted = participants.filter((person) => person.points.length > 0)
     for (const person of plotted) {
+      for (const point of person.diastolic?.points ?? []) {
+        coordinates[`diastolic:${person.id}:${point.date}`] = y(point.value)
+      }
       for (const point of person.points) {
         coordinates[`point:${person.id}:${point.date}`] = y(point.value)
       }
@@ -166,18 +171,25 @@ export const RaceChart = ({
                 ? 'Pituus tarvitaan laskentaan'
                 : 'Lisää pituus asetuksissa'
               : mode === 'score'
-                ? 'Paino- ja hauismittaus tarvitaan'
+                ? 'Mittauksia puuttuu'
                 : 'Ei mittauksia'}
           </span>
         ) : (
           <>
             <span className="participant-weight">
               {formatNumber(current)}
+              {bloodPressure && person.diastolic?.latest
+                ? ` / ${formatNumber(person.diastolic.latest.value)}`
+                : ''}
               <small title={unitLabel}>{unit}</small>
             </span>
             {!classic ? (
               <span className="remaining">
-                Muutos {formatChange(person.change)} {unit}
+                Muutos {formatChange(person.change)}
+                {bloodPressure && person.diastolic
+                  ? ` / ${formatChange(person.diastolic.change)}`
+                  : ''}{' '}
+                {unit}
               </span>
             ) : person.streak >= 7 ? (
               <span className="race-badge winner">✓ Tavoite · {person.streak} päivää</span>
@@ -199,7 +211,7 @@ export const RaceChart = ({
 
   return (
     <section
-      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''}`}
+      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''} ${bloodPressure ? 'race--blood-pressure' : ''}`}
       style={
         radiator
           ? ({
@@ -224,9 +236,11 @@ export const RaceChart = ({
             <desc id="chart-description">
               {live ? 'Ryhmän mittaukset' : 'Esimerkkimittaukset'}: {metric} viimeisen kolmen
               kuukauden ajalta.{' '}
-              {mode === 'score'
-                ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon ja hauiksen päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
-                : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
+              {bloodPressure
+                ? 'Yläpaine näkyy yhtenäisenä viivana ja alapaine katkoviivana, molemmat mmHg-yksikössä. Päättyneiltä viikoilta näytetään kaikkien mittausten keskiarvot ja kuluvalta viikolta päiväkeskiarvot.'
+                : mode === 'score'
+                  ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon, hauiksen ja verenpaineen päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
+                  : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
               Viikko alkaa maanantaina UTC-ajassa. Aikaväliä edeltävä viimeinen tunnettu arvo
               näytetään vasemmassa reunassa. Jos uudempia mittauksia ei ole, viiva jatkuu
               vaakasuorana. Kolme kuukausijaksoa ja kuluva viikko vievät kukin neljänneksen
@@ -327,6 +341,43 @@ export const RaceChart = ({
                   clipPath="url(#chart-weight-range)"
                   opacity={selected && selected !== person.id ? 0.16 : 1}
                 >
+                  {person.diastolic && (
+                    <g className="diastolic-series">
+                      <polyline
+                        points={[
+                          ...person.diastolic.points.map(
+                            (point) =>
+                              `${x(point.date)},${coordinate(`diastolic:${person.id}:${point.date}`)}`
+                          ),
+                          ...(Date.parse(last.date) < bounds.start
+                            ? [`${right},${coordinate(`diastolic:${person.id}:${last.date}`)}`]
+                            : [])
+                        ].join(' ')}
+                        fill="none"
+                        stroke={person.color}
+                        strokeWidth="2.8"
+                        strokeDasharray="7 5"
+                        strokeLinejoin="round"
+                      />
+                      {person.diastolic.points.map((point) => (
+                        <circle
+                          key={point.date}
+                          cx={x(point.date)}
+                          cy={coordinate(`diastolic:${person.id}:${point.date}`)}
+                          r="3"
+                          fill="#080513"
+                          stroke={person.color}
+                          strokeWidth="1.5"
+                        >
+                          <title>
+                            {person.name}: alapaine {formatNumber(point.value)} mmHg ·{' '}
+                            {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
+                            {formatDate(point.date)}
+                          </title>
+                        </circle>
+                      ))}
+                    </g>
+                  )}
                   <polyline
                     points={points.join(' ')}
                     fill="none"
@@ -351,7 +402,8 @@ export const RaceChart = ({
                       fill={person.color}
                     >
                       <title>
-                        {person.name}: {formatNumber(point.value)} {unitLabel} ·{' '}
+                        {person.name}: {bloodPressure ? 'yläpaine ' : ''}
+                        {formatNumber(point.value)} {unitLabel} ·{' '}
                         {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
                         {formatDate(point.date)}
                       </title>
@@ -396,10 +448,12 @@ export const RaceChart = ({
             : participants.some((person) => person.latest)
               ? 'Ei mittauksia viimeisen kolmen kuukauden ajalta.'
               : mode === 'score'
-                ? 'Ihmisarvon näyttämiseen tarvitaan paino- ja hauismittaus.'
-                : mode === 'biceps'
-                  ? 'Ei vielä hauismittauksia.'
-                  : 'Mittauksia ei ole vielä tuotu.'}
+                ? 'Ihmisarvon näyttämiseen tarvitaan paino-, hauis- ja verenpainemittaus.'
+                : bloodPressure
+                  ? 'Ei vielä verenpainemittauksia.'
+                  : mode === 'biceps'
+                    ? 'Ei vielä hauismittauksia.'
+                    : 'Mittauksia ei ole vielä tuotu.'}
         </p>
       )}
       <div
@@ -433,7 +487,12 @@ export const RaceChart = ({
           </div>
         </section>
       )}
-      {!radiator && <RaceReadings participants={participants} mode={mode} live={live} />}
+      {!radiator &&
+        (bloodPressure ? (
+          <BloodPressureReadings participants={participants} live={live} />
+        ) : (
+          <RaceReadings participants={participants} mode={mode} live={live} />
+        ))}
     </section>
   )
 }

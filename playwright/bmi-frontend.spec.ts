@@ -216,6 +216,11 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
     'true'
   )
   await page.clock.runFor(10000)
+  await expect(page.getByRole('button', { name: 'Verenpaine', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await page.clock.runFor(10000)
   await expect(classic).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => history.length)).toBe(historyLength)
 

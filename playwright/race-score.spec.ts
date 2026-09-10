@@ -15,6 +15,7 @@ const participant: RaceHistoryParticipant = {
   name: 'One',
   heightCm: 200,
   measurements: [{ measuredAt: '2026-09-07', weightKg: 100 }],
+  bloodPressureMeasurements: [{ measuredAt: '2026-08-01', systolic: 120, diastolic: 80 }],
   bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 40 }]
 }
 const view = (person: RaceHistoryParticipant, mode: 'bmi' | 'biceps' | 'score' = 'score') =>
@@ -22,7 +23,7 @@ const view = (person: RaceHistoryParticipant, mode: 'bmi' | 'biceps' | 'score' =
 
 test('score is a selectable mode with finite empty chart bounds', () => {
   expect(parseRaceMode('score')).toBe('score')
-  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'score'])
+  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'score', 'blood-pressure'])
   const bounds = raceViewBounds([], 'score', now)
   expect(Number.isFinite(bounds.bottom)).toBe(true)
   expect(bounds.top).toBeGreaterThan(bounds.bottom)
@@ -64,7 +65,7 @@ test('BMI index has a common plateau and falls for both high and low BMI', () =>
   }
 })
 
-test('missing height or either component never produces a partial score', () => {
+test('missing height or any component never produces a partial score', () => {
   for (const heightCm of [null, 0, -1, 49, 301, Number.NaN, Number.POSITIVE_INFINITY]) {
     for (const mode of ['bmi', 'biceps', 'score'] as const) {
       expect(view({ ...participant, heightCm }, mode)).toMatchObject({
@@ -75,6 +76,8 @@ test('missing height or either component never produces a partial score', () => 
     }
   }
   for (const person of [
+    { ...participant, bloodPressureMeasurements: [] },
+    { ...participant, bloodPressureMeasurements: undefined },
     { ...participant, measurements: [] },
     { ...participant, bicepsMeasurements: [] },
     { ...participant, bicepsMeasurements: undefined }
