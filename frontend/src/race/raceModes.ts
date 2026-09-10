@@ -70,7 +70,7 @@ export function raceViewBounds(
       maxValue = Math.max(maxValue, person.latest.value)
     }
   }
-  const bottom = mode === 'classic' ? reference - 2 : Math.max(0, minValue - 1)
+  const bottom = mode === 'classic' ? minValue - 2 : Math.max(0, minValue - 1)
   const top = maxValue + 0.5
   const targetStep = (top - bottom) / 6
   const magnitude = 10 ** Math.floor(Math.log10(targetStep))

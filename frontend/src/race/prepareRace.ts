@@ -116,16 +116,19 @@ export function prepareRace(
 }
 
 export function chartBounds(participants: RaceParticipant[], now = new Date()) {
+  let minWeight = 75
   let maxWeight = 75
   for (const participant of participants) {
     for (const point of participant.points) {
+      minWeight = Math.min(minWeight, point.weight)
       maxWeight = Math.max(maxWeight, point.weight)
     }
     if (participant.points.length && participant.latest) {
+      minWeight = Math.min(minWeight, participant.latest.weight)
       maxWeight = Math.max(maxWeight, participant.latest.weight)
     }
   }
-  const bottom = 75 - 2
+  const bottom = minWeight - 2
   const top = maxWeight + 0.5
   const targetStep = (top - bottom) / 6
   const magnitude = 10 ** Math.floor(Math.log10(targetStep))

@@ -45,6 +45,36 @@ test('Classic keeps existing values and bounds', () => {
   expect(raceViewBounds(view, 'classic', now)).toEqual(chartBounds(prepared, now))
 })
 
+test('Classic scales below low historical and current weights with two kilograms of padding', () => {
+  for (const [earlier, current] of [
+    [68, 74],
+    [80, 67]
+  ]) {
+    const prepared = prepareRace(
+      [
+        {
+          id: 'low',
+          name: 'Low',
+          measurements: [
+            { measuredAt: '2026-09-07T08:00:00Z', weightKg: earlier },
+            { measuredAt: '2026-09-09T08:00:00Z', weightKg: current }
+          ]
+        },
+        {
+          id: 'stale',
+          name: 'Stale',
+          measurements: [{ measuredAt: '2020-01-01T08:00:00Z', weightKg: 40 }]
+        }
+      ],
+      now
+    )
+    const bounds = raceViewBounds(createRaceView(prepared, 'classic'), 'classic', now)
+    expect(bounds.bottom).toBe(Math.min(earlier, current) - 2)
+    expect(bounds.top).toBeGreaterThan(75)
+    expect(bounds).toEqual(chartBounds(prepared, now))
+  }
+})
+
 test('BMI bounds include values below reference and handle missing or invalid heights', () => {
   const prepared = prepareRace(
     [
