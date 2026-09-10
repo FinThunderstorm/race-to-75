@@ -53,10 +53,32 @@ export const RaceChart = ({
   const plotHeight = size.height - 40
   const bounds = raceViewBounds(participants, mode)
   const y = (weight: number) => ((bounds.top - weight) / (bounds.top - bounds.bottom)) * plotHeight
-  const x = (date: string) =>
-    bounds.start === bounds.end
-      ? (left + right) / 2
-      : left + ((Date.parse(date) - bounds.start) / (bounds.end - bounds.start)) * (right - left)
+  // Each rolling month gets a quarter of the plot, with the final month shortened
+  // at Monday to give this week its own quarter. Keep dates proportional within slices.
+  const windowEnd = new Date(bounds.end)
+  const sections = [
+    bounds.start,
+    ...[-2, -1].map((offset) => {
+      const year = windowEnd.getUTCFullYear()
+      const month = windowEnd.getUTCMonth() + offset
+      const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+      return Date.UTC(year, month, Math.min(windowEnd.getUTCDate(), lastDay))
+    }),
+    bounds.currentWeek,
+    bounds.end
+  ]
+  const sliceWidth = (right - left) / 4
+  const x = (date: string) => {
+    const timestamp = Math.max(bounds.start, Math.min(Date.parse(date), bounds.end))
+    let section = 0
+    while (section < 3 && timestamp >= sections[section + 1]) {
+      section += 1
+    }
+    const duration = sections[section + 1] - sections[section]
+    // On Monday the current week has only one date, placed at its left edge.
+    const progress = duration > 0 ? (timestamp - sections[section]) / duration : 0
+    return left + (section + progress) * sliceWidth
+  }
   const withReadings = participants.filter((person) => person.points.length > 0)
   const withoutReadings = participants.filter(
     (person) => person.points.length === 0 && !person.needsHeight
@@ -164,9 +186,11 @@ export const RaceChart = ({
             <desc id="chart-description">
               {live ? 'Live' : 'Sample'} {metric} trends over the last three months. Completed weeks
               show the average of all weighings; the current week shows daily averages. Weeks start
-              on Monday in UTC. Solid vertical markers indicate month boundaries; the cyan dashed
-              marker indicates the start of this week. Starting and current values are available in
-              the table below. Select a participant to highlight their history.
+              on Monday in UTC. Three rolling month sections and this week each occupy one quarter
+              of the chart. Solid vertical markers separate historical sections; the cyan dashed
+              marker starts this week. Dates are proportional within each section. Starting and
+              current values are available in the table below. Select a participant to highlight
+              their history.
             </desc>
             <defs>
               <clipPath id="chart-weight-range">
@@ -177,7 +201,7 @@ export const RaceChart = ({
               </filter>
             </defs>
             {bounds.weeks
-              .filter((week) => week !== bounds.currentWeek && !bounds.months.includes(week))
+              .filter((week) => week !== bounds.currentWeek && !sections.includes(week))
               .map((week) => (
                 <line
                   key={week}
@@ -197,12 +221,17 @@ export const RaceChart = ({
               </g>
             ))}
             <path className="chart-axis" d={`M${left} 0 V${plotHeight} H${right}`} />
-            {bounds.months.map((month) => {
+            {sections.slice(0, 3).map((month) => {
               const monthX = x(new Date(month).toISOString())
               return (
                 <g key={month}>
                   <line className="month-line" x1={monthX} x2={monthX} y1="0" y2={plotHeight} />
-                  <text className="month-label" x={Math.min(monthX + 6, right - 32)} y="-10">
+                  <text
+                    className="month-label"
+                    x={monthX + sliceWidth / 2}
+                    y="-10"
+                    textAnchor="middle"
+                  >
                     {new Date(month)
                       .toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
                       .toUpperCase()}
@@ -217,7 +246,12 @@ export const RaceChart = ({
               y1="0"
               y2={plotHeight}
             />
-            <text className="current-week-label" x={right} y="-28" textAnchor="end">
+            <text
+              className="current-week-label"
+              x={right - sliceWidth / 2}
+              y="-10"
+              textAnchor="middle"
+            >
               THIS WEEK
             </text>
             <line className="goal-line" x1={left} x2={right} y1={y(goal)} y2={y(goal)} />
