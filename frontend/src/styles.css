@@ -425,75 +425,14 @@ p {
   pointer-events: none;
 }
 .racer {
-  --racer-pixel: 6px;
-  position: relative;
   width: 210px;
   height: 284px;
-  overflow: hidden;
-}
-.racer-sprite {
-  position: absolute;
-  width: 552px;
-  height: 552px;
-  left: -165px;
-  top: -126px;
-}
-.racer-base,
-.racer-body {
-  position: absolute;
-  inset: 0;
-}
-/* Keep the shoes and scale (below row 60 of the 92px sprite) stationary. */
-.racer-base {
-  background-size: 100% 100%;
-  image-rendering: pixelated;
-  clip-path: inset(65.2174% 0 0);
-}
-.racer-body {
-  clip-path: inset(0 0 34.7826%);
 }
 .racer img {
   display: block;
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
-}
-.racer-tear {
-  position: absolute;
-  top: 38.0435%;
-  width: 1.087%;
-  height: 2.174%;
-  background: #9be5ed;
-  box-shadow: inset 0 calc(var(--racer-pixel) / -2) #478ca6;
-  opacity: 0;
-  animation: racer-tear-drop 2.8s steps(5, end) infinite;
-}
-.racer-tear--left {
-  left: 42.3913%;
-  animation-delay: -0.4s;
-}
-.racer-tear--right {
-  left: 50%;
-  animation-delay: -1.8s;
-}
-@keyframes racer-tear-drop {
-  0%,
-  10% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  75% {
-    transform: translateY(calc(7 * var(--racer-pixel)));
-    opacity: 1;
-  }
-  90%,
-  100% {
-    transform: translateY(calc(8 * var(--racer-pixel)));
-    opacity: 0;
-  }
+  object-fit: contain;
 }
 .race-data {
   margin: 12px 0 18px 4%;
@@ -961,16 +900,9 @@ th:first-child {
     padding: 16px 24px 28px;
   }
   .auth-panel .racer {
-    --racer-pixel: 4.5px;
     flex-basis: auto;
     height: 215px;
     width: 180px;
-  }
-  .auth-panel .racer-sprite {
-    width: 414px;
-    height: 414px;
-    left: -113px;
-    top: -94px;
   }
   .auth-content {
     width: 100%;
