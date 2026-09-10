@@ -1,12 +1,22 @@
 import { randomUUID } from 'node:crypto'
 
-import { expect, test } from '@playwright/test'
+import { test as base, expect } from '@playwright/test'
 import Fastify from 'fastify'
 
 import { authPlugin } from '../backend/src/auth/index'
 import { config } from '../backend/src/config'
 import { closeDatabase, sql } from '../backend/src/database'
 import { registerRaceRoutes } from '../backend/src/race/index'
+
+// This spec owns and closes the backend pool; do not reuse its worker for other specs.
+const test = base.extend<{}, { bicepsWorker: void }>({
+  bicepsWorker: [
+    async ({}, use) => {
+      await use()
+    },
+    { scope: 'worker', auto: true }
+  ]
+})
 
 test('manual biceps readings require an active owner and reach the shared race', async () => {
   const app = Fastify()

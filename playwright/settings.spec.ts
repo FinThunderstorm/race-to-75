@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/profile', (route) => route.fulfill({ json: { heightCm: null } }))
+  await page.route('**/api/biceps-measurements', (route) =>
+    route.fulfill({ json: { measurements: [] } })
+  )
   await page.route('**/api/integrations/eufy/status', (route) =>
     route.fulfill({ json: { status: 'disconnected' } })
   )
@@ -10,6 +13,7 @@ test.beforeEach(async ({ page }) => {
 test('signed-in name opens settings with connection controls and retryable failures', async ({
   page
 }) => {
+  const withings = page.getByRole('region', { name: 'Withings', exact: true })
   await page.route('**/api/auth/me', (route) =>
     route.fulfill({
       json: {
@@ -49,18 +53,20 @@ test('signed-in name opens settings with connection controls and retryable failu
   await expect(page.getByRole('heading', { name: 'Manage users' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   await expect(page.getByText('profile@example.com', { exact: true })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('Could not check your Withings connection')
+  await expect(withings.getByRole('alert')).toContainText(
+    'Could not check your Withings connection'
+  )
   statusFailed = false
-  await page.getByRole('button', { name: 'Try again', exact: true }).click()
-  await expect(page.getByRole('status')).toHaveText('Connected')
-  await page.getByRole('button', { name: 'Disconnect Withings' }).click()
-  await expect(page.getByRole('alert')).toHaveText(
+  await withings.getByRole('button', { name: 'Try again', exact: true }).click()
+  await expect(withings.getByRole('status')).toHaveText('Connected')
+  await withings.getByRole('button', { name: 'Disconnect Withings' }).click()
+  await expect(withings.getByRole('alert')).toHaveText(
     'Could not disconnect Withings. Please try again.'
   )
   disconnectFailed = false
-  await page.getByRole('button', { name: 'Disconnect Withings' }).click()
-  await expect(page.getByRole('status')).toHaveText('Not connected')
-  const connect = page.getByRole('link', { name: 'Connect Withings', exact: true })
+  await withings.getByRole('button', { name: 'Disconnect Withings' }).click()
+  await expect(withings.getByRole('status')).toHaveText('Not connected')
+  const connect = withings.getByRole('link', { name: 'Connect Withings', exact: true })
   await expect(connect).toHaveAttribute('href', '/api/integrations/withings/connect')
   await page.route('**/api/integrations/withings/connect', (route) =>
     route.fulfill({ status: 302, headers: { location: '/profile?withings=cancelled' } })
@@ -104,7 +110,9 @@ for (const path of ['/profile', '/admin']) {
     await expect(page).toHaveURL(/\/settings\?withings=connected&sync=failed#withings-heading$/)
     await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
     await expect(page.getByText('Withings connected.', { exact: true })).toBeVisible()
-    await expect(page.getByRole('alert')).toContainText('importing readings failed')
+    await expect(
+      page.getByRole('region', { name: 'Withings', exact: true }).getByRole('alert')
+    ).toContainText('importing readings failed')
     await expect(page.getByRole('heading', { name: 'Manage users' })).toHaveCount(0)
   })
 }

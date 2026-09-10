@@ -1,7 +1,7 @@
 import { once } from 'node:events'
 import { createServer } from 'node:http'
 
-import { expect, test } from '@playwright/test'
+import { test as base, expect } from '@playwright/test'
 import Fastify from 'fastify'
 
 import { authPlugin } from '../backend/src/auth/index'
@@ -11,6 +11,16 @@ import {
   handleWithingsCallback,
   registerWithingsProfileRoutes
 } from '../backend/src/integrations/withings/index'
+
+// Keep this spec's backend pool and mutable OAuth configuration in a dedicated worker.
+const test = base.extend<{}, { withingsProfileWorker: void }>({
+  withingsProfileWorker: [
+    async ({}, use) => {
+      await use()
+    },
+    { scope: 'worker', auto: true }
+  ]
+})
 
 test('profile OAuth binds the browser and user, imports readings, and disconnects only that user', async () => {
   const originalConfig = { ...config }
