@@ -90,7 +90,12 @@ export const RaceChart = ({
     (person) => person.points.length === 0 && !person.needsHeight
   )
   const needingHeight = participants.filter((person) => person.needsHeight)
-  const reservedHeightParticipants = bmiParticipants.filter((person) => person.needsHeight)
+  // Reserve the BMI notice only when there is a BMI plot whose size must stay
+  // stable. An empty BMI view should not take space from the Classic chart.
+  const heightParticipants =
+    radiator && bmiParticipants.some((person) => person.points.length > 0)
+      ? bmiParticipants.filter((person) => person.needsHeight)
+      : needingHeight
   const standingsParticipants = radiator
     ? participants.filter((person) =>
         classicParticipants.some((classic) => classic.id === person.id && classic.points.length > 0)
@@ -378,7 +383,7 @@ export const RaceChart = ({
           </div>
         </section>
       )}
-      {(radiator ? reservedHeightParticipants.length > 0 : needingHeight.length > 0) && (
+      {heightParticipants.length > 0 && (
         <section
           className={`race-unplotted ${!bmi ? 'layout-placeholder' : ''}`}
           aria-label="Participants needing height"
@@ -387,9 +392,7 @@ export const RaceChart = ({
         >
           <p className="unplotted-heading">Height needed for BMI</p>
           <div className="unplotted-list">
-            {(radiator ? reservedHeightParticipants : needingHeight).map((person) =>
-              renderParticipant(person)
-            )}
+            {heightParticipants.map((person) => renderParticipant(person))}
           </div>
         </section>
       )}
