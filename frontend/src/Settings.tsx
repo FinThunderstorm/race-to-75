@@ -2,6 +2,8 @@ import { Link, useSearchParams } from 'react-router'
 
 import { UserManagement } from './admin/UserManagement'
 import { useUser } from './hooks/useUser'
+import { parseRaceMode } from './race/raceModes'
+import { BicepsSettings } from './settings/BicepsSettings'
 import { EufySettings } from './settings/EufySettings'
 import { RaceProfileSettings } from './settings/RaceProfileSettings'
 import { WithingsSettings } from './settings/WithingsSettings'
@@ -10,10 +12,11 @@ export const Settings = () => {
   const { user } = useUser()
   const [params] = useSearchParams()
   const isAdmin = user?.role === 'admin'
+  const mode = parseRaceMode(params.get('mode'))
 
   return (
     <main className={`settings-page${isAdmin ? ' settings-page--admin' : ''}`}>
-      <Link className="text-button" to={params.get('mode') === 'bmi' ? '/?mode=bmi' : '/'}>
+      <Link className="text-button" to={mode === 'classic' ? '/' : `/?mode=${mode}`}>
         ← Back to the race
       </Link>
       <header>
@@ -23,6 +26,7 @@ export const Settings = () => {
         <p className="auth-description">{user?.email}</p>
       </header>
       <RaceProfileSettings />
+      <BicepsSettings />
       <WithingsSettings />
       <EufySettings />
       {isAdmin && <UserManagement />}

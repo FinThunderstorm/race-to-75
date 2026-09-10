@@ -12,7 +12,19 @@ Keep everyone's weight on record over time and make the shared target —
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Manual weight entry is still planned.
+deployment setup are implemented. Classic, BMI and Biceps modes are available.
+Manual weight entry is still planned.
+
+### Biceps circumference
+
+Select **Biceps** or open `/?mode=biceps`. In **Settings → Biceps measurements**,
+record your own circumference in centimetres and the measurement date (UTC).
+You can delete your own entries to correct mistakes. Multiple readings on one
+day are averaged; completed weeks use weekly averages. The group and shared
+display can view the history. This mode has no shared target or weight-loss badges.
+
+Existing databases need migration `0009_biceps_measurement.sql` before running
+the updated backend (`npm run db:migrate` with the target `DATABASE_URL`).
 
 ## Features
 

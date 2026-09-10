@@ -33,6 +33,12 @@ export function createSampleRace(now = new Date()) {
       ...participant,
       color: person.color,
       heightCm: [185, 180, 178, 175, 172, null][index],
+      bicepsMeasurements: measurements
+        .filter((_, day) => day % 7 === 0 || day === days)
+        .map(({ measuredAt }, reading) => ({
+          measuredAt,
+          circumferenceCm: 32 + index * 1.5 + reading * 0.1
+        })),
       streak: person.streak ?? 0,
       personalLow: person.personalLow ?? false
     }

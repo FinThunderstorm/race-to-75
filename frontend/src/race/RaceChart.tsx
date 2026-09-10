@@ -4,7 +4,7 @@ import { Racer } from '../Racer'
 import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
 import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
-const formatBmiChange = (change: number) => {
+const formatChange = (change: number) => {
   const rounded = Number(change.toFixed(1))
   return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}`
 }
@@ -26,6 +26,7 @@ export const RaceChart = ({
 }) => {
   const { unit, metric, reference: goal, title, referenceLabel } = raceModes[mode]
   const bmi = mode === 'bmi'
+  const classic = mode === 'classic'
   const [selected, setSelected] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 840, height: 640 })
@@ -96,15 +97,21 @@ export const RaceChart = ({
     radiator && bmiParticipants.some((person) => person.points.length > 0)
       ? bmiParticipants.filter((person) => person.needsHeight)
       : needingHeight
-  const standingsParticipants = radiator
-    ? participants.filter((person) =>
-        classicParticipants.some((classic) => classic.id === person.id && classic.points.length > 0)
-      )
-    : withReadings
-  const stacked = classicParticipants.filter((person) => person.points.length > 0).length > 10
+  const standingsParticipants =
+    radiator && mode !== 'biceps'
+      ? participants.filter((person) =>
+          classicParticipants.some(
+            (classic) => classic.id === person.id && classic.points.length > 0
+          )
+        )
+      : withReadings
+  const stacked =
+    (mode === 'biceps' ? participants : classicParticipants).filter(
+      (person) => person.points.length > 0
+    ).length > 10
   const targetCoordinates = useMemo(() => {
     const y = (value: number) => ((bounds.top - value) / (bounds.top - bounds.bottom)) * plotHeight
-    const coordinates: Record<string, number> = { goal: y(goal) }
+    const coordinates: Record<string, number> = goal === null ? {} : { goal: y(goal) }
     const plotted = participants.filter((person) => person.points.length > 0)
     for (const person of plotted) {
       for (const point of person.points) {
@@ -164,14 +171,18 @@ export const RaceChart = ({
               {current.toFixed(1)}
               <small>{unit}</small>
             </span>
-            {bmi ? (
-              <span className="remaining">Change {formatBmiChange(person.change)} BMI</span>
+            {!classic ? (
+              <span className="remaining">
+                Change {formatChange(person.change)} {unit}
+              </span>
             ) : person.streak >= 7 ? (
               <span className="race-badge winner">✓ Goal · {person.streak} days</span>
             ) : person.change > 0 ? (
               <span className="race-badge setback">▲ +{person.change.toFixed(1)} kg</span>
             ) : (
-              <span className="remaining">{Math.max(0, current - goal).toFixed(1)} to go</span>
+              <span className="remaining">
+                {Math.max(0, current - (goal ?? 0)).toFixed(1)} to go
+              </span>
             )}
             {person.personalLow && person.streak < 7 && (
               <span className="race-badge personal-low">New personal low</span>
@@ -208,11 +219,11 @@ export const RaceChart = ({
             <title id="chart-title">{title}</title>
             <desc id="chart-description">
               {live ? 'Live' : 'Sample'} {metric} trends over the last three months. Completed weeks
-              show the average of all weighings; the current week shows daily averages. Weeks start
-              on Monday in UTC. Three rolling month sections and this week each occupy one quarter
-              of the chart. Solid vertical markers separate historical sections; the cyan dashed
-              marker starts this week. Dates are proportional within each section. Starting and
-              current values are available in the table below. Select a participant to highlight
+              show the average of all measurements; the current week shows daily averages. Weeks
+              start on Monday in UTC. Three rolling month sections and this week each occupy one
+              quarter of the chart. Solid vertical markers separate historical sections; the cyan
+              dashed marker starts this week. Dates are proportional within each section. Starting
+              and current values are available in the table below. Select a participant to highlight
               their history.
             </desc>
             <defs>
@@ -277,16 +288,20 @@ export const RaceChart = ({
             >
               THIS WEEK
             </text>
-            <line
-              className="goal-line"
-              x1={left}
-              x2={right}
-              y1={coordinate('goal')}
-              y2={coordinate('goal')}
-            />
-            <text className="goal-label" x={left + 4} y={coordinate('goal') - 12}>
-              {referenceLabel}
-            </text>
+            {goal !== null && (
+              <>
+                <line
+                  className="goal-line"
+                  x1={left}
+                  x2={right}
+                  y1={coordinate('goal')}
+                  y2={coordinate('goal')}
+                />
+                <text className="goal-label" x={left + 4} y={coordinate('goal') - 12}>
+                  {referenceLabel}
+                </text>
+              </>
+            )}
             {withReadings.map((person) => {
               const points = person.points
                 .map((point) => `${x(point.date)},${pointY(person, point.date)}`)
@@ -366,7 +381,9 @@ export const RaceChart = ({
               : 'Add height in Settings to show BMI history.'
             : participants.some((person) => person.latest)
               ? 'No measurements in the last three months.'
-              : 'No measurements have been imported yet.'}
+              : mode === 'biceps'
+                ? 'No biceps measurements yet.'
+                : 'No measurements have been imported yet.'}
         </p>
       )}
       <div
@@ -402,15 +419,16 @@ export const RaceChart = ({
           <div className="table-scroll">
             <table>
               <caption>
-                {live ? 'Live' : 'Sample'} summary in {bmi ? 'BMI' : 'kilograms'} · Current value is
-                the latest daily average (UTC)
+                {live ? 'Live' : 'Sample'} summary in{' '}
+                {classic ? 'kilograms' : bmi ? 'BMI' : 'centimetres'} · Current value is the latest
+                daily average (UTC)
               </caption>
               <thead>
                 <tr>
                   <th scope="col">Participant</th>
                   <th scope="col">Start</th>
                   <th scope="col">Current</th>
-                  <th scope="col">{bmi ? 'Change' : 'To go'}</th>
+                  <th scope="col">{classic ? 'To go' : 'Change'}</th>
                   {live && <th scope="col">Last reading (UTC)</th>}
                 </tr>
               </thead>
@@ -424,9 +442,9 @@ export const RaceChart = ({
                       <td>{last?.value.toFixed(1) ?? '—'}</td>
                       <td>
                         {last
-                          ? bmi
-                            ? formatBmiChange(person.change)
-                            : Math.max(0, last.value - goal).toFixed(1)
+                          ? !classic
+                            ? formatChange(person.change)
+                            : Math.max(0, last.value - (goal ?? 0)).toFixed(1)
                           : '—'}
                       </td>
                       {live && <td>{last?.date ?? '—'}</td>}

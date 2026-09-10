@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 
 import { findUserById } from '../auth/queries.js'
 import { sql } from '../database.js'
+import { registerBicepsRoutes } from './biceps.js'
 import { registerRadiatorRoutes } from './radiator.js'
 
 export async function registerRaceRoutes(app: FastifyInstance) {
+  await registerBicepsRoutes(app)
   app.get('/api/race', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store')
 
@@ -42,6 +44,7 @@ async function loadRace() {
       name: string
       heightCm: number | null
       measurements: { measuredAt: string; weightKg: number }[]
+      bicepsMeasurements: { measuredAt: string; circumferenceCm: number }[]
     }
   >()
 
@@ -52,7 +55,8 @@ async function loadRace() {
         id: row.id,
         name: row.display_name,
         heightCm: row.height_cm,
-        measurements: []
+        measurements: [],
+        bicepsMeasurements: []
       }
       participants.set(row.id, participant)
     }
@@ -64,5 +68,15 @@ async function loadRace() {
     }
   }
 
+  const biceps = await sql<{ user_id: string; measured_at: string; circumference_cm: number }[]>`
+    SELECT user_id, measured_at::text, circumference_cm::float8
+    FROM biceps_measurement ORDER BY measured_at, created_at, id
+  `
+  for (const reading of biceps) {
+    participants.get(reading.user_id)?.bicepsMeasurements.push({
+      measuredAt: reading.measured_at,
+      circumferenceCm: reading.circumference_cm
+    })
+  }
   return { participants: [...participants.values()] }
 }

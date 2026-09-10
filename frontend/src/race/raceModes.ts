@@ -1,6 +1,10 @@
-import { chartWindow, type RaceParticipant } from './prepareRace'
+import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 
-export type RaceMode = 'classic' | 'bmi'
+export type RaceMode = 'classic' | 'bmi' | 'biceps'
+export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps']
+export function parseRaceMode(value: string | null): RaceMode {
+  return raceModeOrder.find((mode) => mode === value) ?? 'classic'
+}
 
 export const raceModes = {
   classic: {
@@ -18,6 +22,14 @@ export const raceModes = {
     reference: 25,
     title: 'Group BMI history',
     referenceLabel: '25.0 BMI — REFERENCE'
+  },
+  biceps: {
+    label: 'Biceps',
+    unit: 'cm',
+    metric: 'biceps circumference',
+    reference: null,
+    title: 'Group biceps circumference history',
+    referenceLabel: null
   }
 } as const
 
@@ -30,9 +42,29 @@ export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 's
 
 export function createRaceView(
   participants: RaceParticipant[],
-  mode: RaceMode
+  mode: RaceMode,
+  now = new Date()
 ): RaceViewParticipant[] {
   return participants.map(({ points, latest, startWeight, ...person }) => {
+    if (mode === 'biceps') {
+      const history = prepareMeasurementHistory(
+        (person.bicepsMeasurements ?? []).map(({ measuredAt, circumferenceCm }) => ({
+          measuredAt,
+          value: circumferenceCm
+        })),
+        now
+      )
+      return {
+        ...person,
+        points: history.points,
+        latest: history.latest,
+        startValue: history.startValue,
+        change: history.change,
+        needsHeight: false,
+        streak: 0,
+        personalLow: false
+      }
+    }
     const height = person.heightCm
     const needsHeight =
       mode === 'bmi' && (!height || !Number.isFinite(height) || height < 50 || height > 300)
@@ -58,8 +90,8 @@ export function raceViewBounds(
   now = new Date()
 ) {
   const reference = raceModes[mode].reference
-  let minValue: number = reference
-  let maxValue: number = reference
+  let minValue: number = reference ?? Number.POSITIVE_INFINITY
+  let maxValue: number = reference ?? Number.NEGATIVE_INFINITY
   for (const person of participants) {
     for (const point of person.points) {
       minValue = Math.min(minValue, point.value)
@@ -69,6 +101,10 @@ export function raceViewBounds(
       minValue = Math.min(minValue, person.latest.value)
       maxValue = Math.max(maxValue, person.latest.value)
     }
+  }
+  if (!Number.isFinite(minValue)) {
+    minValue = 30
+    maxValue = 40
   }
   const bottom = mode === 'classic' ? minValue - 2 : Math.max(0, minValue - 1)
   const top = maxValue + 0.5

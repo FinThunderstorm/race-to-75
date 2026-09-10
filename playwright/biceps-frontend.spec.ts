@@ -1,0 +1,111 @@
+import { expect, test } from '@playwright/test'
+
+const user = {
+  id: 'biceps-user',
+  display_name: 'Biceps Racer',
+  email: 'biceps@example.com',
+  role: 'member'
+}
+
+test('users add and remove their measurements and return to the biceps chart', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
+  await page.route('**/api/profile', (route) => route.fulfill({ json: { heightCm: null } }))
+  let measurements: { id: string; measuredAt: string; circumferenceCm: number }[] = []
+  let failSave = false
+  await page.route('**/api/biceps-measurements', async (route) => {
+    if (route.request().method() === 'POST') {
+      if (failSave) {
+        return route.fulfill({ status: 500, json: {} })
+      }
+      const reading = { id: 'reading-one', ...route.request().postDataJSON() }
+      measurements = [reading, ...measurements]
+      return route.fulfill({ status: 201, json: reading })
+    }
+    return route.fulfill({ json: { measurements } })
+  })
+  await page.route('**/api/biceps-measurements/reading-one', (route) => {
+    measurements = []
+    return route.fulfill({ status: 204 })
+  })
+  await page.route('**/api/race', (route) =>
+    route.fulfill({
+      json: {
+        participants: [
+          {
+            id: user.id,
+            name: user.display_name,
+            measurements: [],
+            bicepsMeasurements: measurements
+          }
+        ]
+      }
+    })
+  )
+  await page.goto('/?mode=biceps')
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await expect(page.getByText('No biceps measurements yet.', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Add biceps measurement' }).click()
+  const panel = page.getByRole('region', { name: 'Biceps measurements' })
+  await expect(panel.getByText('No measurements yet.', { exact: true })).toBeVisible()
+  await panel.getByLabel('Circumference (cm)').fill('36.5')
+  await panel.getByLabel('Measurement date (UTC)').fill('2026-09-09')
+  failSave = true
+  await panel.getByRole('button', { name: 'Add measurement', exact: true }).click()
+  await expect(panel.getByRole('alert')).toContainText('Could not save')
+  await expect(panel.getByLabel('Circumference (cm)')).toHaveValue('36.5')
+  failSave = false
+  await panel.getByRole('button', { name: 'Add measurement', exact: true }).click()
+  await expect(panel.getByRole('status')).toHaveText('Measurement added.')
+  await expect(panel.getByRole('row', { name: /2026-09-09 36.5/ })).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: 'test-results/biceps-settings-390.png', fullPage: true })
+  await page.reload()
+  await expect(panel.getByRole('row', { name: /2026-09-09 36.5/ })).toBeVisible()
+  await page.getByRole('link', { name: 'Back to the race' }).click()
+  await expect(page).toHaveURL(/mode=biceps$/)
+  await expect(page.getByRole('button', { name: /Biceps Racer.*36.5/ })).toBeVisible()
+  await expect(page.locator('.goal-line, .winner, .setback, .personal-low')).toHaveCount(0)
+  await page.getByText('View live readings', { exact: true }).click()
+  await expect(page.getByRole('table')).toContainText('centimetres')
+  await page.getByRole('link', { name: 'Add biceps measurement' }).click()
+  await panel.getByRole('button', { name: /Delete measurement/ }).click()
+  await expect(panel.getByRole('status')).toHaveText('Measurement deleted.')
+  await expect(panel.getByText('No measurements yet.', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Back to the race' }).click()
+  await expect(page.getByText('No biceps measurements yet.', { exact: true })).toBeVisible()
+})
+
+test('biceps supports sample data, mobile layout, and read-only radiator without weight readings', async ({
+  page
+}) => {
+  await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
+  await page.goto('/?mode=biceps&data=sample')
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await expect(page.locator('.chart-series')).toHaveCount(6)
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: `test-results/biceps-${width}.png`, fullPage: true })
+  }
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
+  await page.route('**/api/radiator', (route) =>
+    route.fulfill({
+      json: {
+        participants: [
+          {
+            id: user.id,
+            name: user.display_name,
+            measurements: [],
+            bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 36.5 }]
+          }
+        ]
+      }
+    })
+  )
+  await page.goto('/?mode=biceps')
+  await expect(page.getByRole('button', { name: /Biceps Racer.*36.5/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Add biceps measurement' })).toHaveCount(0)
+})

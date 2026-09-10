@@ -198,6 +198,11 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
   await expect(page).toHaveURL(/data=sample&mode=bmi/)
   await page.clock.runFor(10000)
+  await expect(page.getByRole('button', { name: 'Biceps', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await page.clock.runFor(10000)
   await expect(classic).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => history.length)).toBe(historyLength)
 
@@ -209,7 +214,10 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   await page.clock.runFor(9999)
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
   await page.clock.runFor(1)
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Biceps', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
 })
 
 test('manual mode selection restarts the automatic countdown on the radiator', async ({ page }) => {

@@ -7,6 +7,7 @@ export type RaceParticipant = {
   name: string
   color: string
   heightCm?: number | null
+  bicepsMeasurements?: RaceHistoryParticipant['bicepsMeasurements']
   points: (WeightPoint & { period: 'week' | 'day' })[]
   latest: WeightPoint | null
   startWeight: number | null
@@ -49,50 +50,70 @@ export function chartWindow(now = new Date()) {
   return { start, end, currentWeek, weeks, months }
 }
 
+export function prepareMeasurementHistory(
+  measurements: { measuredAt: string; value: number }[],
+  now = new Date()
+) {
+  const window = chartWindow(now)
+  const readings = measurements
+    .filter((reading) => Date.parse(reading.measuredAt) <= now.getTime())
+    .sort((a, b) => Date.parse(a.measuredAt) - Date.parse(b.measuredAt))
+  const days = new Map<string, { total: number; count: number }>()
+  const buckets = new Map<string, { total: number; count: number; period: 'week' | 'day' }>()
+  for (const reading of readings) {
+    const timestamp = Date.parse(reading.measuredAt)
+    const date = dateKey(timestamp)
+    const day = days.get(date) ?? { total: 0, count: 0 }
+    day.total += reading.value
+    day.count += 1
+    days.set(date, day)
+
+    if (timestamp < window.start) {
+      continue
+    }
+    const currentWeek = timestamp >= window.currentWeek
+    const bucketDate = currentWeek ? date : dateKey(Math.max(window.start, weekStart(timestamp)))
+    const bucket = buckets.get(bucketDate) ?? {
+      total: 0,
+      count: 0,
+      period: currentWeek ? 'day' : 'week'
+    }
+    // Give each measurement equal weight instead of averaging daily averages.
+    bucket.total += reading.value
+    bucket.count += 1
+    buckets.set(bucketDate, bucket)
+  }
+  const points = [...buckets.entries()].map(([date, bucket]) => ({
+    date,
+    value: bucket.total / bucket.count,
+    period: bucket.period
+  }))
+  // Current values and changes use daily history, including older readings.
+  const daily = [...days.entries()].map(([date, day]) => ({
+    date,
+    value: day.total / day.count
+  }))
+  const latest = daily.at(-1) ?? null
+  return {
+    points,
+    daily,
+    latest,
+    startValue: readings[0]?.value ?? null,
+    change: latest && daily.length > 1 ? latest.value - daily[daily.length - 2].value : 0
+  }
+}
+
 export function prepareRace(
   participants: RaceHistoryParticipant[],
   now = new Date()
 ): RaceParticipant[] {
-  const window = chartWindow(now)
   return participants.map((participant, index) => {
-    const readings = participant.measurements
-      .filter((reading) => Date.parse(reading.measuredAt) <= now.getTime())
-      .sort((a, b) => Date.parse(a.measuredAt) - Date.parse(b.measuredAt))
-    const days = new Map<string, { total: number; count: number }>()
-    const buckets = new Map<string, { total: number; count: number; period: 'week' | 'day' }>()
-    for (const reading of readings) {
-      const timestamp = Date.parse(reading.measuredAt)
-      const date = dateKey(timestamp)
-      const day = days.get(date) ?? { total: 0, count: 0 }
-      day.total += reading.weightKg
-      day.count += 1
-      days.set(date, day)
-
-      if (timestamp < window.start) {
-        continue
-      }
-      const currentWeek = timestamp >= window.currentWeek
-      const bucketDate = currentWeek ? date : dateKey(Math.max(window.start, weekStart(timestamp)))
-      const bucket = buckets.get(bucketDate) ?? {
-        total: 0,
-        count: 0,
-        period: currentWeek ? 'day' : 'week'
-      }
-      // Weight every weighing equally, rather than averaging the daily averages.
-      bucket.total += reading.weightKg
-      bucket.count += 1
-      buckets.set(bucketDate, bucket)
-    }
-    const points = [...buckets.entries()].map(([date, bucket]) => ({
-      date,
-      weight: bucket.total / bucket.count,
-      period: bucket.period
-    }))
-    // Current weight, records, and qualifying-day streaks still use daily history.
-    const daily = [...days.entries()].map(([date, day]) => ({
-      date,
-      weight: day.total / day.count
-    }))
+    const history = prepareMeasurementHistory(
+      participant.measurements.map(({ measuredAt, weightKg }) => ({ measuredAt, value: weightKg })),
+      now
+    )
+    const points = history.points.map(({ value, ...point }) => ({ ...point, weight: value }))
+    const daily = history.daily.map(({ value, ...point }) => ({ ...point, weight: value }))
     const latest = daily.at(-1) ?? null
     let streak = 0
     for (let index = daily.length - 1; index >= 0 && daily[index].weight <= 75; index -= 1) {
@@ -105,7 +126,8 @@ export function prepareRace(
       heightCm: participant.heightCm ?? null,
       points,
       latest,
-      startWeight: readings[0]?.weightKg ?? null,
+      startWeight: history.startValue,
+      bicepsMeasurements: participant.bicepsMeasurements,
       change: latest && daily.length > 1 ? latest.weight - daily[daily.length - 2].weight : 0,
       streak,
       personalLow:

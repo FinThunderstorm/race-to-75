@@ -10,7 +10,7 @@ import { withingsApi } from './api/withingsApi'
 import { useUser } from './hooks/useUser'
 import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
-import { createRaceView, type RaceMode } from './race/raceModes'
+import { createRaceView, parseRaceMode, raceModeOrder, raceModes } from './race/raceModes'
 import { createSampleRace } from './race/sampleRace'
 
 export const Home = ({ radiator = false }: { radiator?: boolean }) => {
@@ -22,19 +22,19 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params, setParams] = useSearchParams()
-  const mode: RaceMode = params.get('mode') === 'bmi' ? 'bmi' : 'classic'
+  const mode = parseRaceMode(params.get('mode'))
   useEffect(() => {
     if (!playing) {
       return
     }
     const timeout = window.setTimeout(() => {
       const next = new URLSearchParams(params)
-      next.set('mode', mode === 'classic' ? 'bmi' : 'classic')
+      next.set('mode', raceModeOrder[(raceModeOrder.indexOf(mode) + 1) % raceModeOrder.length])
       setParams(next, { replace: true })
     }, 10_000)
     return () => window.clearTimeout(timeout)
   }, [playing, mode, params, setParams])
-  const settingsUrl = mode === 'bmi' ? '/settings?mode=bmi' : '/settings'
+  const settingsUrl = mode === 'classic' ? '/settings' : `/settings?mode=${mode}`
   const live = radiator || params.get('data') !== 'sample'
   const {
     data,
@@ -53,7 +53,8 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const views = useMemo(
     () => ({
       classic: createRaceView(live ? participants : sampleRace, 'classic'),
-      bmi: createRaceView(live ? participants : sampleRace, 'bmi')
+      bmi: createRaceView(live ? participants : sampleRace, 'bmi'),
+      biceps: createRaceView(live ? participants : sampleRace, 'biceps')
     }),
     [live, participants, sampleRace]
   )
@@ -96,6 +97,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
               BMI history <span>·</span> Reference 25.0
             </p>
+            <p className="subtitle" aria-hidden={mode !== 'biceps'}>
+              Biceps circumference <span>·</span> Centimetres
+            </p>
           </div>
           <div className="race-mode" role="group" aria-label="Race mode">
             <button
@@ -117,7 +121,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                 {playing ? <path d="M2 1h3v10H2zM7 1h3v10H7z" /> : <path d="M3 1l8 5-8 5z" />}
               </svg>
             </button>
-            {(['classic', 'bmi'] as const).map((option) => (
+            {raceModeOrder.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -128,7 +132,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                   setParams(next)
                 }}
               >
-                {option === 'classic' ? 'Classic · 75 kg' : 'BMI'}
+                {option === 'classic' ? 'Classic · 75 kg' : raceModes[option].label}
               </button>
             ))}
           </div>
@@ -149,7 +153,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
-          <p>Could not load weight history. Please try again.</p>
+          <p>Could not load measurement history. Please try again.</p>
           <button
             className="text-button"
             type="button"
@@ -161,7 +165,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         </div>
       ) : live && (loadingRace || !data) ? (
         <p className="race-message" role="status">
-          Loading weight history…
+          Loading measurement history…
         </p>
       ) : (
         <RaceChart
@@ -177,6 +181,11 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       {!radiator && live && view.some((person) => person.id === user?.id && person.needsHeight) && (
         <Link className="text-button" to={settingsUrl}>
           Add your height
+        </Link>
+      )}
+      {!radiator && mode === 'biceps' && (
+        <Link className="text-button" to={`${settingsUrl}#biceps`}>
+          Add biceps measurement
         </Link>
       )}
       <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>

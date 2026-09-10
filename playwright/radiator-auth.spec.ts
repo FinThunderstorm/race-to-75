@@ -74,6 +74,7 @@ test('allowed network can view real data, enroll, log out and log back in with a
     id: userId,
     name: 'Radiator Login Tester',
     heightCm: null,
+    bicepsMeasurements: [],
     measurements: []
   })
   for (const path of [
