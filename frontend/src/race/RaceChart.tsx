@@ -1,7 +1,8 @@
-import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
+import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Racer } from '../Racer'
 import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
+import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
 const formatBmiChange = (change: number) => {
   const rounded = Number(change.toFixed(1))
@@ -51,7 +52,8 @@ export const RaceChart = ({
   const left = size.width < 500 ? 36 : 55
   const right = size.width - (size.width < 500 ? 12 : 40)
   const plotHeight = size.height - 40
-  const bounds = raceViewBounds(participants, mode)
+  const today = new Date().toISOString().slice(0, 10)
+  const bounds = useMemo(() => raceViewBounds(participants, mode), [participants, mode, today])
   const y = (weight: number) => ((bounds.top - weight) / (bounds.top - bounds.bottom)) * plotHeight
   // Each rolling month gets a quarter of the plot, with the final month shortened
   // at Monday to give this week its own quarter. Keep dates proportional within slices.
@@ -85,26 +87,40 @@ export const RaceChart = ({
   )
   const needingHeight = participants.filter((person) => person.needsHeight)
   const stacked = withReadings.length > 10
-  const labelPositions = new Map<string, number>()
-  // Keep nearby current weights legible without shifting their actual data points.
-  const sorted = [...withReadings].sort((a, b) => y(a.latest!.value) - y(b.latest!.value))
-  let previous = 112
-  for (const person of sorted) {
-    const position = Math.max(y(person.latest!.value), previous + 48)
-    labelPositions.set(person.id, position)
-    previous = position
-  }
-  let next = size.height - 12
-  for (const person of [...sorted].reverse()) {
-    const position = Math.min(labelPositions.get(person.id)!, next - 48)
-    labelPositions.set(person.id, position)
-    next = position
-  }
+  const targetCoordinates = useMemo(() => {
+    const y = (value: number) => ((bounds.top - value) / (bounds.top - bounds.bottom)) * plotHeight
+    const coordinates: Record<string, number> = { goal: y(goal) }
+    const plotted = participants.filter((person) => person.points.length > 0)
+    for (const person of plotted) {
+      for (const point of person.points) {
+        coordinates[`point:${person.id}:${point.date}`] = y(point.value)
+      }
+    }
+    // Keep nearby labels legible without shifting their actual data points.
+    const sorted = [...plotted].sort((a, b) => y(a.latest!.value) - y(b.latest!.value))
+    let previous = 112
+    for (const person of sorted) {
+      const position = Math.max(y(person.latest!.value), previous + 48)
+      coordinates[`label:${person.id}`] = position
+      previous = position
+    }
+    let next = size.height - 12
+    for (const person of [...sorted].reverse()) {
+      const position = Math.min(coordinates[`label:${person.id}`], next - 48)
+      coordinates[`label:${person.id}`] = position
+      next = position
+    }
+    return coordinates
+  }, [participants, bounds, plotHeight, size.height, goal])
+  const animatedCoordinates = useAnimatedCoordinates(targetCoordinates, mode)
+  const coordinate = (key: string) => animatedCoordinates[key] ?? targetCoordinates[key]
+  const pointY = (person: RaceViewParticipant, date: string) =>
+    coordinate(`point:${person.id}:${date}`)
   const renderParticipant = (person: RaceViewParticipant) => {
     const current = person.latest?.value
     const style = {
       '--racer-color': person.color,
-      '--row-position': `${((labelPositions.get(person.id) ?? 0) / size.height) * 100}%`
+      '--row-position': `${((coordinate(`label:${person.id}`) ?? 0) / size.height) * 100}%`
     } as CSSProperties
     return (
       <button
@@ -244,13 +260,19 @@ export const RaceChart = ({
             >
               THIS WEEK
             </text>
-            <line className="goal-line" x1={left} x2={right} y1={y(goal)} y2={y(goal)} />
-            <text className="goal-label" x={left + 4} y={y(goal) - 12}>
+            <line
+              className="goal-line"
+              x1={left}
+              x2={right}
+              y1={coordinate('goal')}
+              y2={coordinate('goal')}
+            />
+            <text className="goal-label" x={left + 4} y={coordinate('goal') - 12}>
               {referenceLabel}
             </text>
             {withReadings.map((person) => {
               const points = person.points
-                .map((point) => `${x(point.date)},${y(point.value)}`)
+                .map((point) => `${x(point.date)},${pointY(person, point.date)}`)
                 .join(' ')
               const last = person.points[person.points.length - 1]
               return (
@@ -279,7 +301,7 @@ export const RaceChart = ({
                     <circle
                       key={point.date}
                       cx={x(point.date)}
-                      cy={y(point.value)}
+                      cy={pointY(person, point.date)}
                       r="3"
                       fill={person.color}
                     >
@@ -292,7 +314,7 @@ export const RaceChart = ({
                   {!stacked && (
                     <path
                       className="label-connector"
-                      d={`M${x(last.date)} ${y(last.value)} L${right + 15} ${y(last.value)} L${size.width} ${labelPositions.get(person.id)}`}
+                      d={`M${x(last.date)} ${pointY(person, last.date)} L${right + 15} ${pointY(person, last.date)} L${size.width} ${coordinate(`label:${person.id}`)}`}
                       fill="none"
                       stroke={person.color}
                       strokeWidth="2"
@@ -302,13 +324,18 @@ export const RaceChart = ({
                   )}
                   <circle
                     cx={x(last.date)}
-                    cy={y(last.value)}
+                    cy={pointY(person, last.date)}
                     r="7"
                     fill="#080513"
                     stroke={person.color}
                     strokeWidth="1"
                   />
-                  <circle cx={x(last.date)} cy={y(last.value)} r="4.5" fill={person.color} />
+                  <circle
+                    cx={x(last.date)}
+                    cy={pointY(person, last.date)}
+                    r="4.5"
+                    fill={person.color}
+                  />
                 </g>
               )
             })}

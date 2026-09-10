@@ -135,25 +135,45 @@ p {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   color: var(--secondary);
   font-size: 14px;
 }
-.race-mode select {
+.race-mode button {
   max-width: 100%;
   padding: 7px 12px;
   border: 1px solid #453452;
   border-radius: 4px;
   background: #100b1b;
-  color: var(--cyan);
+  color: var(--secondary);
   font: inherit;
 }
-.bmi-note {
-  max-width: 660px;
-  margin: 10px 0 0;
-  color: var(--secondary);
-  font-size: 12px;
-  line-height: 1.6;
+.race-mode button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.race-mode button[aria-pressed="true"] {
+  border-color: var(--cyan);
+  background: #35dfff18;
+  color: var(--cyan);
+}
+.race-mode .race-mode-playback {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+.race-subtitles {
+  display: grid;
+}
+.race-subtitles .subtitle {
+  grid-area: 1 / 1;
+}
+.race-subtitles .subtitle[aria-hidden="true"] {
+  visibility: hidden;
 }
 .wordmark {
   margin: 0;

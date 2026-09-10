@@ -40,8 +40,8 @@ test('live chart plots weekly averages and current-week daily averages over thre
     'Weekly Racer: 84.0 kg · Daily average · 2026-09-07',
     'Weekly Racer: 82.0 kg · Daily average · 2026-09-09'
   ])
-  await expect(page.locator('svg')).not.toContainText('10 JUN 2026')
-  await expect(page.locator('svg')).not.toContainText('10 SEPT 2026')
+  await expect(page.locator('.race-chart svg')).not.toContainText('10 JUN 2026')
+  await expect(page.locator('.race-chart svg')).not.toContainText('10 SEPT 2026')
   await page.getByText('View live readings', { exact: true }).click()
   await expect(
     page.getByRole('row', { name: 'Weekly Racer 150.0 82.0 7.0 2026-09-09' })

@@ -34,7 +34,7 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   const color = await racer.evaluate((element) =>
     (element as HTMLElement).style.getPropertyValue('--racer-color')
   )
-  await page.getByRole('combobox', { name: 'Race mode' }).selectOption('bmi')
+  await page.getByRole('button', { name: 'BMI', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi/)
   await expect(racer).toContainText('25.0')
   expect(
@@ -55,13 +55,16 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   await expect(page.getByRole('row', { name: 'BMI Racer 26.0 25.0 -1.0 2026-09-09' })).toBeVisible()
   await expect(page.getByRole('table')).not.toContainText('kilograms')
   await page.reload()
-  await expect(page.getByRole('combobox', { name: 'Race mode' })).toHaveValue('bmi')
+  await expect(page.getByRole('button', { name: 'BMI', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
   await page.getByRole('link', { name: 'Live data', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi.*data=sample/)
   await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
   await page.getByRole('link', { name: 'Sample data', exact: true }).click()
   await expect(racer).toContainText('25.0')
-  await page.getByRole('combobox', { name: 'Race mode' }).selectOption('classic')
+  await page.getByRole('button', { name: 'Classic · 75 kg', exact: true }).click()
   await expect(racer).toContainText('81.0')
   await expect(page.locator('.goal-label')).toHaveText('75.0 KG — GOAL LINE')
 })
@@ -87,7 +90,7 @@ test('missing heights explain an empty chart even when another participant has n
   )
   await expect(page.getByRole('link', { name: 'Add your height' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.getByRole('combobox', { name: 'Race mode' }).selectOption('classic')
+  await page.getByRole('button', { name: 'Classic · 75 kg', exact: true }).click()
   await expect(page.getByRole('button', { name: /BMI Racer 81.0/ })).toBeVisible()
 })
 
@@ -172,4 +175,129 @@ test('BMI sample charts remain readable at desktop and mobile sizes', async ({ p
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: `test-results/bmi-${viewport.width}.png`, fullPage: true })
   }
+})
+
+test('mode buttons automatically cycle every ten seconds and support pause and resume', async ({
+  page
+}) => {
+  await page.goto('/?data=sample')
+  const classic = page.getByRole('button', { name: 'Classic · 75 kg', exact: true })
+  const bmi = page.getByRole('button', { name: 'BMI', exact: true })
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Pause automatic mode switching' })).toBeVisible()
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.getByRole('button', { name: 'Play automatic mode switching' }).click()
+  const historyLength = await page.evaluate(() => history.length)
+  await page.clock.runFor(9999)
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.runFor(1)
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
+  await expect(page).toHaveURL(/data=sample&mode=bmi/)
+  await page.clock.runFor(10000)
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  expect(await page.evaluate(() => history.length)).toBe(historyLength)
+
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await bmi.click()
+  await page.clock.runFor(30000)
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Play automatic mode switching' }).click()
+  await page.clock.runFor(9999)
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.runFor(1)
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('manual mode selection restarts the automatic countdown on the radiator', async ({ page }) => {
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
+  await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
+  await page.goto('/?mode=bmi')
+  const classic = page.getByRole('button', { name: 'Classic · 75 kg', exact: true })
+  const bmi = page.getByRole('button', { name: 'BMI', exact: true })
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.getByRole('button', { name: 'Play automatic mode switching' }).click()
+  await page.clock.runFor(5000)
+  await classic.click()
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.runFor(9999)
+  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.runFor(1)
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('mode switches keep the header, controls and plot in place on desktop and mobile', async ({
+  page
+}) => {
+  for (const radiator of [false, true]) {
+    await page.route('**/api/auth/me', (route) =>
+      route.fulfill({ status: radiator ? 401 : 200, json: radiator ? {} : user })
+    )
+    await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.goto('/?data=sample')
+      await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+      const selectors = ['.race-header', '.race-mode', '.sample-indicator', '.race-chart']
+      const before = await Promise.all(
+        selectors.map((selector) => page.locator(selector).boundingBox())
+      )
+      await page.getByRole('button', { name: 'BMI', exact: true }).click()
+      await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+      for (const [index, selector] of selectors.entries()) {
+        await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
+      }
+      await page.getByRole('button', { name: 'Classic · 75 kg', exact: true }).click()
+      for (const [index, selector] of selectors.entries()) {
+        await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
+      }
+    }
+  }
+})
+
+test('chart lines and markers interpolate between modes without remounting or losing selection', async ({
+  page
+}) => {
+  await page.goto('/?data=sample')
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  await page.getByRole('button', { name: /Heikki/ }).click()
+  const series = page.locator('.chart-series').first()
+  const line = await series.locator('polyline').last().elementHandle()
+  const before = await line!.getAttribute('points')
+  await page.getByRole('button', { name: 'BMI', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'BMI', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  expect(await line!.evaluate((element) => element.isConnected)).toBe(true)
+  expect(await line!.getAttribute('points')).toBe(before)
+  await page.clock.runFor(300)
+  const halfway = await line!.getAttribute('points')
+  expect(halfway).not.toBe(before)
+  const markerY = await series.locator('circle').first().getAttribute('cy')
+  expect(Number(halfway!.split(' ')[0].split(',')[1])).toBeCloseTo(Number(markerY), 5)
+  await page.clock.runFor(400)
+  const after = await line!.getAttribute('points')
+  expect(after).not.toBe(before)
+  expect(after).not.toBe(halfway)
+  await expect(page.getByRole('button', { name: /Heikki/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.clock.runFor(1000)
+  expect(await line!.getAttribute('points')).toBe(after)
+})
+
+test('reduced motion switches chart positions immediately', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/?data=sample')
+  await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1))
+  const line = page.locator('.chart-series').first().locator('polyline').last()
+  const before = await line.getAttribute('points')
+  await page.getByRole('button', { name: 'BMI', exact: true }).click()
+  await expect(line).not.toHaveAttribute('points', before!)
+  const after = await line.getAttribute('points')
+  await page.clock.runFor(700)
+  expect(await line.getAttribute('points')).toBe(after)
 })

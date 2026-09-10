@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
@@ -18,10 +18,22 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const [logout, { isLoading }] = useLogoutMutation()
   const [logoutError, setLogoutError] = useState(false)
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
+  const [playing, setPlaying] = useState(true)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [params, setParams] = useSearchParams()
   const mode: RaceMode = params.get('mode') === 'bmi' ? 'bmi' : 'classic'
+  useEffect(() => {
+    if (!playing) {
+      return
+    }
+    const timeout = window.setTimeout(() => {
+      const next = new URLSearchParams(params)
+      next.set('mode', mode === 'classic' ? 'bmi' : 'classic')
+      setParams(next, { replace: true })
+    }, 10_000)
+    return () => window.clearTimeout(timeout)
+  }, [playing, mode, params, setParams])
   const settingsUrl = mode === 'bmi' ? '/settings?mode=bmi' : '/settings'
   const live = radiator || params.get('data') !== 'sample'
   const {
@@ -73,40 +85,49 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       <header className="race-header">
         <div>
           <h1 className="wordmark">Race to 75</h1>
-          <p className="subtitle">
-            {mode === 'bmi' ? 'BMI history' : 'Weigh-in history'} <span>·</span>{' '}
-            {mode === 'bmi' ? 'Reference 25.0' : 'Goal 75.0 kg'}
-          </p>
-          <label className="race-mode">
-            Race mode
-            <select
-              value={mode}
-              onChange={(event) => {
-                const next = new URLSearchParams(params)
-                next.set('mode', event.target.value)
-                setParams(next)
-              }}
-            >
-              <option value="classic">Classic · 75 kg</option>
-              <option value="bmi">BMI</option>
-            </select>
-          </label>
-          {mode === 'bmi' && (
-            <p className="bmi-note">
-              BMI compares weight to height; it does not distinguish muscle from fat. 25 is a
-              reference, not a personal goal.
-              {!radiator &&
-                live &&
-                view.some((person) => person.id === user?.id && person.needsHeight) && (
-                  <>
-                    {' '}
-                    <Link className="text-button" to={settingsUrl}>
-                      Add your height
-                    </Link>
-                  </>
-                )}
+          <div className="race-subtitles">
+            <p className="subtitle" aria-hidden={mode !== 'classic'}>
+              Weigh-in history <span>·</span> Goal 75.0 kg
             </p>
-          )}
+            <p className="subtitle" aria-hidden={mode !== 'bmi'}>
+              BMI history <span>·</span> Reference 25.0
+            </p>
+          </div>
+          <div className="race-mode" role="group" aria-label="Race mode">
+            <button
+              className="race-mode-playback"
+              type="button"
+              aria-label={
+                playing ? 'Pause automatic mode switching' : 'Play automatic mode switching'
+              }
+              title={playing ? 'Pause automatic mode switching' : 'Play automatic mode switching'}
+              onClick={() => setPlaying((previous) => !previous)}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                {playing ? <path d="M2 1h3v10H2zM7 1h3v10H7z" /> : <path d="M3 1l8 5-8 5z" />}
+              </svg>
+            </button>
+            {(['classic', 'bmi'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={mode === option}
+                onClick={() => {
+                  const next = new URLSearchParams(params)
+                  next.set('mode', option)
+                  setParams(next)
+                }}
+              >
+                {option === 'classic' ? 'Classic · 75 kg' : 'BMI'}
+              </button>
+            ))}
+          </div>
         </div>
         {radiator ? (
           <span className="sample-indicator live-indicator">
@@ -140,12 +161,17 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         </p>
       ) : (
         <RaceChart
-          key={`${live ? 'live' : 'sample'}-${mode}`}
+          key={live ? 'live' : 'sample'}
           participants={view}
           mode={mode}
           live={live}
           radiator={radiator}
         />
+      )}
+      {!radiator && live && view.some((person) => person.id === user?.id && person.needsHeight) && (
+        <Link className="text-button" to={settingsUrl}>
+          Add your height
+        </Link>
       )}
       <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>
         {!radiator && (
