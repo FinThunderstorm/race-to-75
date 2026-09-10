@@ -26,6 +26,13 @@ display can view the history. This mode has no shared target or weight-loss badg
 Existing databases need migration `0009_biceps_measurement.sql` before running
 the updated backend (`npm run db:migrate` with the target `DATABASE_URL`).
 
+Migration `0010_biceps_history.sql` imports 20 historical biceps readings for
+existing users matching Riku Honkanen, rotsi-janne/Jalai, Daria, tsu/Timo Suomela,
+and Tomppa. Existing identical readings are skipped. Missing users are skipped
+(including on a fresh database); ambiguous names abort the migration. This is
+a one-time import, so users created afterward do not receive historical readings
+automatically. Run it with the usual `npm run db:migrate -w backend` command.
+
 ## Features
 
 The following describes the target feature set; see Status for what is available
