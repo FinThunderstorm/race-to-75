@@ -148,6 +148,12 @@ p {
   color: var(--secondary);
   font: inherit;
 }
+.race-mode .race-mode-score {
+  border-color: #ffdf5260;
+  background: #ffdf5210;
+  color: #ffdf52;
+  font-weight: 600;
+}
 .race-mode button:hover {
   border-color: var(--cyan);
   color: var(--cyan);

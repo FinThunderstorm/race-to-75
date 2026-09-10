@@ -2,7 +2,7 @@ import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './
 import { bicepsIndex, bmiIndex, prepareScoreHistory, type ScoreComponents } from './raceIndices'
 
 export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure'
-export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'score', 'blood-pressure']
+export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']
 export function parseRaceMode(value: string | null): RaceMode {
   return raceModeOrder.find((mode) => mode === value) ?? 'classic'
 }

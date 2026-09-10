@@ -23,7 +23,7 @@ const view = (person: RaceHistoryParticipant, mode: 'bmi' | 'biceps' | 'score' =
 
 test('score is a selectable mode with finite empty chart bounds', () => {
   expect(parseRaceMode('score')).toBe('score')
-  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'score', 'blood-pressure'])
+  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'blood-pressure', 'score'])
   const bounds = raceViewBounds([], 'score', now)
   expect(Number.isFinite(bounds.bottom)).toBe(true)
   expect(bounds.top).toBeGreaterThan(bounds.bottom)

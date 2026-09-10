@@ -139,6 +139,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               <button
                 key={option}
                 type="button"
+                className={option === 'score' ? 'race-mode-score' : undefined}
                 aria-pressed={mode === option}
                 onClick={() => {
                   const next = new URLSearchParams(params)
