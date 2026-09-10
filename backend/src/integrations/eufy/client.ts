@@ -109,11 +109,14 @@ export async function loginEufy(email: string, password: string, fetcher = fetch
   }
 }
 
-export function monthBefore(date: Date) {
+// Matches the race chart's three-month window so imports cover everything it draws.
+const LOOKBACK_MONTHS = 3
+
+export function lookbackStart(date: Date) {
   const result = new Date(date)
   const day = result.getUTCDate()
   result.setUTCDate(1)
-  result.setUTCMonth(result.getUTCMonth() - 1)
+  result.setUTCMonth(result.getUTCMonth() - LOOKBACK_MONTHS)
   const lastDay = new Date(
     Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)
   ).getUTCDate()

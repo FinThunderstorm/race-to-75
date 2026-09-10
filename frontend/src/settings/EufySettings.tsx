@@ -94,8 +94,8 @@ export const EufySettings = () => {
       </p>
       {connection?.profileName && <p>Profile: {connection.profileName}</p>}
       <p className="auth-description">
-        Import weight readings from one month before connecting, then sync every 15 minutes. Your
-        scale readings must reach Eufy Life before they can appear here.
+        Import weight readings from the last three months, then sync every 15 minutes. Your scale
+        readings must reach Eufy Life before they can appear here.
       </p>
       {connection?.lastSyncedAt && (
         <p className="auth-hint">

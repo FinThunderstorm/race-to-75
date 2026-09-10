@@ -40,6 +40,7 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
   const originalFetch = globalThis.fetch
   let failData = 0
   let dataCalls = 0
+  let requestedAfter = 0
   let weight = 805
   let loginCalls = 0
   const timestamp = Math.floor(Date.now() / 1000) - 3600
@@ -64,6 +65,7 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     }
     expect(url.pathname).toBe('/v1/device/data')
     dataCalls++
+    requestedAfter = Number(url.searchParams.get('after'))
     if (failData) {
       return Response.json({ message: 'do-not-echo-token' }, { status: failData })
     }
@@ -79,7 +81,7 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
         record,
         record,
         { ...record, customer_id: 'p2', scale_data: { weight: 700 } },
-        { ...record, create_time: timestamp - 60 * 86400 }
+        { ...record, create_time: timestamp - 120 * 86400 }
       ]
     })
   }
@@ -138,12 +140,9 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     const [connection] = await sql`SELECT * FROM integration_connection WHERE user_id = ${ids[0]}`
     expect(connection.access_token).not.toContain('private-token')
     expect(connection.refresh_token).toBeNull()
-    const [originalSync] =
-      await sql`SELECT import_from FROM eufy_sync WHERE connection_id = ${connection.id}`
-    expect((Date.now() - new Date(originalSync.import_from).getTime()) / 86400000).toBeGreaterThan(
-      27
-    )
-    expect((Date.now() - new Date(originalSync.import_from).getTime()) / 86400000).toBeLessThan(32)
+    const lookbackDays = (Date.now() / 1000 - requestedAfter) / 86400
+    expect(lookbackDays).toBeGreaterThan(87)
+    expect(lookbackDays).toBeLessThan(93)
     expect((await sql`SELECT * FROM eufy_setup WHERE user_id = ${ids[0]}`).length).toBe(0)
     expect((await sql`SELECT * FROM measurement WHERE user_id = ${ids[0]}`).length).toBe(1)
     weight = 800
@@ -197,10 +196,7 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     failData = 0
     const reconnectSetup = await login(ids[0])
     expect((await select(ids[0], reconnectSetup, 'p1')).statusCode).toBe(200)
-    expect(
-      (await sql`SELECT import_from FROM eufy_sync WHERE connection_id = ${connection.id}`)[0]
-        .import_from
-    ).toEqual(originalSync.import_from)
+    expect((await sql`SELECT * FROM measurement WHERE user_id = ${ids[0]}`).length).toBe(1)
     await sql`UPDATE integration_connection SET expires_at = now() - interval '1 second' WHERE id = ${connection.id}`
     await sql`UPDATE eufy_sync SET next_sync_at = now() WHERE connection_id = ${connection.id}`
     const beforeExpiry = dataCalls

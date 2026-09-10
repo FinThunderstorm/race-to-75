@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 
 import { config } from '../../config.js'
-import { EufyAuthError, EufyServiceError, fetchEufyReadings } from './client.js'
+import { EufyAuthError, EufyServiceError, fetchEufyReadings, lookbackStart } from './client.js'
 import { claimSync, finishSync, removeExpiredSetups } from './queries.js'
 import { decryptToken } from './token.js'
 
@@ -21,14 +21,15 @@ export async function syncEufy(userId?: string) {
       } catch {
         throw new EufyAuthError()
       }
-      // Fetch from the original boundary to recover late uploads and outages,
-      // including gaps longer than a month when the user reconnects.
+      // Refetch the whole window every time so late uploads and short outages
+      // land; readings that aged out of it are already stored from earlier syncs.
+      const now = new Date()
       const readings = await fetchEufyReadings(
         connection.account_id,
         token,
         connection.profile_id,
-        connection.import_from,
-        new Date()
+        lookbackStart(now),
+        now
       )
       await finishSync(connection, readings)
     } catch (error) {

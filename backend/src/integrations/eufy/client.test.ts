@@ -6,7 +6,7 @@ import {
   EufyServiceError,
   fetchEufyReadings,
   loginEufy,
-  monthBefore
+  lookbackStart
 } from './client.js'
 import { decryptToken, encryptToken } from './token.js'
 
@@ -97,18 +97,18 @@ test('history filters profiles and dates, normalizes kg, and keeps correction ID
   assert.notEqual(anotherAccount[0].externalId, readings[0].externalId)
 })
 
-test('one month back clamps month ends and preserves UTC time', () => {
+test('three months back clamps month ends and preserves UTC time', () => {
   assert.equal(
-    monthBefore(new Date('2026-03-31T12:34:56Z')).toISOString(),
+    lookbackStart(new Date('2026-05-31T12:34:56Z')).toISOString(),
     '2026-02-28T12:34:56.000Z'
   )
   assert.equal(
-    monthBefore(new Date('2024-03-31T12:34:56Z')).toISOString(),
+    lookbackStart(new Date('2024-05-31T12:34:56Z')).toISOString(),
     '2024-02-29T12:34:56.000Z'
   )
   assert.equal(
-    monthBefore(new Date('2026-01-08T12:34:56Z')).toISOString(),
-    '2025-12-08T12:34:56.000Z'
+    lookbackStart(new Date('2026-01-08T12:34:56Z')).toISOString(),
+    '2025-10-08T12:34:56.000Z'
   )
 })
 

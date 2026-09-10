@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { sql } from '../../database.js'
-import { type EufyProfile, type EufyReading, monthBefore } from './client.js'
+import type { EufyProfile, EufyReading } from './client.js'
 
 type Setup = {
   user_id: string
@@ -18,7 +18,6 @@ export type SyncConnection = {
   expires_at: Date
   account_id: string
   profile_id: string
-  import_from: Date
   lease_id: string
 }
 
@@ -53,12 +52,10 @@ export async function selectProfile(userId: string, setupId: string, profileId: 
       RETURNING id
     `
     await tx`
-      INSERT INTO eufy_sync (connection_id, account_id, profile_id, profile_name, import_from)
-      VALUES (${connection.id}, ${setup.account_id}, ${profile.id}, ${profile.name}, ${monthBefore(new Date())})
+      INSERT INTO eufy_sync (connection_id, account_id, profile_id, profile_name)
+      VALUES (${connection.id}, ${setup.account_id}, ${profile.id}, ${profile.name})
       ON CONFLICT (connection_id) DO UPDATE SET account_id = EXCLUDED.account_id,
         profile_id = EXCLUDED.profile_id, profile_name = EXCLUDED.profile_name,
-        import_from = CASE WHEN eufy_sync.account_id = EXCLUDED.account_id AND eufy_sync.profile_id = EXCLUDED.profile_id
-          THEN eufy_sync.import_from ELSE EXCLUDED.import_from END,
         last_synced_at = CASE WHEN eufy_sync.account_id = EXCLUDED.account_id AND eufy_sync.profile_id = EXCLUDED.profile_id
           THEN eufy_sync.last_synced_at ELSE NULL END,
         next_sync_at = now(), last_error = NULL, lease_id = NULL, lease_until = NULL
@@ -131,7 +128,7 @@ export async function claimSync(userId?: string) {
       FROM due WHERE s.connection_id = due.connection_id RETURNING s.*
     )
     SELECT c.id, c.user_id, c.access_token, c.expires_at, s.account_id,
-      s.profile_id, s.import_from, s.lease_id
+      s.profile_id, s.lease_id
     FROM claimed s JOIN integration_connection c ON c.id = s.connection_id
   `
   return connection
