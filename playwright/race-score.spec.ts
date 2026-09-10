@@ -5,6 +5,7 @@ import { prepareRace } from '../frontend/src/race/prepareRace'
 import {
   createRaceView,
   parseRaceMode,
+  raceCitizenPoints,
   raceModeOrder,
   raceViewBounds
 } from '../frontend/src/race/raceModes'
@@ -36,14 +37,18 @@ test('the same arm-to-height proportion gives the same biceps index', () => {
     [190, 38]
   ]) {
     expect(
-      view(
-        {
-          ...participant,
-          heightCm,
-          bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm }]
-        },
-        'biceps'
-      ).latest?.value
+      raceCitizenPoints(
+        'biceps',
+        view(
+          {
+            ...participant,
+            heightCm,
+            bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm }]
+          },
+          'biceps'
+        ).latest!.value,
+        heightCm
+      )
     ).toBeCloseTo(20)
   }
 })
@@ -60,7 +65,8 @@ test('BMI index has a common plateau and falls for both high and low BMI', () =>
       ...participant,
       measurements: [{ measuredAt: '2026-09-09', weightKg: bmi * 4 }]
     }
-    expect(view(person, 'bmi').latest?.value).toBeCloseTo(expected)
+    expect(view(person, 'bmi').latest?.value).toBeCloseTo(bmi)
+    expect(raceCitizenPoints('bmi', view(person, 'bmi').latest!.value)).toBeCloseTo(expected)
     expect(view(person).latest?.value).toBeCloseTo((20 * expected) / 100)
   }
 })
@@ -139,7 +145,7 @@ test('correcting height recalculates indices without mutating source readings', 
   expect(JSON.stringify(participant)).toBe(before)
 })
 
-test('BMI changes use transformed daily averages and do not reward further loss below the plateau', () => {
+test('BMI changes use raw daily averages while component points fall below the plateau', () => {
   const result = view(
     {
       ...participant,
@@ -150,6 +156,7 @@ test('BMI changes use transformed daily averages and do not reward further loss 
     },
     'bmi'
   )
-  expect(result.change).toBeCloseTo((100 * 16) / 18.5 - 100)
+  expect(result.change).toBeCloseTo(16 - 18.5)
+  expect(raceCitizenPoints('bmi', result.latest!.value)).toBeCloseTo((100 * 16) / 18.5)
   expect(result.change).toBeLessThan(0)
 })

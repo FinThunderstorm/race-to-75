@@ -1,5 +1,13 @@
 import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
-import { bicepsIndex, bmiIndex, prepareScoreHistory, type ScoreComponents } from './raceIndices'
+import {
+  bicepsIndex,
+  bloodPressureIndex,
+  bloodPressureRanges,
+  bmiIndex,
+  bmiRange,
+  prepareScoreHistory,
+  type ScoreComponents
+} from './raceIndices'
 
 export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure'
 export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']
@@ -19,20 +27,20 @@ export const raceModes = {
   },
   bmi: {
     label: 'BMI',
-    unit: 'p.',
-    unitLabel: 'pistettä',
-    metric: 'BMI-indeksi',
-    reference: 100,
-    title: 'Ryhmän BMI-indeksin historia',
-    referenceLabel: '100 PISTETTÄ — BMI 18,5–25'
+    unit: 'BMI',
+    unitLabel: 'BMI',
+    metric: 'BMI',
+    reference: null,
+    title: 'Ryhmän BMI-historia',
+    referenceLabel: null
   },
   biceps: {
     label: 'Hauis',
-    unit: 'p.',
-    unitLabel: 'pistettä',
-    metric: 'hauisindeksi',
+    unit: 'cm',
+    unitLabel: 'cm',
+    metric: 'hauiksen ympärysmitta',
     reference: null,
-    title: 'Ryhmän hauisindeksin historia',
+    title: 'Ryhmän hauismittausten historia',
     referenceLabel: null
   },
   'blood-pressure': {
@@ -55,12 +63,41 @@ export const raceModes = {
   }
 } as const
 
+export type ReferenceBand = { min: number; max: number; label: string; color: string }
+export const raceBands: Record<RaceMode, readonly ReferenceBand[]> = {
+  classic: [],
+  score: [],
+  biceps: [],
+  bmi: [{ ...bmiRange, label: 'BMI', color: '#00eda0' }],
+  'blood-pressure': [
+    { ...bloodPressureRanges.systolic, label: 'Yläpaine', color: '#00eda0' },
+    { ...bloodPressureRanges.diastolic, label: 'Alapaine', color: '#35dfff' }
+  ]
+}
+
+export function raceCitizenPoints(
+  mode: RaceMode,
+  value: number,
+  heightCm?: number | null,
+  diastolic?: number
+): number | null {
+  if (mode === 'bmi') {
+    return bmiIndex(value)
+  }
+  if (mode === 'biceps' && heightCm && heightCm >= 50 && heightCm <= 300) {
+    return bicepsIndex(value, heightCm)
+  }
+  if (mode === 'blood-pressure' && diastolic !== undefined) {
+    return bloodPressureIndex(value, diastolic)
+  }
+  return null
+}
+
 export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 'startWeight'> & {
   points: { date: string; value: number; period: 'week' | 'day' }[]
   latest: { date: string; value: number } | null
   startValue: number | null
   needsHeight: boolean
-  rawLatest: number | null
   diastolic?: ReturnType<typeof prepareMeasurementHistory>
   scoreComponents: ScoreComponents | null
 }
@@ -79,7 +116,6 @@ export function createRaceView(
     const base = {
       ...person,
       needsHeight,
-      rawLatest: null,
       scoreComponents: null,
       points: [],
       latest: null,
@@ -131,21 +167,14 @@ export function createRaceView(
       )
       return {
         ...base,
-        points: history.points.map((point) => ({
-          ...point,
-          value: bicepsIndex(point.value, height!)
-        })),
-        latest: history.latest && {
-          ...history.latest,
-          value: bicepsIndex(history.latest.value, height!)
-        },
-        startValue: history.startValue === null ? null : bicepsIndex(history.startValue, height!),
-        change: bicepsIndex(history.change, height!),
-        rawLatest: history.latest?.value ?? null
+        points: history.points,
+        latest: history.latest,
+        startValue: history.startValue,
+        change: history.change
       }
     }
     const divisor = mode === 'bmi' ? (height! / 100) ** 2 : 1
-    const convert = (weight: number) => (mode === 'bmi' ? bmiIndex(weight / divisor) : weight)
+    const convert = (weight: number) => weight / divisor
     const previous = person.dailyWeights.at(-2)
     return {
       ...base,
@@ -153,7 +182,6 @@ export function createRaceView(
       latest: latest && { date: latest.date, value: convert(latest.weight) },
       startValue: startWeight === null ? null : convert(startWeight),
       change: latest && previous ? convert(latest.weight) - convert(previous.weight) : 0,
-      rawLatest: latest ? latest.weight / divisor : null,
       streak: mode === 'classic' ? person.streak : 0,
       personalLow: mode === 'classic' && person.personalLow
     }
@@ -168,6 +196,10 @@ export function raceViewBounds(
   const reference = raceModes[mode].reference
   let minValue: number = reference ?? Number.POSITIVE_INFINITY
   let maxValue: number = reference ?? Number.NEGATIVE_INFINITY
+  for (const band of raceBands[mode]) {
+    minValue = Math.min(minValue, band.min)
+    maxValue = Math.max(maxValue, band.max)
+  }
   for (const person of participants) {
     for (const point of [...person.points, ...(person.diastolic?.points ?? [])]) {
       minValue = Math.min(minValue, point.value)

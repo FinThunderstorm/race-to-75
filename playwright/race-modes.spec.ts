@@ -21,15 +21,15 @@ const people = [
   }
 ]
 
-test('BMI index converts prepared readings and changes without changing colors or source data', () => {
+test('BMI plots raw values and changes without changing colors or source data', () => {
   const prepared = prepareRace(people, now)
   const view = createRaceView(prepared, 'bmi', now)
-  expect(view[0].latest?.value).toBeCloseTo(100)
-  expect(view[0].startValue).toBeCloseTo((100 * 25) / 26)
-  expect(view[0].change).toBeCloseTo(100 - (100 * 25) / 26)
+  expect(view[0].latest?.value).toBeCloseTo(25)
+  expect(view[0].startValue).toBeCloseTo(26)
+  expect(view[0].change).toBeCloseTo(-1)
   expect(view[0].points).toHaveLength(2)
-  expect(view[0].points[0].value).toBeCloseTo((100 * 25) / 26)
-  expect(view[0].points[1].value).toBeCloseTo(100)
+  expect(view[0].points[0].value).toBeCloseTo(26)
+  expect(view[0].points[1].value).toBeCloseTo(25)
   expect(view[0].personalLow).toBe(false)
   expect(view[0].streak).toBe(0)
   expect(view.map((person) => person.color)).toEqual(prepared.map((person) => person.color))
@@ -90,7 +90,8 @@ test('BMI bounds include values below reference and handle missing or invalid he
   const view = createRaceView(prepared, 'bmi', now)
   const bounds = raceViewBounds(view, 'bmi', now)
   expect(bounds.bottom).toBeLessThan(view[0].latest!.value)
-  expect(bounds.top).toBeGreaterThan(100)
+  expect(bounds.top).toBeGreaterThan(25)
+  expect(bounds.bottom).toBeLessThan(18.5)
   expect(view.slice(1).every((person) => person.needsHeight && person.points.length === 0)).toBe(
     true
   )

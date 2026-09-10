@@ -31,7 +31,10 @@ again to correct mistakes. Saving or deleting refreshes the shared history.
 The three-month chart shows systolic pressure as a solid line and diastolic
 pressure as a dashed line in each participant's color. Completed weeks average
 all readings; the current week uses daily averages. Latest values show both
-pressures and their measurement date in the readings table. Height and weight
+pressures and their measurement date in the readings table. Labels, tooltips and
+tables show the component citizen points in parentheses, e.g.
+`160,0 / 100,0 mmHg (75,0 kp)`. Faint bands mark the existing scoring plateaus:
+systolic 90–120 and diastolic 60–80 mmHg. Height and weight
 are not required. The mode supports sample data, automatic rotation, and the
 read-only shared display. The readings also contribute a blood pressure index
 to Ihmisarvo.
@@ -51,9 +54,10 @@ You can delete your own entries to correct mistakes. Multiple readings on one
 day are averaged; completed weeks use weekly averages. Add your height in
 **Asetukset → Kisaprofiili** to show the **biceps index: 100 × circumference / height**
 (both in cm). For example, 34 cm at 170 cm and 38 cm at 190 cm both score 20.
-The readings table also shows the current circumference in cm. The group and
-shared display can view the index history. This mode has no shared target or
-weight-loss badges.
+The chart plots circumference in cm and shows its citizen points in parentheses,
+e.g. `40,0 cm (20,0 kp)` at 200 cm tall. Tooltips and table values use the same
+format; changes are in cm. The group and shared display can view this history.
+This mode has no shared target or weight-loss badges.
 
 Existing databases need migration `0009_biceps_measurement.sql` before running
 the updated backend (`npm run db:migrate` with the target `DATABASE_URL`).
@@ -452,16 +456,19 @@ Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.
 
 BMI is calculated as weight in kg divided by height in metres squared. The chart
-and tooltips show a **BMI index** using the same rules for everyone:
+plots raw BMI; labels, tooltips and table readings show component citizen points
+in parentheses, e.g. `30,0 BMI (83,3 kp)`. Points use the same rules for everyone:
 
 - BMI 18.5–25: **100 points**.
 - BMI below 18.5: **100 × BMI / 18.5**.
 - BMI above 25: **100 × 25 / BMI**.
 
-The reference line is at 100 points. Going below the plateau loses points; there
-is no lowest-BMI winner. The readings table includes both the index and current
-raw BMI. Changes compare indices calculated from consecutive daily averages;
-completed-week indices are calculated from the average weight for that week.
+A faint shaded band marks BMI 18.5–25, the 100-point plateau. Both band boundaries
+stay within the chart's scale even when all readings are outside it. Going below
+the plateau loses points; there is no lowest-BMI winner. Changes compare raw BMI
+values from consecutive daily averages. Completed-week BMI and points are
+calculated from the average weight for that week. These chart changes do not
+alter the combined Ihmisarvo calculation.
 BMI cannot distinguish fat from muscle; see
 [CDC's explanation of BMI](https://www.cdc.gov/bmi/about/index.html).
 

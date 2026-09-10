@@ -3,11 +3,24 @@ import { prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 export const bicepsIndex = (circumferenceCm: number, heightCm: number) =>
   (100 * circumferenceCm) / heightCm
 
+export const bmiRange = { min: 18.5, max: 25 } as const
+export const bloodPressureRanges = {
+  systolic: { min: 90, max: 120 },
+  diastolic: { min: 60, max: 80 }
+} as const
+
 // Shared game rules, not a clinically validated health score.
-export const bmiIndex = (bmi: number) => 100 * Math.min(1, bmi / 18.5, 25 / bmi)
+export const bmiIndex = (bmi: number) => 100 * Math.min(1, bmi / bmiRange.min, bmiRange.max / bmi)
 
 export const bloodPressureIndex = (systolic: number, diastolic: number) =>
-  100 * Math.min(1, systolic / 90, 120 / systolic, diastolic / 60, 80 / diastolic)
+  100 *
+  Math.min(
+    1,
+    systolic / bloodPressureRanges.systolic.min,
+    bloodPressureRanges.systolic.max / systolic,
+    diastolic / bloodPressureRanges.diastolic.min,
+    bloodPressureRanges.diastolic.max / diastolic
+  )
 
 type DailyBloodPressure = { date: string; systolic: number; diastolic: number }
 type DailyValue = { date: string; value: number }

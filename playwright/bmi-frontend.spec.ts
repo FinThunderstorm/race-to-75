@@ -45,10 +45,10 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
       (element as HTMLElement).style.getPropertyValue('--racer-color')
     )
   ).toBe(color)
-  await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
+  await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
   await expect(page.locator('.chart-series circle title')).toHaveText([
-    'BMI Racer: 96,2 pistettä · Päiväkeskiarvo · 7.9.2026',
-    'BMI Racer: 100,0 pistettä · Päiväkeskiarvo · 9.9.2026'
+    'BMI Racer: 26,0 BMI (96,2 kp) · Päiväkeskiarvo · 7.9.2026',
+    'BMI Racer: 25,0 BMI (100,0 kp) · Päiväkeskiarvo · 9.9.2026'
   ])
   await expect(page.locator('.personal-low, .setback, .winner')).toHaveCount(0)
   await expect(
@@ -56,7 +56,9 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   ).toContainText('Missing Height')
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(
-    page.getByRole('row', { name: 'BMI Racer 96,2 100,0 +3,8 25,0 9.9.2026' })
+    page.getByRole('row', {
+      name: 'BMI Racer 26,0 BMI (96,2 kp) 25,0 BMI (100,0 kp) −1,0 9.9.2026'
+    })
   ).toBeVisible()
   await expect(page.getByRole('table')).not.toContainText('kilogrammoina')
   await page.reload()
@@ -66,7 +68,7 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   )
   await page.getByRole('link', { name: 'Ryhmän mittaukset', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi.*data=sample/)
-  await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
+  await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
   await page.getByRole('link', { name: 'Esimerkkimittaukset', exact: true }).click()
   await expect(racer).toContainText('100,0')
   await page.getByRole('button', { name: 'Paino · 75 kg', exact: true }).click()
@@ -105,8 +107,8 @@ test('BMI radiator stays read-only and renders without account controls', async 
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
   await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
   await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
-  await expect(page.getByRole('button', { name: /BMI Racer 100,0/ })).toBeVisible()
+  await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
+  await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Lisää pituutesi|Esimerkkimittaukset/ })).toHaveCount(
     0
   )
@@ -153,7 +155,7 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
   await expect(panel.getByRole('status')).toHaveText('Pituus tallennettu.')
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=bmi/)
-  await expect(page.getByRole('button', { name: /BMI Racer 100,0/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
   await page.getByRole('link', { name: 'BMI Racer', exact: true }).click()
   await panel.getByRole('spinbutton', { name: 'Pituus (cm)' }).fill('190')
   await panel.getByRole('button', { name: 'Tallenna pituus' }).click()
@@ -274,7 +276,7 @@ test('mode switches keep the header, controls and plot in place on desktop and m
         selectors.map((selector) => page.locator(selector).boundingBox())
       )
       await page.getByRole('button', { name: 'BMI', exact: true }).click()
-      await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
+      await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
       for (const [index, selector] of selectors.entries()) {
         await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
       }

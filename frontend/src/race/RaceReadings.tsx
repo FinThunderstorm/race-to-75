@@ -1,6 +1,6 @@
 import { formatDate, formatNumber } from '../format'
-
 import { BloodPressureIndexExplanation } from './BloodPressureIndexExplanation'
+import { formatRaceReading } from './raceFormatting'
 import type { RaceMode, RaceViewParticipant } from './raceModes'
 
 export const RaceReadings = ({
@@ -55,7 +55,14 @@ export const RaceReadings = ({
         <table>
           <caption>
             {live ? 'Mittausten yhteenveto' : 'Esimerkkimittausten yhteenveto'}{' '}
-            {classic ? 'kilogrammoina' : score ? 'kansalaispisteinä' : 'indeksipisteinä'} ·{' '}
+            {classic
+              ? 'kilogrammoina'
+              : score
+                ? 'kansalaispisteinä'
+                : mode === 'bmi'
+                  ? 'BMI-arvoina (kp suluissa)'
+                  : 'senttimetreinä (kp suluissa)'}{' '}
+            ·{' '}
             {score
               ? 'Nykyinen ihmisarvo lasketaan viimeisimmistä päiväkeskiarvoista (UTC)'
               : 'Nykyarvo perustuu viimeisimpään päiväkeskiarvoon (UTC)'}
@@ -66,16 +73,13 @@ export const RaceReadings = ({
               <th scope="col">Alku</th>
               <th scope="col">Nykyarvo</th>
               <th scope="col">{classic ? 'Jäljellä' : 'Muutos'}</th>
-              {raw && (
-                <th scope="col">{mode === 'bmi' ? 'Nykyinen BMI' : 'Nykyinen ympärys (cm)'}</th>
-              )}
               {score && (
                 <>
-                  <th scope="col">Hauisindeksi (cm)</th>
+                  <th scope="col">Hauis (kp)</th>
                   <th scope="col">Hauiksen mittauspäivä (UTC)</th>
-                  <th scope="col">BMI-indeksi (BMI)</th>
+                  <th scope="col">BMI (kp)</th>
                   <th scope="col">Punnituspäivä (UTC)</th>
-                  <th scope="col">Verenpaineindeksi (mmHg)</th>
+                  <th scope="col">Verenpaine (kp)</th>
                   <th scope="col">Verenpaineen mittauspäivä (UTC)</th>
                 </>
               )}
@@ -90,8 +94,20 @@ export const RaceReadings = ({
               return (
                 <tr key={person.id}>
                   <th scope="row">{person.name}</th>
-                  <td>{person.startValue === null ? '—' : formatNumber(person.startValue)}</td>
-                  <td>{last ? formatNumber(last.value) : '—'}</td>
+                  <td>
+                    {person.startValue === null
+                      ? '—'
+                      : raw
+                        ? formatRaceReading(mode, person.startValue, person.heightCm)
+                        : formatNumber(person.startValue)}
+                  </td>
+                  <td>
+                    {last
+                      ? raw
+                        ? formatRaceReading(mode, last.value, person.heightCm)
+                        : formatNumber(last.value)
+                      : '—'}
+                  </td>
                   <td>
                     {!last
                       ? '—'
@@ -99,26 +115,24 @@ export const RaceReadings = ({
                         ? formatNumber(Math.max(0, last.value - 75))
                         : `${change > 0 ? '+' : ''}${formatNumber(change)}`}
                   </td>
-                  {raw && (
-                    <td>{person.rawLatest === null ? '—' : formatNumber(person.rawLatest)}</td>
-                  )}
                   {score && (
                     <>
                       <td>
                         {components
-                          ? `${formatNumber(components.bicepsIndex)} (${formatNumber(components.biceps.value)} cm)`
+                          ? formatRaceReading('biceps', components.biceps.value, person.heightCm)
                           : '—'}
                       </td>
                       <td>{components ? formatDate(components.biceps.date) : '—'}</td>
-                      <td>
-                        {components
-                          ? `${formatNumber(components.bmiIndex)} (BMI ${formatNumber(components.bmi)})`
-                          : '—'}
-                      </td>
+                      <td>{components ? formatRaceReading('bmi', components.bmi) : '—'}</td>
                       <td>{components ? formatDate(components.weight.date) : '—'}</td>
                       <td>
                         {components
-                          ? `${formatNumber(components.bloodPressureIndex)} (${formatNumber(components.bloodPressure.systolic)} / ${formatNumber(components.bloodPressure.diastolic)} mmHg)`
+                          ? formatRaceReading(
+                              'blood-pressure',
+                              components.bloodPressure.systolic,
+                              undefined,
+                              components.bloodPressure.diastolic
+                            )
                           : '—'}
                       </td>
                       <td>{components ? formatDate(components.bloodPressure.date) : '—'}</td>

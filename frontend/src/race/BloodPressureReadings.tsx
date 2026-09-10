@@ -1,10 +1,12 @@
 import { formatDate, formatNumber } from '../format'
 import { BloodPressureIndexExplanation } from './BloodPressureIndexExplanation'
-import { bloodPressureIndex } from './raceIndices'
+import { formatRaceReading } from './raceFormatting'
 import type { RaceViewParticipant } from './raceModes'
 
 const pair = (upper: number | null | undefined, lower: number | null | undefined) =>
-  upper == null || lower == null ? '—' : `${formatNumber(upper)} / ${formatNumber(lower)}`
+  upper == null || lower == null
+    ? '—'
+    : formatRaceReading('blood-pressure', upper, undefined, lower)
 const change = (value: number) => `${value > 0 ? '+' : ''}${formatNumber(value)}`
 
 export const BloodPressureReadings = ({
@@ -36,7 +38,6 @@ export const BloodPressureReadings = ({
             <th scope="col">Alku</th>
             <th scope="col">Nykyarvo</th>
             <th scope="col">Muutos</th>
-            <th scope="col">Verenpaineindeksi</th>
             <th scope="col">Viimeisin mittaus (UTC)</th>
           </tr>
         </thead>
@@ -49,13 +50,6 @@ export const BloodPressureReadings = ({
               <td>
                 {person.latest && person.diastolic?.latest
                   ? `${change(person.change)} / ${change(person.diastolic.change)}`
-                  : '—'}
-              </td>
-              <td>
-                {person.latest && person.diastolic?.latest
-                  ? formatNumber(
-                      bloodPressureIndex(person.latest.value, person.diastolic.latest.value)
-                    )
                   : '—'}
               </td>
               <td>{person.latest ? formatDate(person.latest.date) : '—'}</td>

@@ -6,11 +6,12 @@ export function useAnimatedCoordinates(target: Coordinates, mode: string) {
   const [coordinates, setCoordinates] = useState(target)
   const displayed = useRef(target)
   const previousMode = useRef(mode)
+  const animating = useRef(false)
 
   useLayoutEffect(() => {
     const from = displayed.current
     const animate =
-      previousMode.current !== mode &&
+      (previousMode.current !== mode || animating.current) &&
       !window.matchMedia('(prefers-reduced-motion: reduce)').matches
     previousMode.current = mode
     const update = (next: Coordinates) => {
@@ -18,12 +19,14 @@ export function useAnimatedCoordinates(target: Coordinates, mode: string) {
       setCoordinates(next)
     }
     if (!animate) {
+      animating.current = false
       update(target)
       return
     }
 
     // Interpolate screen positions, so each racer's height conversion and the new
     // axis range move together. An interrupted transition starts at its current frame.
+    animating.current = true
     const start = performance.now()
     let frame = 0
     const tick = (now: number) => {
@@ -41,6 +44,8 @@ export function useAnimatedCoordinates(target: Coordinates, mode: string) {
       )
       if (progress < 1) {
         frame = requestAnimationFrame(tick)
+      } else {
+        animating.current = false
       }
     }
     tick(start)

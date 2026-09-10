@@ -97,10 +97,10 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               Painohistoria <span>·</span> Tavoite 75,0 kg
             </p>
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
-              BMI-indeksi <span>·</span> 100 pistettä, kun BMI on 18,5–25
+              BMI <span>·</span> Kansalaispisteet suluissa
             </p>
             <p className="subtitle" aria-hidden={mode !== 'biceps'}>
-              Hauisindeksi <span>·</span> 100 × ympärys / pituus
+              Hauis (cm) <span>·</span> Kansalaispisteet suluissa
             </p>
             <p className="subtitle" aria-hidden={mode !== 'blood-pressure'}>
               Verenpaine <span>·</span> Yläpaine ━ / alapaine ┄ · mmHg

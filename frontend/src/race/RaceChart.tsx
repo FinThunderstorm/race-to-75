@@ -4,7 +4,16 @@ import { formatDate, formatNumber } from '../format'
 import { Racer } from '../Racer'
 import { BloodPressureReadings } from './BloodPressureReadings'
 import { RaceReadings } from './RaceReadings'
-import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
+import { ReferenceBands } from './ReferenceBands'
+import { formatRaceReading } from './raceFormatting'
+import {
+  type RaceMode,
+  type RaceViewParticipant,
+  raceBands,
+  raceCitizenPoints,
+  raceModes,
+  raceViewBounds
+} from './raceModes'
 import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
 const formatChange = (change: number) => {
@@ -31,8 +40,12 @@ export const RaceChart = ({
   const bloodPressure = mode === 'blood-pressure'
   const bmi = mode === 'bmi'
   const classic = mode === 'classic'
+  const component = !classic && mode !== 'score'
   const [selected, setSelected] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
+  const standingsRef = useRef<HTMLDivElement>(null)
+  const [componentRowHeight, setComponentRowHeight] = useState(48)
+  const rowSpacing = component ? componentRowHeight : 48
   const [size, setSize] = useState({ width: 840, height: 640 })
   const hasReadings = participants.some((person) => person.points.length > 0)
 
@@ -56,6 +69,24 @@ export const RaceChart = ({
     observer.observe(element)
     return () => observer.disconnect()
   }, [hasReadings])
+
+  useLayoutEffect(() => {
+    if (!component || !standingsRef.current) {
+      return
+    }
+    const rows = [...standingsRef.current.querySelectorAll<HTMLElement>('.participant')]
+    const update = () => {
+      const spacing = Math.max(
+        48,
+        ...rows.map((row) => Math.ceil(row.getBoundingClientRect().height) + 8)
+      )
+      setComponentRowHeight((previous) => (previous === spacing ? previous : spacing))
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    rows.forEach((row) => observer.observe(row))
+    return () => observer.disconnect()
+  }, [component, participants])
 
   // Render in CSS-pixel coordinates so resizing cannot squash circles or text.
   const left = size.width < 500 ? 36 : 55
@@ -129,24 +160,28 @@ export const RaceChart = ({
     const sorted = [...plotted].sort((a, b) => y(a.latest!.value) - y(b.latest!.value))
     let previous = 112
     for (const person of sorted) {
-      const position = Math.max(y(person.latest!.value), previous + 48)
+      const position = Math.max(y(person.latest!.value), previous + rowSpacing)
       coordinates[`label:${person.id}`] = position
       previous = position
     }
     let next = size.height - 12
     for (const person of [...sorted].reverse()) {
-      const position = Math.min(coordinates[`label:${person.id}`], next - 48)
+      const position = Math.min(coordinates[`label:${person.id}`], next - rowSpacing)
       coordinates[`label:${person.id}`] = position
       next = position
     }
     return coordinates
-  }, [participants, bounds, plotHeight, size.height, goal])
+  }, [participants, bounds, plotHeight, size.height, goal, rowSpacing])
   const animatedCoordinates = useAnimatedCoordinates(targetCoordinates, mode)
   const coordinate = (key: string) => animatedCoordinates[key] ?? targetCoordinates[key]
   const pointY = (person: RaceViewParticipant, date: string) =>
     coordinate(`point:${person.id}:${date}`)
   const renderParticipant = (person: RaceViewParticipant, placeholder = false) => {
     const current = person.latest?.value
+    const points =
+      current === undefined
+        ? null
+        : raceCitizenPoints(mode, current, person.heightCm, person.diastolic?.latest?.value)
     const style = {
       '--racer-color': person.color,
       '--row-position': `${((coordinate(`label:${person.id}`) ?? 0) / size.height) * 100}%`
@@ -182,6 +217,9 @@ export const RaceChart = ({
                 ? ` / ${formatNumber(person.diastolic.latest.value)}`
                 : ''}
               <small title={unitLabel}>{unit}</small>
+              {points !== null && (
+                <span className="participant-points"> ({formatNumber(points)} kp)</span>
+              )}
             </span>
             {!classic ? (
               <span className="remaining">
@@ -211,13 +249,16 @@ export const RaceChart = ({
 
   return (
     <section
-      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''} ${bloodPressure ? 'race--blood-pressure' : ''}`}
+      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''} ${!classic && mode !== 'score' ? 'race--component' : ''}`}
       style={
-        radiator
-          ? ({
-              '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, standingsParticipants.length * 48 + 40)}px`
-            } as CSSProperties)
-          : undefined
+        {
+          '--component-chart-min-height': `${Math.max(200, standingsParticipants.length * rowSpacing + 40)}px`,
+          ...(radiator
+            ? {
+                '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, standingsParticipants.length * rowSpacing + 40)}px`
+              }
+            : {})
+        } as CSSProperties
       }
       aria-label={live ? title : `Esimerkki: ${title}`}
     >
@@ -241,6 +282,11 @@ export const RaceChart = ({
                 : mode === 'score'
                   ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon, hauiksen ja verenpaineen päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
                   : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
+              {raceBands[mode].length > 0 &&
+                'Himmeät värialueet näyttävät täysien osapisteiden rajat. '}
+              {mode !== 'classic' &&
+                mode !== 'score' &&
+                'Viivojen sijainti perustuu mittausarvoihin. Suluissa näkyvät mittarista lasketut kansalaispisteet. '}
               Viikko alkaa maanantaina UTC-ajassa. Aikaväliä edeltävä viimeinen tunnettu arvo
               näytetään vasemmassa reunassa. Jos uudempia mittauksia ei ole, viiva jatkuu
               vaakasuorana. Kolme kuukausijaksoa ja kuluva viikko vievät kukin neljänneksen
@@ -257,6 +303,7 @@ export const RaceChart = ({
                 <feGaussianBlur stdDeviation="2.5" />
               </filter>
             </defs>
+            <ReferenceBands bands={raceBands[mode]} left={left} right={right} y={y} unit={unit} />
             {bounds.weeks
               .filter((week) => week !== bounds.currentWeek && !sections.includes(week))
               .map((week) => (
@@ -359,7 +406,7 @@ export const RaceChart = ({
                         strokeDasharray="7 5"
                         strokeLinejoin="round"
                       />
-                      {person.diastolic.points.map((point) => (
+                      {person.diastolic.points.map((point, index) => (
                         <circle
                           key={point.date}
                           cx={x(point.date)}
@@ -370,8 +417,14 @@ export const RaceChart = ({
                           strokeWidth="1.5"
                         >
                           <title>
-                            {person.name}: alapaine {formatNumber(point.value)} mmHg ·{' '}
-                            {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
+                            {person.name}:{' '}
+                            {formatRaceReading(
+                              mode,
+                              person.points[index].value,
+                              person.heightCm,
+                              point.value
+                            )}{' '}
+                            · {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
                             {formatDate(point.date)}
                           </title>
                         </circle>
@@ -393,7 +446,7 @@ export const RaceChart = ({
                     strokeWidth="2.8"
                     strokeLinejoin="round"
                   />
-                  {person.points.map((point) => (
+                  {person.points.map((point, index) => (
                     <circle
                       key={point.date}
                       cx={x(point.date)}
@@ -402,9 +455,16 @@ export const RaceChart = ({
                       fill={person.color}
                     >
                       <title>
-                        {person.name}: {bloodPressure ? 'yläpaine ' : ''}
-                        {formatNumber(point.value)} {unitLabel} ·{' '}
-                        {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
+                        {person.name}:{' '}
+                        {classic || mode === 'score'
+                          ? `${formatNumber(point.value)} ${unitLabel}`
+                          : formatRaceReading(
+                              mode,
+                              point.value,
+                              person.heightCm,
+                              person.diastolic?.points[index]?.value
+                            )}{' '}
+                        · {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
                         {formatDate(point.date)}
                       </title>
                     </circle>
@@ -457,6 +517,7 @@ export const RaceChart = ({
         </p>
       )}
       <div
+        ref={standingsRef}
         className="race-standings"
         aria-label="Osallistujat. Korosta mittaushistoriaa valitsemalla osallistuja."
       >

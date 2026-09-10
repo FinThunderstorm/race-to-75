@@ -401,6 +401,26 @@ p {
   color: var(--secondary);
   margin-left: 2px;
 }
+.participant-points {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.reference-band-label {
+  font-size: 11px;
+  opacity: 0.75;
+}
+.race--component .participant {
+  flex-wrap: wrap;
+}
+.race--component .race-data td {
+  white-space: nowrap;
+}
+@media (min-width: 901px) {
+  .race--component:not(.race--stacked) :is(.race-chart, .race-standings) {
+    min-height: var(--component-chart-min-height, 200px);
+  }
+}
 .remaining {
   font-size: 12px;
   color: var(--secondary);
