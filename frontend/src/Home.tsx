@@ -91,24 +91,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
       <header className="race-header">
         <div>
-          <h1 className="wordmark">Kisa 75 kiloon</h1>
-          <div className="race-subtitles">
-            <p className="subtitle" aria-hidden={mode !== 'classic'}>
-              Painohistoria <span>·</span> Tavoite 75,0 kg
-            </p>
-            <p className="subtitle" aria-hidden={mode !== 'bmi'}>
-              BMI <span>·</span> Kansalaispisteet suluissa
-            </p>
-            <p className="subtitle" aria-hidden={mode !== 'biceps'}>
-              Hauis (cm) <span>·</span> Kansalaispisteet suluissa
-            </p>
-            <p className="subtitle" aria-hidden={mode !== 'blood-pressure'}>
-              Verenpaine <span>·</span> Yläpaine ━ / alapaine ┄ · mmHg
-            </p>
-            <p className="subtitle" aria-hidden={mode !== 'score'}>
-              Ihmisarvo <span>·</span> Kansalaispisteet
-            </p>
-          </div>
+          <h1 className="wordmark">Arvokkaimmat resut</h1>
           <div className="race-mode" role="group" aria-label="Kisanäkymä">
             <button
               className="race-mode-playback"
@@ -150,6 +133,23 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                 {option === 'classic' ? 'Paino · 75 kg' : raceModes[option].label}
               </button>
             ))}
+          </div>
+          <div className="race-subtitles">
+            <p className="subtitle" aria-hidden={mode !== 'classic'}>
+              Painohistoria <span>·</span> Tavoite 75,0 kg
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'bmi'}>
+              BMI <span>·</span> Kansalaispisteet suluissa
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'biceps'}>
+              Hauis (cm) <span>·</span> Kansalaispisteet suluissa
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'blood-pressure'}>
+              Verenpaine <span>·</span> Yläpaine ━ / alapaine ┄ · mmHg
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'score'}>
+              Ihmisarvo <span>·</span> Kansalaispisteet
+            </p>
           </div>
         </div>
         {radiator ? (

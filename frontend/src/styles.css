@@ -136,6 +136,7 @@ p {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  margin-top: 20px;
   color: var(--secondary);
   font-size: 14px;
 }
@@ -174,9 +175,11 @@ p {
 }
 .race-subtitles {
   display: grid;
+  margin-top: 12px;
 }
 .race-subtitles .subtitle {
   grid-area: 1 / 1;
+  margin-top: 0;
 }
 .race-subtitles .subtitle[aria-hidden="true"] {
   visibility: hidden;
@@ -283,7 +286,7 @@ p {
 }
 .race {
   position: relative;
-  margin-top: 26px;
+  margin-top: 32px;
 }
 .race-chart {
   width: 61%;
@@ -841,6 +844,9 @@ th:first-child {
     flex-direction: column;
     gap: 8px;
   }
+  .race-mode {
+    margin-top: 16px;
+  }
   .subtitle {
     font-size: 11px;
     letter-spacing: 0.1em;
@@ -853,7 +859,7 @@ th:first-child {
     margin-top: 8px;
   }
   .race {
-    margin-top: 30px;
+    margin-top: 24px;
   }
   .race-art {
     right: 0;
