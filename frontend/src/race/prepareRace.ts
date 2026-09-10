@@ -8,6 +8,7 @@ export type RaceParticipant = {
   color: string
   heightCm?: number | null
   bicepsMeasurements?: RaceHistoryParticipant['bicepsMeasurements']
+  dailyWeights: WeightPoint[]
   points: (WeightPoint & { period: 'week' | 'day' })[]
   latest: WeightPoint | null
   startWeight: number | null
@@ -104,6 +105,12 @@ export function prepareMeasurementHistory(
     date,
     value: day.total / day.count
   }))
+  // Keep the last known daily value as a left-edge anchor, with its real date.
+  // It is plotted at the boundary without entering the window's weekly averages.
+  const preceding = daily.filter((point) => Date.parse(point.date) < window.start).at(-1)
+  if (preceding && (!points.length || Date.parse(points[0].date) > window.start)) {
+    points.unshift({ ...preceding, period: 'day' })
+  }
   const latest = daily.at(-1) ?? null
   return {
     points,
@@ -135,6 +142,7 @@ export function prepareRace(
       name: participant.name,
       color: colors[index % colors.length],
       heightCm: participant.heightCm ?? null,
+      dailyWeights: daily,
       points,
       latest,
       startWeight: history.startValue,

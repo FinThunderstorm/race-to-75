@@ -39,23 +39,25 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   )
   await page.getByRole('button', { name: 'BMI', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi/)
-  await expect(racer).toContainText('25.0')
+  await expect(racer).toContainText('100.0')
   expect(
     await racer.evaluate((element) =>
       (element as HTMLElement).style.getPropertyValue('--racer-color')
     )
   ).toBe(color)
-  await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+  await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
   await expect(page.locator('.chart-series circle title')).toHaveText([
-    'BMI Racer: 26.0 BMI · Daily average · 2026-09-07',
-    'BMI Racer: 25.0 BMI · Daily average · 2026-09-09'
+    'BMI Racer: 96.2 pts · Daily average · 2026-09-07',
+    'BMI Racer: 100.0 pts · Daily average · 2026-09-09'
   ])
   await expect(page.locator('.personal-low, .setback, .winner')).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Participants needing height' })).toContainText(
     'Missing Height'
   )
   await page.getByText('View live readings', { exact: true }).click()
-  await expect(page.getByRole('row', { name: 'BMI Racer 26.0 25.0 -1.0 2026-09-09' })).toBeVisible()
+  await expect(
+    page.getByRole('row', { name: 'BMI Racer 96.2 100.0 +3.8 25.0 2026-09-09' })
+  ).toBeVisible()
   await expect(page.getByRole('table')).not.toContainText('kilograms')
   await page.reload()
   await expect(page.getByRole('button', { name: 'BMI', exact: true })).toHaveAttribute(
@@ -64,9 +66,9 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   )
   await page.getByRole('link', { name: 'Live data', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi.*data=sample/)
-  await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+  await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
   await page.getByRole('link', { name: 'Sample data', exact: true }).click()
-  await expect(racer).toContainText('25.0')
+  await expect(racer).toContainText('100.0')
   await page.getByRole('button', { name: 'Classic · 75 kg', exact: true }).click()
   await expect(racer).toContainText('81.0')
   await expect(page.locator('.goal-label')).toHaveText('75.0 KG — GOAL LINE')
@@ -87,7 +89,9 @@ test('missing heights explain an empty chart even when another participant has n
   )
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/?mode=bmi')
-  await expect(page.getByRole('status')).toHaveText('Add height in Settings to show BMI history.')
+  await expect(page.getByRole('status')).toHaveText(
+    'Add height in Settings to show BMI index history.'
+  )
   await expect(page.getByRole('region', { name: 'Participants needing height' })).toContainText(
     'BMI Racer'
   )
@@ -101,8 +105,8 @@ test('BMI radiator stays read-only and renders without account controls', async 
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
   await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
   await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
-  await expect(page.getByRole('button', { name: /BMI Racer 25.0/ })).toBeVisible()
+  await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
+  await expect(page.getByRole('button', { name: /BMI Racer 100.0/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Add your height|Sample data/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
 })
@@ -147,7 +151,7 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
   await expect(panel.getByRole('status')).toHaveText('Height saved.')
   await page.getByRole('link', { name: 'Back to the race' }).click()
   await expect(page).toHaveURL(/mode=bmi/)
-  await expect(page.getByRole('button', { name: /BMI Racer 25.0/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /BMI Racer 100.0/ })).toBeVisible()
   await page.getByRole('link', { name: 'BMI Racer', exact: true }).click()
   await panel.getByRole('spinbutton', { name: 'Height (cm)' }).fill('190')
   await panel.getByRole('button', { name: 'Save height' }).click()
@@ -160,7 +164,7 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
   await page.getByRole('link', { name: 'Back to the race' }).click()
   await expect(page).toHaveURL(/\/\?mode=bmi$/)
   await expect(page.locator('.dashboard').getByRole('status')).toHaveText(
-    'Add height in Settings to show BMI history.'
+    'Add height in Settings to show BMI index history.'
   )
 })
 
@@ -199,6 +203,11 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   await expect(page).toHaveURL(/data=sample&mode=bmi/)
   await page.clock.runFor(10000)
   await expect(page.getByRole('button', { name: 'Biceps', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await page.clock.runFor(10000)
+  await expect(page.getByRole('button', { name: 'Score', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true'
   )
@@ -256,7 +265,7 @@ test('mode switches keep the header, controls and plot in place on desktop and m
         selectors.map((selector) => page.locator(selector).boundingBox())
       )
       await page.getByRole('button', { name: 'BMI', exact: true }).click()
-      await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+      await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
       for (const [index, selector] of selectors.entries()) {
         await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
       }

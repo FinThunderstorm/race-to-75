@@ -54,7 +54,8 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     () => ({
       classic: createRaceView(live ? participants : sampleRace, 'classic'),
       bmi: createRaceView(live ? participants : sampleRace, 'bmi'),
-      biceps: createRaceView(live ? participants : sampleRace, 'biceps')
+      biceps: createRaceView(live ? participants : sampleRace, 'biceps'),
+      score: createRaceView(live ? participants : sampleRace, 'score')
     }),
     [live, participants, sampleRace]
   )
@@ -95,10 +96,13 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               Weigh-in history <span>·</span> Goal 75.0 kg
             </p>
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
-              BMI history <span>·</span> Reference 25.0
+              BMI index <span>·</span> 100 points at BMI 18.5–25
             </p>
             <p className="subtitle" aria-hidden={mode !== 'biceps'}>
-              Biceps circumference <span>·</span> Centimetres
+              Biceps index <span>·</span> 100 × circumference / height
+            </p>
+            <p className="subtitle" aria-hidden={mode !== 'score'}>
+              Race score <span>·</span> Biceps index × BMI index / 100
             </p>
           </div>
           <div className="race-mode" role="group" aria-label="Race mode">
@@ -183,7 +187,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           Add your height
         </Link>
       )}
-      {!radiator && mode === 'biceps' && (
+      {!radiator && (mode === 'biceps' || mode === 'score') && (
         <Link className="text-button" to={`${settingsUrl}#biceps`}>
           Add biceps measurement
         </Link>

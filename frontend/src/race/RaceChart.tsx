@@ -1,6 +1,7 @@
 import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Racer } from '../Racer'
+import { RaceReadings } from './RaceReadings'
 import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
 import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
@@ -94,11 +95,11 @@ export const RaceChart = ({
   // Reserve the BMI notice only when there is a BMI plot whose size must stay
   // stable. An empty BMI view should not take space from the Classic chart.
   const heightParticipants =
-    radiator && bmiParticipants.some((person) => person.points.length > 0)
+    radiator && (classic || bmi) && bmiParticipants.some((person) => person.points.length > 0)
       ? bmiParticipants.filter((person) => person.needsHeight)
       : needingHeight
   const standingsParticipants =
-    radiator && mode !== 'biceps'
+    radiator && (classic || bmi)
       ? participants.filter((person) =>
           classicParticipants.some(
             (classic) => classic.id === person.id && classic.points.length > 0
@@ -106,7 +107,7 @@ export const RaceChart = ({
         )
       : withReadings
   const stacked =
-    (mode === 'biceps' ? participants : classicParticipants).filter(
+    (classic || bmi ? classicParticipants : participants).filter(
       (person) => person.points.length > 0
     ).length > 10
   const targetCoordinates = useMemo(() => {
@@ -161,9 +162,11 @@ export const RaceChart = ({
           <span className="remaining">
             {person.needsHeight
               ? radiator
-                ? 'Height needed for BMI'
+                ? `Height needed for ${metric}`
                 : 'Add height in Settings'
-              : 'No readings'}
+              : mode === 'score'
+                ? 'Weight and biceps needed'
+                : 'No readings'}
           </span>
         ) : (
           <>
@@ -218,13 +221,16 @@ export const RaceChart = ({
           >
             <title id="chart-title">{title}</title>
             <desc id="chart-description">
-              {live ? 'Live' : 'Sample'} {metric} trends over the last three months. Completed weeks
-              show the average of all measurements; the current week shows daily averages. Weeks
-              start on Monday in UTC. Three rolling month sections and this week each occupy one
-              quarter of the chart. Solid vertical markers separate historical sections; the cyan
-              dashed marker starts this week. Dates are proportional within each section. Starting
-              and current values are available in the table below. Select a participant to highlight
-              their history.
+              {live ? 'Live' : 'Sample'} {metric} trends over the last three months.{' '}
+              {mode === 'score'
+                ? 'Completed weeks average scores on measurement days; each score uses the latest available daily averages for weight and biceps. The current week shows those daily scores.'
+                : 'Completed weeks use the average of all measurements; the current week uses daily averages. Indices are calculated from those averages.'}{' '}
+              Weeks start on Monday in UTC. The last known value before the window anchors the left
+              edge; when there are no newer measurements, its line stays flat across the chart.
+              Three rolling month sections and this week each occupy one quarter of the chart. Solid
+              vertical markers separate historical sections; the cyan dashed marker starts this
+              week. Dates are proportional within each section. Starting and current values are
+              available in the table below. Select a participant to highlight their history.
             </desc>
             <defs>
               <clipPath id="chart-weight-range">
@@ -303,10 +309,14 @@ export const RaceChart = ({
               </>
             )}
             {withReadings.map((person) => {
-              const points = person.points
-                .map((point) => `${x(point.date)},${pointY(person, point.date)}`)
-                .join(' ')
               const last = person.points[person.points.length - 1]
+              const points = person.points.map(
+                (point) => `${x(point.date)},${pointY(person, point.date)}`
+              )
+              // Stale histories need a line even when stacked labels have no connector.
+              if (Date.parse(last.date) < bounds.start) {
+                points.push(`${right},${pointY(person, last.date)}`)
+              }
               return (
                 <g
                   key={person.id}
@@ -315,7 +325,7 @@ export const RaceChart = ({
                   opacity={selected && selected !== person.id ? 0.16 : 1}
                 >
                   <polyline
-                    points={points}
+                    points={points.join(' ')}
                     fill="none"
                     stroke={person.color}
                     strokeWidth="7"
@@ -323,7 +333,7 @@ export const RaceChart = ({
                     filter="url(#line-glow)"
                   />
                   <polyline
-                    points={points}
+                    points={points.join(' ')}
                     fill="none"
                     stroke={person.color}
                     strokeWidth="2.8"
@@ -377,13 +387,15 @@ export const RaceChart = ({
         <p className="race-message" role="status">
           {needingHeight.length > 0
             ? radiator
-              ? 'Height is needed to show BMI history.'
-              : 'Add height in Settings to show BMI history.'
+              ? `Height is needed to show ${metric} history.`
+              : `Add height in Settings to show ${metric} history.`
             : participants.some((person) => person.latest)
               ? 'No measurements in the last three months.'
-              : mode === 'biceps'
-                ? 'No biceps measurements yet.'
-                : 'No measurements have been imported yet.'}
+              : mode === 'score'
+                ? 'Weight and biceps measurements are needed to show a score.'
+                : mode === 'biceps'
+                  ? 'No biceps measurements yet.'
+                  : 'No measurements have been imported yet.'}
         </p>
       )}
       <div
@@ -394,7 +406,11 @@ export const RaceChart = ({
       </div>
       {withoutReadings.length > 0 && (
         <section className="race-unplotted" aria-label="Participants without recent readings">
-          <p className="unplotted-heading">No readings in the last three months</p>
+          <p className="unplotted-heading">
+            {mode === 'score'
+              ? 'Measurements needed for score'
+              : 'No readings in the last three months'}
+          </p>
           <div className="unplotted-list">
             {withoutReadings.map((person) => renderParticipant(person))}
           </div>
@@ -402,60 +418,18 @@ export const RaceChart = ({
       )}
       {heightParticipants.length > 0 && (
         <section
-          className={`race-unplotted ${!bmi ? 'layout-placeholder' : ''}`}
+          className={`race-unplotted ${classic ? 'layout-placeholder' : ''}`}
           aria-label="Participants needing height"
-          aria-hidden={!bmi || undefined}
-          inert={!bmi}
+          aria-hidden={classic || undefined}
+          inert={classic}
         >
-          <p className="unplotted-heading">Height needed for BMI</p>
+          <p className="unplotted-heading">Height needed for {classic ? 'BMI index' : metric}</p>
           <div className="unplotted-list">
             {heightParticipants.map((person) => renderParticipant(person))}
           </div>
         </section>
       )}
-      {!radiator && (
-        <details className="race-data">
-          <summary>View {live ? 'live' : 'sample'} readings</summary>
-          <div className="table-scroll">
-            <table>
-              <caption>
-                {live ? 'Live' : 'Sample'} summary in{' '}
-                {classic ? 'kilograms' : bmi ? 'BMI' : 'centimetres'} · Current value is the latest
-                daily average (UTC)
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Participant</th>
-                  <th scope="col">Start</th>
-                  <th scope="col">Current</th>
-                  <th scope="col">{classic ? 'To go' : 'Change'}</th>
-                  {live && <th scope="col">Last reading (UTC)</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {participants.map((person) => {
-                  const last = person.latest
-                  return (
-                    <tr key={person.id}>
-                      <th scope="row">{person.name}</th>
-                      <td>{person.startValue?.toFixed(1) ?? '—'}</td>
-                      <td>{last?.value.toFixed(1) ?? '—'}</td>
-                      <td>
-                        {last
-                          ? !classic
-                            ? formatChange(person.change)
-                            : Math.max(0, last.value - (goal ?? 0)).toFixed(1)
-                          : '—'}
-                      </td>
-                      {live && <td>{last?.date ?? '—'}</td>}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )}
+      {!radiator && <RaceReadings participants={participants} mode={mode} live={live} />}
     </section>
   )
 }

@@ -36,6 +36,7 @@ test('live chart plots weekly averages and current-week daily averages over thre
   await page.goto('/?data=live')
   const points = page.locator('.chart-series circle title')
   await expect(points).toHaveText([
+    'Weekly Racer: 150.0 kg · Daily average · 2020-01-01',
     'Weekly Racer: 90.0 kg · Weekly average · 2026-08-31',
     'Weekly Racer: 84.0 kg · Daily average · 2026-09-07',
     'Weekly Racer: 82.0 kg · Daily average · 2026-09-09'

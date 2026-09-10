@@ -10,7 +10,7 @@ const user = {
 test('users add and remove their measurements and return to the biceps chart', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
-  await page.route('**/api/profile', (route) => route.fulfill({ json: { heightCm: null } }))
+  await page.route('**/api/profile', (route) => route.fulfill({ json: { heightCm: 180 } }))
   let measurements: { id: string; measuredAt: string; circumferenceCm: number }[] = []
   let failSave = false
   await page.route('**/api/biceps-measurements', async (route) => {
@@ -35,6 +35,7 @@ test('users add and remove their measurements and return to the biceps chart', a
           {
             id: user.id,
             name: user.display_name,
+            heightCm: 180,
             measurements: [],
             bicepsMeasurements: measurements
           }
@@ -65,10 +66,10 @@ test('users add and remove their measurements and return to the biceps chart', a
   await expect(panel.getByRole('row', { name: /2026-09-09 36.5/ })).toBeVisible()
   await page.getByRole('link', { name: 'Back to the race' }).click()
   await expect(page).toHaveURL(/mode=biceps$/)
-  await expect(page.getByRole('button', { name: /Biceps Racer.*36.5/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Biceps Racer.*20.3/ })).toBeVisible()
   await expect(page.locator('.goal-line, .winner, .setback, .personal-low')).toHaveCount(0)
   await page.getByText('View live readings', { exact: true }).click()
-  await expect(page.getByRole('table')).toContainText('centimetres')
+  await expect(page.getByRole('table')).toContainText('index points')
   await page.getByRole('link', { name: 'Add biceps measurement' }).click()
   await panel.getByRole('button', { name: /Delete measurement/ }).click()
   await expect(panel.getByRole('status')).toHaveText('Measurement deleted.')
@@ -84,7 +85,7 @@ test('biceps supports sample data, mobile layout, and read-only radiator without
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
   await page.goto('/?mode=biceps&data=sample')
   await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
-  await expect(page.locator('.chart-series')).toHaveCount(6)
+  await expect(page.locator('.chart-series')).toHaveCount(5)
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -98,6 +99,7 @@ test('biceps supports sample data, mobile layout, and read-only radiator without
           {
             id: user.id,
             name: user.display_name,
+            heightCm: 180,
             measurements: [],
             bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 36.5 }]
           }
@@ -106,6 +108,6 @@ test('biceps supports sample data, mobile layout, and read-only radiator without
     })
   )
   await page.goto('/?mode=biceps')
-  await expect(page.getByRole('button', { name: /Biceps Racer.*36.5/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Biceps Racer.*20.3/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Add biceps measurement' })).toHaveCount(0)
 })

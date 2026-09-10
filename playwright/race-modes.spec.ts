@@ -21,15 +21,15 @@ const people = [
   }
 ]
 
-test('BMI converts prepared readings and changes without changing colors or source data', () => {
+test('BMI index converts prepared readings and changes without changing colors or source data', () => {
   const prepared = prepareRace(people, now)
-  const view = createRaceView(prepared, 'bmi')
-  expect(view[0].latest?.value).toBeCloseTo(25)
-  expect(view[0].startValue).toBeCloseTo(26)
-  expect(view[0].change).toBeCloseTo(-1)
+  const view = createRaceView(prepared, 'bmi', now)
+  expect(view[0].latest?.value).toBeCloseTo(100)
+  expect(view[0].startValue).toBeCloseTo((100 * 25) / 26)
+  expect(view[0].change).toBeCloseTo(100 - (100 * 25) / 26)
   expect(view[0].points).toHaveLength(2)
-  expect(view[0].points[0].value).toBeCloseTo(26)
-  expect(view[0].points[1].value).toBeCloseTo(25)
+  expect(view[0].points[0].value).toBeCloseTo((100 * 25) / 26)
+  expect(view[0].points[1].value).toBeCloseTo(100)
   expect(view[0].personalLow).toBe(false)
   expect(view[0].streak).toBe(0)
   expect(view.map((person) => person.color)).toEqual(prepared.map((person) => person.color))
@@ -69,7 +69,7 @@ test('Classic scales below low historical and current weights with two kilograms
       now
     )
     const bounds = raceViewBounds(createRaceView(prepared, 'classic'), 'classic', now)
-    expect(bounds.bottom).toBe(Math.min(earlier, current) - 2)
+    expect(bounds.bottom).toBe(Math.min(40, earlier, current) - 2)
     expect(bounds.top).toBeGreaterThan(75)
     expect(bounds).toEqual(chartBounds(prepared, now))
   }
@@ -87,10 +87,10 @@ test('BMI bounds include values below reference and handle missing or invalid he
     ],
     now
   )
-  const view = createRaceView(prepared, 'bmi')
+  const view = createRaceView(prepared, 'bmi', now)
   const bounds = raceViewBounds(view, 'bmi', now)
   expect(bounds.bottom).toBeLessThan(view[0].latest!.value)
-  expect(bounds.top).toBeGreaterThan(25)
+  expect(bounds.top).toBeGreaterThan(100)
   expect(view.slice(1).every((person) => person.needsHeight && person.points.length === 0)).toBe(
     true
   )

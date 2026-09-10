@@ -27,7 +27,9 @@ export const BicepsSettings = () => {
       <h2 id="biceps-heading">Biceps measurements</h2>
       <p className="auth-description">
         Record your upper-arm circumference in centimetres. Use the same arm and measurement method
-        each time. Your measurements are visible to the group and on the shared race display.
+        each time. Add your height in Race profile to show your biceps index: 100 × circumference /
+        height. Your measurements and indices are visible to the group and on the shared race
+        display.
       </p>
       <form
         className="integration-form"

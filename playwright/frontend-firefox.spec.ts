@@ -60,7 +60,7 @@ const expectUndistortedChart = async (page: Page) => {
 test('BMI uses the same undistorted chart geometry on desktop and mobile', async ({ page }) => {
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
   await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.goal-label')).toHaveText('25.0 BMI — REFERENCE')
+  await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
   for (const viewport of [
     { width: 1600, height: 1000 },
     { width: 390, height: 844 }
@@ -108,7 +108,9 @@ test('live data retains the preview chart size and character when participants h
   const recent = await page.getByRole('button', { name: /Recent Racer/ }).boundingBox()
   expect(recent!.x).toBeGreaterThanOrEqual(live!.x + live!.width - 1)
   const absent = page.getByRole('region', { name: 'Participants without recent readings' })
-  await expect(absent.getByRole('button', { name: /Old Racer/ })).toBeVisible()
+  await expect(
+    page.locator('.race-standings').getByRole('button', { name: /Old Racer/ })
+  ).toBeVisible()
   await expect(absent.getByRole('button', { name: /New Racer/ })).toBeVisible()
   expect((await absent.boundingBox())!.y).toBeGreaterThanOrEqual(live!.y + live!.height)
 

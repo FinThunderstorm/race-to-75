@@ -444,6 +444,19 @@ p {
   width: fit-content;
   padding: 8px 0;
 }
+.index-explanation {
+  max-width: 85ch;
+}
+.index-explanation p + p {
+  margin-top: 8px;
+}
+.race-data--score table {
+  width: 100%;
+  min-width: 900px;
+}
+.race-data--score td {
+  white-space: nowrap;
+}
 .table-scroll {
   overflow-x: auto;
 }

@@ -1,7 +1,8 @@
 import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
+import { bicepsIndex, bmiIndex, prepareScoreHistory, type ScoreComponents } from './raceIndices'
 
-export type RaceMode = 'classic' | 'bmi' | 'biceps'
-export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps']
+export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score'
+export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'score']
 export function parseRaceMode(value: string | null): RaceMode {
   return raceModeOrder.find((mode) => mode === value) ?? 'classic'
 }
@@ -17,18 +18,26 @@ export const raceModes = {
   },
   bmi: {
     label: 'BMI',
-    unit: 'BMI',
-    metric: 'BMI',
-    reference: 25,
-    title: 'Group BMI history',
-    referenceLabel: '25.0 BMI — REFERENCE'
+    unit: 'pts',
+    metric: 'BMI index',
+    reference: 100,
+    title: 'Group BMI index history',
+    referenceLabel: '100 PTS — BMI 18.5–25'
   },
   biceps: {
     label: 'Biceps',
-    unit: 'cm',
-    metric: 'biceps circumference',
+    unit: 'pts',
+    metric: 'biceps index',
     reference: null,
-    title: 'Group biceps circumference history',
+    title: 'Group biceps index history',
+    referenceLabel: null
+  },
+  score: {
+    label: 'Score',
+    unit: 'pts',
+    metric: 'race score',
+    reference: null,
+    title: 'Group race score history',
     referenceLabel: null
   }
 } as const
@@ -38,6 +47,8 @@ export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 's
   latest: { date: string; value: number } | null
   startValue: number | null
   needsHeight: boolean
+  rawLatest: number | null
+  scoreComponents: ScoreComponents | null
 }
 
 export function createRaceView(
@@ -46,6 +57,35 @@ export function createRaceView(
   now = new Date()
 ): RaceViewParticipant[] {
   return participants.map(({ points, latest, startWeight, ...person }) => {
+    const height = person.heightCm
+    const needsHeight =
+      mode !== 'classic' && (!height || !Number.isFinite(height) || height < 50 || height > 300)
+    const base = {
+      ...person,
+      needsHeight,
+      rawLatest: null,
+      scoreComponents: null,
+      points: [],
+      latest: null,
+      startValue: null,
+      change: 0,
+      streak: 0,
+      personalLow: false
+    }
+    if (needsHeight) {
+      return base
+    }
+    if (mode === 'score') {
+      const history = prepareScoreHistory({ ...person, points, latest, startWeight }, height!, now)
+      return {
+        ...base,
+        points: history.points,
+        latest: history.latest,
+        startValue: history.startValue,
+        change: history.change,
+        scoreComponents: history.scoreComponents
+      }
+    }
     if (mode === 'biceps') {
       const history = prepareMeasurementHistory(
         (person.bicepsMeasurements ?? []).map(({ measuredAt, circumferenceCm }) => ({
@@ -55,29 +95,30 @@ export function createRaceView(
         now
       )
       return {
-        ...person,
-        points: history.points,
-        latest: history.latest,
-        startValue: history.startValue,
-        change: history.change,
-        needsHeight: false,
-        streak: 0,
-        personalLow: false
+        ...base,
+        points: history.points.map((point) => ({
+          ...point,
+          value: bicepsIndex(point.value, height!)
+        })),
+        latest: history.latest && {
+          ...history.latest,
+          value: bicepsIndex(history.latest.value, height!)
+        },
+        startValue: history.startValue === null ? null : bicepsIndex(history.startValue, height!),
+        change: bicepsIndex(history.change, height!),
+        rawLatest: history.latest?.value ?? null
       }
     }
-    const height = person.heightCm
-    const needsHeight =
-      mode === 'bmi' && (!height || !Number.isFinite(height) || height < 50 || height > 300)
-    const divisor = mode === 'bmi' && !needsHeight ? (height! / 100) ** 2 : 1
+    const divisor = mode === 'bmi' ? (height! / 100) ** 2 : 1
+    const convert = (weight: number) => (mode === 'bmi' ? bmiIndex(weight / divisor) : weight)
+    const previous = person.dailyWeights.at(-2)
     return {
-      ...person,
-      needsHeight,
-      points: needsHeight
-        ? []
-        : points.map(({ weight, ...point }) => ({ ...point, value: weight / divisor })),
-      latest: needsHeight || !latest ? null : { date: latest.date, value: latest.weight / divisor },
-      startValue: needsHeight || startWeight === null ? null : startWeight / divisor,
-      change: needsHeight ? 0 : person.change / divisor,
+      ...base,
+      points: points.map(({ weight, ...point }) => ({ ...point, value: convert(weight) })),
+      latest: latest && { date: latest.date, value: convert(latest.weight) },
+      startValue: startWeight === null ? null : convert(startWeight),
+      change: latest && previous ? convert(latest.weight) - convert(previous.weight) : 0,
+      rawLatest: latest ? latest.weight / divisor : null,
       streak: mode === 'classic' ? person.streak : 0,
       personalLow: mode === 'classic' && person.personalLow
     }
@@ -103,8 +144,8 @@ export function raceViewBounds(
     }
   }
   if (!Number.isFinite(minValue)) {
-    minValue = 30
-    maxValue = 40
+    minValue = 15
+    maxValue = 25
   }
   const bottom = mode === 'classic' ? minValue - 2 : Math.max(0, minValue - 1)
   const top = maxValue + 0.5

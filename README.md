@@ -12,7 +12,8 @@ Keep everyone's weight on record over time and make the shared target —
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Classic, BMI and Biceps modes are available.
+deployment setup are implemented. Classic, BMI index, Biceps index and Score modes
+are available.
 Manual weight entry is still planned.
 
 ### Biceps circumference
@@ -20,8 +21,12 @@ Manual weight entry is still planned.
 Select **Biceps** or open `/?mode=biceps`. In **Settings → Biceps measurements**,
 record your own circumference in centimetres and the measurement date (UTC).
 You can delete your own entries to correct mistakes. Multiple readings on one
-day are averaged; completed weeks use weekly averages. The group and shared
-display can view the history. This mode has no shared target or weight-loss badges.
+day are averaged; completed weeks use weekly averages. Add your height in
+**Settings → Race profile** to show the **biceps index: 100 × circumference / height**
+(both in cm). For example, 34 cm at 170 cm and 38 cm at 190 cm both score 20.
+The readings table also shows the current circumference in cm. The group and
+shared display can view the index history. This mode has no shared target or
+weight-loss badges.
 
 Existing databases need migration `0009_biceps_measurement.sql` before running
 the updated backend (`npm run db:migrate` with the target `DATABASE_URL`).
@@ -413,20 +418,59 @@ Add your height in centimetres under **Settings → Race profile**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.
 
-BMI is calculated as weight in kg divided by height in metres squared. The chart,
-tooltips, and readings table use BMI, with a reference line at 25 and neutral changes
-between recorded daily averages. The reference is not an individual target, and
-there is no lowest-BMI winner. BMI cannot distinguish fat from muscle; see
+BMI is calculated as weight in kg divided by height in metres squared. The chart
+and tooltips show a **BMI index** using the same rules for everyone:
+
+- BMI 18.5–25: **100 points**.
+- BMI below 18.5: **100 × BMI / 18.5**.
+- BMI above 25: **100 × 25 / BMI**.
+
+The reference line is at 100 points. Going below the plateau loses points; there
+is no lowest-BMI winner. The readings table includes both the index and current
+raw BMI. Changes compare indices calculated from consecutive daily averages;
+completed-week indices are calculated from the average weight for that week.
+BMI cannot distinguish fat from muscle; see
 [CDC's explanation of BMI](https://www.cdc.gov/bmi/about/index.html).
 
 Participants without height remain listed below the chart. Correcting height
-recalculates historical BMI. Saving height makes BMI visible to the existing group
+recalculates all historical indices. Saving height makes indices visible to the
+existing group
 and IP-allowed shared display. The shared display supports `?mode=bmi` but cannot
 edit profiles. Switching modes preserves participant colors and live/sample choice.
 
 Apply database migration `0007_user_height.sql` through `npm run db:migrate` before
 running this version against an existing database. Raw imported weights stay
 in kg.
+
+### Combined race score
+
+Select **Score** or open `/?mode=score`. The shared formula is:
+
+```text
+Score = biceps index × BMI index / 100
+```
+
+For example, a biceps index of 20 and BMI of 30 give a BMI index of 83.33…
+and a combined score of 16.67…. Higher scores are better.
+These are game rules, not a clinically validated health index. The biceps formula
+adjusts for height but does not correct sex differences. There are no personal
+targets, and the combined score has no fixed maximum of 100.
+
+Height, weight and a biceps measurement are all required. Missing components
+never produce a partial score. Each UTC day with a weight or biceps measurement
+uses that day's average and the latest preceding daily average of the other
+measurement. History begins only when both are available; future readings never
+fill earlier dates. Completed weeks average those observed-day scores, while
+the current week shows them daily. Calculations retain full precision and the
+display rounds to one decimal.
+
+Expand **View live readings** to see the formulas, both component indices, raw
+values and their measurement dates. Old component readings can be carried forward;
+their original dates remain visible. Score supports live and sample data, the
+read-only radiator, automatic mode switching and returning from Settings.
+
+Blood pressure is not included yet. The current score uses existing data and
+requires no new database migration.
 
 ### Local troubleshooting and checks
 

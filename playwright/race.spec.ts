@@ -258,10 +258,10 @@ test('calendar-month boundaries clamp correctly and remain fixed for empty or st
     ],
     now
   )
-  expect(person.points).toEqual([])
+  expect(person.points).toEqual([{ date: '2020-01-01', weight: 150, period: 'day' }])
   expect(person.latest).toEqual({ date: '2020-01-01', weight: 150 })
   const bounds = chartBounds([person], now)
   expect(bounds.start).toBe(Date.parse('2026-06-10T00:00:00Z'))
   expect(bounds.end).toBe(Date.parse('2026-09-10T00:00:00Z'))
-  expect(bounds.top).toBeLessThan(150)
+  expect(bounds.top).toBeGreaterThan(150)
 })

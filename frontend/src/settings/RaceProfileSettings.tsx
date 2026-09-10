@@ -17,8 +17,9 @@ export const RaceProfileSettings = () => {
     >
       <h2 id="race-profile-heading">Race profile</h2>
       <p className="auth-description">
-        Add your height to show BMI alongside your weight history. Your BMI will be visible to the
-        group and on the shared race display. Updating height recalculates your BMI history.
+        Add your height to calculate your BMI index, biceps index and combined race score. These
+        values are visible to the group and on the shared race display. Updating height recalculates
+        all index history.
       </p>
       {isLoading ? (
         <p>Loading height…</p>
