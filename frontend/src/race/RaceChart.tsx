@@ -100,16 +100,6 @@ export const RaceChart = ({
     labelPositions.set(person.id, position)
     next = position
   }
-  const dateLabel = (timestamp: number) =>
-    new Date(timestamp)
-      .toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'UTC'
-      })
-      .toUpperCase()
-
   const renderParticipant = (person: RaceViewParticipant) => {
     const current = person.latest?.value
     const style = {
@@ -322,12 +312,6 @@ export const RaceChart = ({
                 </g>
               )
             })}
-            <text className="axis-label" x={left} y={size.height - 10}>
-              {dateLabel(bounds.start)}
-            </text>
-            <text className="axis-label" x={right} y={size.height - 10} textAnchor="end">
-              {dateLabel(bounds.end)}
-            </text>
           </svg>
         </div>
       ) : (
