@@ -23,10 +23,10 @@ test('enroll then see the signed-in shell via the UI', async ({ page }) => {
   await addVirtualAuthenticator(page)
 
   await page.goto(`/enroll?token=${rawToken}`)
-  await page.getByRole('button', { name: 'Create passkey' }).click()
+  await page.getByRole('button', { name: 'Luo pääsyavain' }).click()
 
-  await expect(page.getByText('Signed in as UI Tester')).toBeVisible()
+  await expect(page.getByText('Kirjautuneena UI Tester')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Log out' }).click()
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await page.getByRole('button', { name: 'Kirjaudu ulos' }).click()
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
 })

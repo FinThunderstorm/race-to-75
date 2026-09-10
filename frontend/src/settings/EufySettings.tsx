@@ -10,6 +10,43 @@ type Connection = {
 }
 type Setup = { setupId: string; profiles: { id: string; name: string }[] }
 
+// Older connections can still contain English errors saved before localization.
+const eufyErrors: Record<string, string> = {
+  'Too many sign-in attempts. Try again in a minute.':
+    'Liian monta kirjautumisyritystä. Yritä uudelleen minuutin kuluttua.',
+  'Could not sign in to Eufy Life. Please try again.':
+    'Eufy Lifeen kirjautuminen epäonnistui. Yritä uudelleen.',
+  'Enter your Eufy Life email and password.': 'Anna Eufy Life -sähköpostisi ja -salasanasi.',
+  'Eufy Life rejected sign-in. Check your email and password.':
+    'Eufy Life hylkäsi kirjautumisen. Tarkista sähköpostisi ja salasanasi.',
+  'Select a Eufy Life profile.': 'Valitse Eufy Life -profiili.',
+  'Profile selection expired or is invalid. Sign in to Eufy Life again.':
+    'Profiilin valinta on vanhentunut tai virheellinen. Kirjaudu Eufy Lifeen uudelleen.',
+  'That Eufy profile is already connected to another race participant.':
+    'Tämä Eufy-profiili on jo yhdistetty toiseen kisaajaan.',
+  'Could not save the Eufy connection. Try again.':
+    'Eufy-yhteyden tallentaminen epäonnistui. Yritä uudelleen.',
+  'Connect or reconnect Eufy Life before syncing.':
+    'Yhdistä Eufy Life tai muodosta yhteys uudelleen ennen synkronointia.',
+  'Eufy Life sign-in is required.': 'Kirjaudu Eufy Lifeen.',
+  'Eufy Life is unavailable or returned an unexpected response. Try again later.':
+    'Eufy Life ei ole käytettävissä tai palautti odottamattoman vastauksen. Yritä myöhemmin uudelleen.',
+  'Reconnect Eufy Life to resume importing.':
+    'Yhdistä Eufy Life uudelleen jatkaaksesi mittausten tuontia.'
+}
+
+function eufyErrorMessage(message: unknown) {
+  if (typeof message === 'string') {
+    if (Object.hasOwn(eufyErrors, message)) {
+      return eufyErrors[message]
+    }
+    if (Object.values(eufyErrors).includes(message)) {
+      return message
+    }
+  }
+  return 'Yhteyden muodostaminen Eufy Lifeen epäonnistui. Yritä uudelleen.'
+}
+
 async function eufyRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api/integrations/eufy${path}`, {
     method,
@@ -18,7 +55,7 @@ async function eufyRequest<T>(path: string, method = 'GET', body?: unknown): Pro
   })
   if (!response.ok) {
     const data = await response.json().catch(() => null)
-    throw new Error(data?.error || 'Could not reach Eufy Life. Please try again.')
+    throw new Error(eufyErrorMessage(data?.error))
   }
   const result = response.status === 204 ? (undefined as T) : await response.json()
   if (method !== 'GET') {
@@ -56,7 +93,7 @@ export const EufySettings = () => {
         })
         .catch(() => {
           if (mounted) {
-            setError('Could not check your Eufy Life connection.')
+            setError('Eufy Life -yhteyden tarkistaminen epäonnistui.')
           }
         })
     }
@@ -74,7 +111,7 @@ export const EufySettings = () => {
     try {
       await action()
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Please try again.')
+      setError(eufyErrorMessage(failure instanceof Error ? failure.message : undefined))
     } finally {
       setBusy(false)
     }
@@ -85,28 +122,28 @@ export const EufySettings = () => {
       <h2 id="eufy-heading">Eufy Life</h2>
       <p className="connection-status">
         {!connection
-          ? 'Checking connection…'
+          ? 'Tarkistetaan yhteyttä…'
           : connection.status === 'connected'
-            ? 'Connected'
+            ? 'Yhdistetty'
             : connection.status === 'reconnect_required'
-              ? 'Reconnect to resume syncing'
-              : 'Not connected'}
+              ? 'Yhdistä uudelleen jatkaaksesi synkronointia'
+              : 'Ei yhdistetty'}
       </p>
-      {connection?.profileName && <p>Profile: {connection.profileName}</p>}
+      {connection?.profileName && <p>Profiili: {connection.profileName}</p>}
       <p className="auth-description">
-        Import weight readings from the last three months, then sync every 15 minutes. Your scale
-        readings must reach Eufy Life before they can appear here.
+        Tuo viimeisten kolmen kuukauden painomittaukset ja synkronoi sen jälkeen 15 minuutin välein.
+        Vaakalukemien on siirryttävä Eufy Lifeen ennen kuin ne voivat näkyä täällä.
       </p>
       {connection?.lastSyncedAt && (
         <p className="auth-hint">
-          Last synced: {new Date(connection.lastSyncedAt).toLocaleString()}
+          Viimeksi synkronoitu: {new Date(connection.lastSyncedAt).toLocaleString('fi-FI')}
         </p>
       )}
       {connection?.status === 'connected' && !connection.lastSyncedAt && (
-        <p className="auth-hint">Waiting for the first successful import.</p>
+        <p className="auth-hint">Odotetaan ensimmäistä onnistunutta tuontia.</p>
       )}
-      {connection?.syncing && <p role="status">Importing weight readings…</p>}
-      {connection?.lastError && <p role="alert">{connection.lastError}</p>}
+      {connection?.syncing && <p role="status">Tuodaan painomittauksia…</p>}
+      {connection?.lastError && <p role="alert">{eufyErrorMessage(connection.lastError)}</p>}
       {!signingIn && !setup && connection && (
         <button
           className="primary-button"
@@ -117,7 +154,9 @@ export const EufySettings = () => {
             setSigningIn(true)
           }}
         >
-          {connection.status === 'disconnected' ? 'Connect Eufy Life' : 'Reconnect Eufy Life'}
+          {connection.status === 'disconnected'
+            ? 'Yhdistä Eufy Life'
+            : 'Yhdistä Eufy Life uudelleen'}
         </button>
       )}
       {signingIn && !setup && (
@@ -139,11 +178,11 @@ export const EufySettings = () => {
           }}
         >
           <p className="auth-hint">
-            Your email and password are used only to sign in and are not saved. We keep a token;
-            you’ll need to reconnect when it expires.
+            Sähköpostiasi ja salasanaasi käytetään vain kirjautumiseen, eikä niitä tallenneta.
+            Tallennamme käyttöoikeustunnisteen. Kun se vanhenee, sinun on yhdistettävä uudelleen.
           </p>
           <label htmlFor="eufy-email">
-            Eufy Life email
+            Eufy Life -sähköposti
             <input
               id="eufy-email"
               name="email"
@@ -155,7 +194,7 @@ export const EufySettings = () => {
             />
           </label>
           <label htmlFor="eufy-password">
-            Eufy Life password
+            Eufy Life -salasana
             <input
               id="eufy-password"
               name="password"
@@ -167,7 +206,7 @@ export const EufySettings = () => {
             />
           </label>
           <button className="primary-button" type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in to Eufy Life'}
+            {busy ? 'Kirjaudutaan…' : 'Kirjaudu Eufy Lifeen'}
           </button>
           <button
             className="text-button"
@@ -178,7 +217,7 @@ export const EufySettings = () => {
               setError('')
             }}
           >
-            Cancel
+            Peruuta
           </button>
         </form>
       )}
@@ -198,7 +237,7 @@ export const EufySettings = () => {
           }}
         >
           <label htmlFor="eufy-profile">
-            Your Eufy Life profile
+            Eufy Life -profiilisi
             <select
               id="eufy-profile"
               value={profileId}
@@ -206,7 +245,7 @@ export const EufySettings = () => {
               disabled={busy}
               onChange={(event) => setProfileId(event.target.value)}
             >
-              <option value="">Choose your profile</option>
+              <option value="">Valitse profiilisi</option>
               {setup.profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
@@ -215,11 +254,11 @@ export const EufySettings = () => {
             </select>
           </label>
           <p className="auth-hint">
-            Only the selected profile’s weight readings will be imported. Existing imported readings
-            stay if you change profiles.
+            Vain valitun profiilin painomittaukset tuodaan. Aiemmin tuodut mittaukset säilyvät, jos
+            vaihdat profiilia.
           </p>
           <button className="primary-button" type="submit" disabled={busy || !profileId}>
-            {busy ? 'Importing…' : 'Use this profile'}
+            {busy ? 'Tuodaan…' : 'Käytä tätä profiilia'}
           </button>
           <button
             className="text-button"
@@ -232,7 +271,7 @@ export const EufySettings = () => {
               })
             }
           >
-            Cancel
+            Peruuta
           </button>
         </form>
       )}
@@ -247,7 +286,7 @@ export const EufySettings = () => {
             })
           }
         >
-          Sync now
+          Synkronoi nyt
         </button>
       )}
       {!signingIn && !setup && connection && connection.status !== 'disconnected' && (
@@ -263,10 +302,11 @@ export const EufySettings = () => {
               })
             }
           >
-            Disconnect Eufy Life
+            Katkaise Eufy Life -yhteys
           </button>
           <p className="auth-hint">
-            Disconnecting stops future imports. Previously imported readings stay in the race.
+            Yhteyden katkaiseminen lopettaa uusien mittausten tuonnin. Aiemmin tuodut mittaukset
+            säilyvät kisassa.
           </p>
         </>
       )}
@@ -280,7 +320,7 @@ export const EufySettings = () => {
               disabled={busy}
               onClick={() => void act(refresh)}
             >
-              Retry Eufy status
+              Yritä tarkistaa Eufy-yhteys uudelleen
             </button>
           )}
         </div>

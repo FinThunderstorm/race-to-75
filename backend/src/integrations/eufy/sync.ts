@@ -37,7 +37,7 @@ export async function syncEufy(userId?: string) {
         connection,
         [],
         error instanceof EufyAuthError
-          ? 'Reconnect Eufy Life to resume importing.'
+          ? 'Yhdistä Eufy Life uudelleen jatkaaksesi mittausten tuontia.'
           : new EufyServiceError().message,
         error instanceof EufyAuthError
       )

@@ -28,19 +28,34 @@ Store raw measurements as before. No database migration or blood-pressure work.
 
 ## Execution
 
-- [ ] Update `playwright/race-modes.spec.ts` and `playwright/biceps-mode.spec.ts`;
+- [x] Update `playwright/race-modes.spec.ts` and `playwright/biceps-mode.spec.ts`;
   add `playwright/race-score.spec.ts`. Assert the agreed ratios, BMI plateau and
   both tails, no future backfill, daily averaging, missing inputs, latest component
   dates, and unchanged Classic behavior. Run these tests and confirm failures.
-- [ ] Add `frontend/src/race/raceIndices.ts` for formulas and combined history;
+- [x] Add `frontend/src/race/raceIndices.ts` for formulas and combined history;
   retain daily weights in `prepareRace.ts`; integrate all four modes in
   `raceModes.ts`. Run the calculation tests until they pass.
-- [ ] Update `Home.tsx`, `RaceChart.tsx`, profile and biceps help text. Present
+- [x] Update `Home.tsx`, `RaceChart.tsx`, profile and biceps help text. Present
   mode-specific formulas, raw measurements and score constituents. Preserve
   mode URLs, sample/live toggles, animation, missing-height guidance and radiator.
-- [ ] Update existing BMI/Biceps browser tests to the new values and add Score
+- [x] Update existing BMI/Biceps browser tests to the new values and add Score
   coverage for missing data, settings round trips, sample/live/radiator and mobile.
-- [ ] Document formulas, averaging and limitations in `README.md`. Run Biome,
+- [x] Document formulas, averaging and limitations in `README.md`. Run Biome,
   markdownlint, knip, frontend/backend builds and the full isolated test suite.
-- [ ] Review the final diff and inspect desktop/mobile screenshots. Report the
+- [x] Review the final diff and inspect desktop/mobile screenshots. Report the
   formulas and actual verification results. Leave changes available for review.
+
+## Verification
+
+- Initial index tests: 11 expected failures, 2 unchanged Classic tests passed.
+- Implemented index calculations: all 13 tests passed.
+- Full Docker Playwright suite: 91 passed.
+- Backend unit tests: 24 passed; environment/bootstrap script tests: 5 passed.
+- Frontend/backend builds, Biome, markdownlint and knip passed. Biome reports
+  an existing informational schema-version mismatch.
+- Independent read-only review found no blocking issues; clarified the missing
+  score measurements heading.
+- Concurrent old-history chart work was preserved; updated two browser
+  expectations for the newly visible preceding measurement.
+- Final table-layout adjustment: all 15 affected browser tests passed; desktop
+  and mobile screenshots inspected, including expanded component tables.

@@ -7,24 +7,24 @@ export const IpAccessIndicator = () => {
   })
   const allowed = !isError && data?.allowed === true
   const label = isError
-    ? 'IP check unavailable'
+    ? 'IP-tarkistus ei onnistu'
     : !data
-      ? 'Checking IP…'
+      ? 'Tarkistetaan IP-osoitetta…'
       : allowed
-        ? 'IP allowed'
-        : 'IP not allowed'
+        ? 'IP-osoite sallittu'
+        : 'IP-osoitetta ei sallittu'
 
   return (
     <aside
       className={`ip-access-indicator${allowed ? ' ip-access-indicator--allowed' : ''}`}
-      aria-label="Network access"
+      aria-label="Verkon käyttöoikeus"
       aria-live="polite"
       title={
         isError
-          ? 'Could not check this network. Retrying automatically.'
+          ? 'Verkon tarkistus epäonnistui. Yritetään automaattisesti uudelleen.'
           : allowed
-            ? 'This network can view the radiator without logging in.'
-            : 'Radiator access from this network requires login.'
+            ? 'Tästä verkosta voi katsella yhteistä näyttöä kirjautumatta.'
+            : 'Yhteisen näytön katselu tästä verkosta vaatii kirjautumisen.'
       }
     >
       <span aria-hidden="true" />

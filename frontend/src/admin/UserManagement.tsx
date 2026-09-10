@@ -39,34 +39,36 @@ export const UserManagement = () => {
   return (
     <section className="user-management" aria-labelledby="manage-users-heading">
       <header className="settings-section-header">
-        <h2 id="manage-users-heading">Manage users</h2>
-        <p className="auth-description">Invite people to the race and manage their access.</p>
+        <h2 id="manage-users-heading">Käyttäjähallinta</h2>
+        <p className="auth-description">
+          Kutsu osallistujia kisaan ja hallitse heidän käyttöoikeuksiaan.
+        </p>
       </header>
       {isLoading ? (
-        <p role="status">Loading users…</p>
+        <p role="status">Ladataan käyttäjiä…</p>
       ) : isError ? (
         <div role="alert">
-          <p>Could not load users. Your admin access may have changed.</p>
+          <p>Käyttäjien lataaminen epäonnistui. Ylläpito-oikeutesi ovat saattaneet muuttua.</p>
           <button
             className="text-button"
             type="button"
             disabled={isFetching}
             onClick={() => refetch()}
           >
-            Try again
+            Yritä uudelleen
           </button>
         </div>
       ) : (
         <>
           <section className="settings-panel" aria-labelledby="invite-heading">
-            <h3 id="invite-heading">Invite user</h3>
+            <h3 id="invite-heading">Kutsu käyttäjä</h3>
             <p className="auth-description">
-              Create a member account, then share their one-time passkey enrollment link.
+              Luo osallistujatili ja jaa kertakäyttöinen linkki pääsyavaimen rekisteröintiin.
             </p>
             <UserDetailsForm
-              label="Invite user"
+              label="Kutsu käyttäjä"
               busy={inviting}
-              submitLabel="Create invitation"
+              submitLabel="Luo kutsu"
               onSubmit={async (details) => {
                 setError('')
                 setInvitation(null)
@@ -85,11 +87,12 @@ export const UserManagement = () => {
           </section>
           {invitation && (
             <section className="admin-invitation" aria-labelledby="link-heading">
-              <h3 id="link-heading">Enrollment link ready</h3>
+              <h3 id="link-heading">Rekisteröitymislinkki on valmis</h3>
               <p role="status">
-                Share this link with {invitation.user.display_name} ({invitation.user.email}).
+                Jaa tämä linkki käyttäjälle {invitation.user.display_name} ({invitation.user.email}
+                ).
               </p>
-              <label htmlFor="enrollment-link">Enrollment link</label>
+              <label htmlFor="enrollment-link">Rekisteröitymislinkki</label>
               <input
                 id="enrollment-link"
                 value={invitation.enrollmentUrl}
@@ -97,8 +100,8 @@ export const UserManagement = () => {
                 onFocus={(event) => event.target.select()}
               />
               <p className="auth-hint">
-                Single-use · Expires {new Date(invitation.expiresAt).toLocaleString()}. No email is
-                sent automatically.
+                Kertakäyttöinen · Vanhenee {new Date(invitation.expiresAt).toLocaleString('fi-FI')}.
+                Sähköpostia ei lähetetä automaattisesti.
               </p>
               <div className="admin-actions">
                 <button
@@ -107,16 +110,16 @@ export const UserManagement = () => {
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(invitation.enrollmentUrl)
-                      setCopyStatus('Link copied.')
+                      setCopyStatus('Linkki kopioitu.')
                     } catch {
-                      setCopyStatus('Select the link above and copy it manually.')
+                      setCopyStatus('Valitse yllä oleva linkki ja kopioi se käsin.')
                     }
                   }}
                 >
-                  Copy link
+                  Kopioi linkki
                 </button>
                 <button className="text-button" type="button" onClick={() => setInvitation(null)}>
-                  Dismiss
+                  Sulje
                 </button>
               </div>
               {copyStatus && <p role="status">{copyStatus}</p>}
@@ -125,7 +128,7 @@ export const UserManagement = () => {
           <section className="admin-users" aria-labelledby="users-heading">
             <div className="admin-user-header">
               <h3 id="users-heading">
-                Users <span className="admin-count">{data?.users.length ?? 0}</span>
+                Käyttäjät <span className="admin-count">{data?.users.length ?? 0}</span>
               </h3>
               <button
                 className="text-button"
@@ -133,10 +136,12 @@ export const UserManagement = () => {
                 disabled={isFetching}
                 onClick={() => refetch()}
               >
-                {isFetching ? 'Refreshing…' : 'Refresh users'}
+                {isFetching ? 'Päivitetään…' : 'Päivitä käyttäjät'}
               </button>
             </div>
-            {data?.users.length === 0 && <p>No users yet. Invite someone above.</p>}
+            {data?.users.length === 0 && (
+              <p>Ei vielä käyttäjiä. Kutsu osallistuja yllä olevalla lomakkeella.</p>
+            )}
             {data?.users.map((managedUser) => (
               <UserCard
                 key={managedUser.id}

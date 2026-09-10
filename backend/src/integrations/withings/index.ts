@@ -71,7 +71,7 @@ function htmlPage(title: string, body: string) {
   const escapedBody = escapeHtml(body)
 
   return `<!doctype html>
-<html lang="en">
+<html lang="fi">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -315,7 +315,7 @@ async function subscribeToWithingsWeightNotifications(accessToken: string) {
     action: 'subscribe',
     appli: withingsWeightApplication,
     callbackurl: temporaryConfig.webhookCallbackUrl,
-    comment: 'Race to 75 weight measurements'
+    comment: 'Kisa 75 kiloon -painomittaukset'
   })
 
   const response = await fetch(new URL('/notify', config.withingsApiBaseUrl), {
@@ -371,7 +371,7 @@ export async function handleWithingsConnect(
   } catch (error) {
     request.log.warn({ error: errorDetails(error) }, 'Withings connect failed')
 
-    return reply.status(403).send({ error: 'Withings connect is not available' })
+    return reply.status(403).send({ error: 'Withings-yhteyden muodostaminen ei ole käytettävissä' })
   }
 }
 
@@ -403,6 +403,10 @@ export async function handleWithingsCallback(
     }
 
     if (request.query.error) {
+      request.log.warn(
+        { error: request.query.error, description: request.query.error_description },
+        'Withings authorization was rejected'
+      )
       if (profileFlow) {
         return reply.redirect('/settings?withings=cancelled')
       }
@@ -411,8 +415,8 @@ export async function handleWithingsCallback(
         .type('text/html')
         .send(
           htmlPage(
-            'Withings connection failed',
-            request.query.error_description ?? request.query.error
+            'Withings-yhteyden muodostaminen epäonnistui',
+            'Withings-kirjautuminen peruutettiin tai hylättiin. Yritä yhdistää uudelleen.'
           )
         )
     }
@@ -424,7 +428,12 @@ export async function handleWithingsCallback(
       return reply
         .status(400)
         .type('text/html')
-        .send(htmlPage('Withings connection failed', 'Missing OAuth code or state.'))
+        .send(
+          htmlPage(
+            'Withings-yhteyden muodostaminen epäonnistui',
+            'Kirjautumisen vahvistustiedot puuttuvat. Aloita yhdistäminen uudelleen.'
+          )
+        )
     }
 
     if (!profileFlow) {
@@ -464,17 +473,17 @@ export async function handleWithingsCallback(
 
     const message =
       initialMeasurementCount === undefined
-        ? 'Connected. Initial measurement sync failed, but future webhook processing can still retry new measurements.'
-        : `Connected. Imported ${initialMeasurementCount} Withings measurement(s).`
+        ? 'Yhdistetty. Ensimmäinen mittausten tuonti epäonnistui, mutta uusien mittausten automaattista tuontia voidaan silti yrittää myöhemmin.'
+        : `Yhdistetty. Tuotuja Withings-mittauksia: ${initialMeasurementCount}.`
     const subscriptionMessage = !temporaryConfig.webhookCallbackUrl
-      ? ' Automatic updates are not configured; reconnect to import new measurements, or configure a public webhook callback and worker.'
+      ? ' Automaattisia päivityksiä ei ole määritetty. Tuo uudet mittaukset yhdistämällä uudelleen tai pyydä ylläpitäjää ottamaan automaattiset päivitykset käyttöön.'
       : notificationSubscriptionSucceeded
-        ? ' Body & Weight notifications are subscribed.'
-        : ' Body & Weight notification subscription failed; reconnect after checking the callback URL in Withings.'
+        ? ' Kehon- ja painonmittausten automaattiset päivitykset ovat käytössä.'
+        : ' Kehon- ja painonmittausten automaattisten päivitysten käyttöönotto epäonnistui. Pyydä ylläpitäjää tarkistamaan Withings-asetukset ja yhdistä uudelleen.'
 
     return reply
       .type('text/html')
-      .send(htmlPage('Withings connected', `${message}${subscriptionMessage}`))
+      .send(htmlPage('Withings yhdistetty', `${message}${subscriptionMessage}`))
   } catch (error) {
     const details = errorDetails(error)
     request.log.error({ error: details }, 'Withings OAuth callback failed')
@@ -486,7 +495,12 @@ export async function handleWithingsCallback(
     return reply
       .status(400)
       .type('text/html')
-      .send(htmlPage('Withings connection failed', details.message))
+      .send(
+        htmlPage(
+          'Withings-yhteyden muodostaminen epäonnistui',
+          'Withings-tilin yhdistäminen epäonnistui. Aloita yhdistäminen uudelleen.'
+        )
+      )
   }
 }
 
@@ -497,7 +511,7 @@ export async function registerWithingsProfileRoutes(app: FastifyInstance) {
       async (request: FastifyRequest, reply: FastifyReply) => {
         reply.header('Cache-Control', 'no-store')
         if (!(await findUserById(request.user.sub))) {
-          return reply.code(401).send({ error: 'Unauthorized' })
+          return reply.code(401).send({ error: 'Kirjautuminen vaaditaan' })
         }
       }
     ]
@@ -575,7 +589,7 @@ export async function handleWithingsStatus(
   } catch (error) {
     request.log.warn({ error: errorDetails(error) }, 'Withings status failed')
 
-    return reply.status(403).send({ error: 'Withings status is not available' })
+    return reply.status(403).send({ error: 'Withings-yhteyden tila ei ole saatavilla' })
   }
 }
 
@@ -599,6 +613,6 @@ export async function handleWithingsDisconnect(
   } catch (error) {
     request.log.warn({ error: errorDetails(error) }, 'Withings disconnect failed')
 
-    return reply.status(403).send({ error: 'Withings disconnect is not available' })
+    return reply.status(403).send({ error: 'Withings-yhteyden katkaiseminen ei ole käytettävissä' })
   }
 }

@@ -40,8 +40,8 @@ export async function registerEufyRoutes(app: FastifyInstance) {
         return reply.code(status).send({
           error:
             status === 429
-              ? 'Too many sign-in attempts. Try again in a minute.'
-              : 'Could not sign in to Eufy Life. Please try again.'
+              ? 'Liian monta kirjautumisyritystä. Yritä uudelleen minuutin kuluttua.'
+              : 'Eufy Lifeen kirjautuminen epäonnistui. Yritä uudelleen.'
         })
       }
     },
@@ -52,7 +52,7 @@ export async function registerEufyRoutes(app: FastifyInstance) {
         .safeParse(request.body)
       request.body = undefined
       if (!input.success) {
-        return reply.code(400).send({ error: 'Enter your Eufy Life email and password.' })
+        return reply.code(400).send({ error: 'Anna Eufy Life -sähköpostisi ja -salasanasi.' })
       }
       try {
         const account = await loginEufy(input.data.email, input.data.password)
@@ -70,7 +70,7 @@ export async function registerEufyRoutes(app: FastifyInstance) {
         return reply.code(error instanceof EufyAuthError ? 401 : 502).send({
           error:
             error instanceof EufyAuthError
-              ? 'Eufy Life rejected sign-in. Check your email and password.'
+              ? 'Eufy Life hylkäsi kirjautumisen. Tarkista sähköpostisi ja salasanasi.'
               : new EufyServiceError().message
         })
       } finally {
@@ -84,21 +84,22 @@ export async function registerEufyRoutes(app: FastifyInstance) {
       .object({ setupId: z.uuid(), profileId: z.string().min(1).max(256) })
       .safeParse(request.body)
     if (!input.success) {
-      return reply.code(400).send({ error: 'Select a Eufy Life profile.' })
+      return reply.code(400).send({ error: 'Valitse Eufy Life -profiili.' })
     }
     try {
       if (!(await selectProfile(request.user.sub, input.data.setupId, input.data.profileId))) {
-        return reply
-          .code(400)
-          .send({ error: 'Profile selection expired or is invalid. Sign in to Eufy Life again.' })
+        return reply.code(400).send({
+          error:
+            'Profiilin valinta on vanhentunut tai virheellinen. Kirjaudu Eufy Lifeen uudelleen.'
+        })
       }
     } catch (error) {
       const conflict =
         typeof error === 'object' && error !== null && 'code' in error && error.code === '23505'
       return reply.code(conflict ? 409 : 500).send({
         error: conflict
-          ? 'That Eufy profile is already connected to another race participant.'
-          : 'Could not save the Eufy connection. Try again.'
+          ? 'Tämä Eufy-profiili on jo yhdistetty toiseen kisaajaan.'
+          : 'Eufy-yhteyden tallentaminen epäonnistui. Yritä uudelleen.'
       })
     }
     await syncEufy(request.user.sub)
@@ -106,7 +107,9 @@ export async function registerEufyRoutes(app: FastifyInstance) {
   })
   app.post('/api/integrations/eufy/sync', options, async (request, reply) => {
     if (!(await queueSync(request.user.sub))) {
-      return reply.code(409).send({ error: 'Connect or reconnect Eufy Life before syncing.' })
+      return reply
+        .code(409)
+        .send({ error: 'Yhdistä Eufy Life tai muodosta yhteys uudelleen ennen synkronointia.' })
     }
     await syncEufy(request.user.sub)
     return connectionStatus(request.user.sub)

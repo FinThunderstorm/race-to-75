@@ -66,23 +66,23 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     <button
       className="text-button fullscreen-button"
       type="button"
-      title="Enter full screen (Esc to exit)"
+      title="Avaa koko näyttö (poistu Esc-näppäimellä)"
       onClick={async () => {
         setFullscreenError(null)
         if (!document.fullscreenEnabled || !document.documentElement.requestFullscreen) {
           setFullscreenError(
-            'Full screen is unavailable in this browser or embedded view. Use your browser’s full-screen option.'
+            'Koko näytön tila ei ole käytettävissä tässä näkymässä. Käytä selaimen koko näytön toimintoa.'
           )
           return
         }
         try {
           await document.documentElement.requestFullscreen()
         } catch {
-          setFullscreenError('Could not enter full screen. Please try again.')
+          setFullscreenError('Koko näytön avaaminen epäonnistui. Yritä uudelleen.')
         }
       }}
     >
-      Full screen
+      Koko näyttö
     </button>
   )
 
@@ -90,29 +90,35 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
       <header className="race-header">
         <div>
-          <h1 className="wordmark">Race to 75</h1>
+          <h1 className="wordmark">Kisa 75 kiloon</h1>
           <div className="race-subtitles">
             <p className="subtitle" aria-hidden={mode !== 'classic'}>
-              Weigh-in history <span>·</span> Goal 75.0 kg
+              Painohistoria <span>·</span> Tavoite 75,0 kg
             </p>
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
-              BMI index <span>·</span> 100 points at BMI 18.5–25
+              BMI-indeksi <span>·</span> 100 pistettä, kun BMI on 18,5–25
             </p>
             <p className="subtitle" aria-hidden={mode !== 'biceps'}>
-              Biceps index <span>·</span> 100 × circumference / height
+              Hauisindeksi <span>·</span> 100 × ympärys / pituus
             </p>
             <p className="subtitle" aria-hidden={mode !== 'score'}>
-              Race score <span>·</span> Biceps index × BMI index / 100
+              Ihmisarvo <span>·</span> Kansalaispisteet
             </p>
           </div>
-          <div className="race-mode" role="group" aria-label="Race mode">
+          <div className="race-mode" role="group" aria-label="Kisanäkymä">
             <button
               className="race-mode-playback"
               type="button"
               aria-label={
-                playing ? 'Pause automatic mode switching' : 'Play automatic mode switching'
+                playing
+                  ? 'Keskeytä näkymien automaattinen vaihto'
+                  : 'Käynnistä näkymien automaattinen vaihto'
               }
-              title={playing ? 'Pause automatic mode switching' : 'Play automatic mode switching'}
+              title={
+                playing
+                  ? 'Keskeytä näkymien automaattinen vaihto'
+                  : 'Käynnistä näkymien automaattinen vaihto'
+              }
               onClick={() => setPlaying((previous) => !previous)}
             >
               <svg
@@ -136,40 +142,40 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                   setParams(next)
                 }}
               >
-                {option === 'classic' ? 'Classic · 75 kg' : raceModes[option].label}
+                {option === 'classic' ? 'Paino · 75 kg' : raceModes[option].label}
               </button>
             ))}
           </div>
         </div>
         {radiator ? (
           <span className="sample-indicator live-indicator">
-            <span /> Live data
+            <span /> Ryhmän mittaukset
           </span>
         ) : (
           <Link
             className={`sample-indicator ${live ? 'live-indicator' : ''}`}
             to={`?${toggleParams}`}
-            title={`Switch to ${live ? 'sample' : 'live'} data`}
+            title={live ? 'Näytä esimerkkimittaukset' : 'Näytä ryhmän mittaukset'}
           >
-            <span /> {live ? 'Live data' : 'Sample data'}
+            <span /> {live ? 'Ryhmän mittaukset' : 'Esimerkkimittaukset'}
           </Link>
         )}
       </header>
       {live && isError ? (
         <div className="race-message" role="alert">
-          <p>Could not load measurement history. Please try again.</p>
+          <p>Mittaushistorian lataaminen epäonnistui. Yritä uudelleen.</p>
           <button
             className="text-button"
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
           >
-            {isFetching ? 'Retrying…' : 'Try again'}
+            {isFetching ? 'Yritetään uudelleen…' : 'Yritä uudelleen'}
           </button>
         </div>
       ) : live && (loadingRace || !data) ? (
         <p className="race-message" role="status">
-          Loading measurement history…
+          Ladataan mittaushistoriaa…
         </p>
       ) : (
         <RaceChart
@@ -184,18 +190,18 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       )}
       {!radiator && live && view.some((person) => person.id === user?.id && person.needsHeight) && (
         <Link className="text-button" to={settingsUrl}>
-          Add your height
+          Lisää pituutesi
         </Link>
       )}
       {!radiator && (mode === 'biceps' || mode === 'score') && (
         <Link className="text-button" to={`${settingsUrl}#biceps`}>
-          Add biceps measurement
+          Lisää hauismittaus
         </Link>
       )}
       <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>
         {!radiator && (
           <p>
-            Signed in as{' '}
+            Kirjautuneena{' '}
             <Link className="text-button" to={settingsUrl}>
               {user?.display_name}
             </Link>
@@ -222,12 +228,12 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
               }
             }}
           >
-            {isLoading ? 'Logging out…' : 'Log out'}
+            {isLoading ? 'Kirjaudutaan ulos…' : 'Kirjaudu ulos'}
           </button>
         )}
       </footer>
       {fullscreenError && <p role="alert">{fullscreenError}</p>}
-      {logoutError && <p role="alert">Could not log out. Please try again.</p>}
+      {logoutError && <p role="alert">Uloskirjautuminen epäonnistui. Yritä uudelleen.</p>}
     </main>
   )
 }

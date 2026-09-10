@@ -34,7 +34,7 @@ export const UserDetailsForm = ({
     >
       <div className="admin-fields">
         <label htmlFor={`${id}-name`}>
-          Display name
+          Näyttönimi
           <input
             id={`${id}-name`}
             required
@@ -46,7 +46,7 @@ export const UserDetailsForm = ({
           />
         </label>
         <label htmlFor={`${id}-email`}>
-          Email
+          Sähköposti
           <input
             id={`${id}-email`}
             type="email"
@@ -65,11 +65,11 @@ export const UserDetailsForm = ({
           type="submit"
           disabled={busy || !name.trim() || !email.trim()}
         >
-          {busy ? 'Saving…' : submitLabel}
+          {busy ? 'Tallennetaan…' : submitLabel}
         </button>
         {onCancel && (
           <button className="text-button" type="button" disabled={busy} onClick={onCancel}>
-            Cancel
+            Peruuta
           </button>
         )}
       </div>

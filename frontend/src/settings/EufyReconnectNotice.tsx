@@ -43,14 +43,14 @@ const Notice = () => {
   return (
     <aside className="eufy-reconnect-notice" role="alert" aria-labelledby="eufy-reconnect-title">
       <div>
-        <h2 id="eufy-reconnect-title">Eufy Life needs reconnecting</h2>
+        <h2 id="eufy-reconnect-title">Yhdistä Eufy Life uudelleen</h2>
         <p>
-          Your connection has expired or been rejected. New weight readings won’t sync until you
-          sign in to Eufy Life again.
+          Yhteytesi on vanhentunut tai hylätty. Uudet painomittaukset eivät synkronoidu ennen kuin
+          kirjaudut Eufy Lifeen uudelleen.
         </p>
       </div>
       <Link className="primary-button" to="/settings?eufy=reconnect#eufy-heading">
-        Reconnect now
+        Yhdistä uudelleen nyt
       </Link>
     </aside>
   )

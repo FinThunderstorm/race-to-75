@@ -15,24 +15,24 @@ export const RaceProfileSettings = () => {
       aria-labelledby="race-profile-heading"
       aria-busy={saving || isFetching}
     >
-      <h2 id="race-profile-heading">Race profile</h2>
+      <h2 id="race-profile-heading">Kisaprofiili</h2>
       <p className="auth-description">
-        Add your height to calculate your BMI index, biceps index and combined race score. These
-        values are visible to the group and on the shared race display. Updating height recalculates
-        all index history.
+        Lisää pituutesi, niin näet BMI-indeksisi, hauisindeksisi ja niistä lasketun ihmisarvosi
+        kansalaispisteinä. Arvot näkyvät ryhmälle ja yhteisellä kisanäytöllä. Pituuden päivittäminen
+        laskee koko indeksihistorian uudelleen.
       </p>
       {isLoading ? (
-        <p>Loading height…</p>
+        <p>Ladataan pituutta…</p>
       ) : isError ? (
         <div role="alert">
-          <p>Could not load your height. Please try again.</p>
+          <p>Pituuden lataaminen epäonnistui. Yritä uudelleen.</p>
           <button
             className="text-button"
             type="button"
             disabled={isFetching}
             onClick={() => refetch()}
           >
-            Retry height
+            Yritä ladata pituus uudelleen
           </button>
         </div>
       ) : (
@@ -53,21 +53,21 @@ export const RaceProfileSettings = () => {
                   Math.abs(heightCm * 10 - Math.round(heightCm * 10)) > 1e-8)
               ) {
                 setError(
-                  'Enter a height from 50 to 300 cm with at most one decimal, or leave it blank.'
+                  'Anna pituus väliltä 50–300 cm enintään yhden desimaalin tarkkuudella tai jätä kenttä tyhjäksi.'
                 )
                 return
               }
               try {
                 const saved = await save({ heightCm }).unwrap()
                 setHeight(String(saved.heightCm ?? ''))
-                setMessage(saved.heightCm === null ? 'Height removed.' : 'Height saved.')
+                setMessage(saved.heightCm === null ? 'Pituus poistettu.' : 'Pituus tallennettu.')
               } catch {
-                setError('Could not save your height. Please try again.')
+                setError('Pituuden tallentaminen epäonnistui. Yritä uudelleen.')
               }
             }}
           >
             <label htmlFor="race-height">
-              Height (cm)
+              Pituus (cm)
               <input
                 id="race-height"
                 type="number"
@@ -86,10 +86,10 @@ export const RaceProfileSettings = () => {
               />
             </label>
             <p id="height-hint" className="auth-hint">
-              For example, 180.5 cm. Leave blank and save to remove your height.
+              Esimerkiksi 180,5 cm. Poista pituutesi jättämällä kenttä tyhjäksi ja tallentamalla.
             </p>
             <button className="primary-button" type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Save height'}
+              {saving ? 'Tallennetaan…' : 'Tallenna pituus'}
             </button>
           </form>
         )

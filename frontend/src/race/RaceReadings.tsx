@@ -1,3 +1,5 @@
+import { formatDate, formatNumber } from '../format'
+
 import type { RaceMode, RaceViewParticipant } from './raceModes'
 
 export const RaceReadings = ({
@@ -14,60 +16,65 @@ export const RaceReadings = ({
   const raw = mode === 'bmi' || mode === 'biceps'
   return (
     <details className={`race-data${score ? ' race-data--score' : ''}`}>
-      <summary>View {live ? 'live' : 'sample'} readings</summary>
+      <summary>{live ? 'Näytä mittaukset' : 'Näytä esimerkkimittaukset'}</summary>
       {!classic && (
         <div className="index-explanation">
           {(mode === 'biceps' || score) && (
-            <p>Biceps index = 100 × circumference / height (both in cm).</p>
+            <p>Hauisindeksi = 100 × ympärys / pituus (molemmat senttimetreinä).</p>
           )}
           {(mode === 'bmi' || score) && (
             <p>
-              BMI index = 100 at BMI 18.5–25; below 18.5: 100 × BMI / 18.5; above 25: 100 × 25 /
+              BMI-indeksi = 100, kun BMI on 18,5–25. Alle 18,5: 100 × BMI / 18,5. Yli 25: 100 × 25 /
               BMI.
             </p>
           )}
           {score && (
             <>
               <p>
-                Score = biceps index × BMI index / 100. Both measurements and height are required.
+                Ihmisarvo = hauisindeksi × BMI-indeksi / 100. Yksikkö on kansalaispiste (kp).
+                Laskentaan tarvitaan molemmat mittaukset ja pituus.
               </p>
               <p>
-                Each measurement day uses the latest available daily averages of weight and biceps.
-                The dates below show when each component was measured. Completed weeks average these
-                daily scores.
+                Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon ja
+                hauiksen päiväkeskiarvoja. Alla näkyvät kummankin mittauksen päivämäärät.
+                Päättyneiltä viikoilta näytetään näiden kansalaispisteiden keskiarvo.
               </p>
             </>
           )}
           <p>
-            Higher indices score better. Shared game rules, not a validated health score. The biceps
-            index adjusts for height, not sex. Blood pressure is not included.
+            Suurempi indeksi antaa paremman tuloksen. Pisteet on tarkoitettu yhteiseen kisaan. Niitä
+            ei ole validoitu terveysmittariksi. Hauisindeksi huomioi pituuden, mutta ei
+            sukupuolieroja. Verenpaine ei vielä sisälly laskentaan.
           </p>
         </div>
       )}
       <div className="table-scroll">
         <table>
           <caption>
-            {live ? 'Live' : 'Sample'} summary in {classic ? 'kilograms' : 'index points'} ·{' '}
+            {live ? 'Mittausten yhteenveto' : 'Esimerkkimittausten yhteenveto'}{' '}
+            {classic ? 'kilogrammoina' : score ? 'kansalaispisteinä' : 'indeksipisteinä'} ·{' '}
             {score
-              ? 'Current score uses the latest available daily averages (UTC)'
-              : 'Current value uses the latest daily average (UTC)'}
+              ? 'Nykyinen ihmisarvo lasketaan viimeisimmistä päiväkeskiarvoista (UTC)'
+              : 'Nykyarvo perustuu viimeisimpään päiväkeskiarvoon (UTC)'}
           </caption>
           <thead>
             <tr>
-              <th scope="col">Participant</th>
-              <th scope="col">Start</th>
-              <th scope="col">Current</th>
-              <th scope="col">{classic ? 'To go' : 'Change'}</th>
-              {raw && <th scope="col">{mode === 'bmi' ? 'Current BMI' : 'Current cm'}</th>}
+              <th scope="col">Osallistuja</th>
+              <th scope="col">Alku</th>
+              <th scope="col">Nykyarvo</th>
+              <th scope="col">{classic ? 'Jäljellä' : 'Muutos'}</th>
+              {raw && (
+                <th scope="col">{mode === 'bmi' ? 'Nykyinen BMI' : 'Nykyinen ympärys (cm)'}</th>
+              )}
               {score && (
                 <>
-                  <th scope="col">Biceps index (cm)</th>
-                  <th scope="col">Biceps date (UTC)</th>
-                  <th scope="col">BMI index (BMI)</th>
-                  <th scope="col">Weight date (UTC)</th>
+                  <th scope="col">Hauisindeksi (cm)</th>
+                  <th scope="col">Hauiksen mittauspäivä (UTC)</th>
+                  <th scope="col">BMI-indeksi (BMI)</th>
+                  <th scope="col">Punnituspäivä (UTC)</th>
                 </>
               )}
-              {live && <th scope="col">Last reading (UTC)</th>}
+              {live && <th scope="col">Viimeisin mittaus (UTC)</th>}
             </tr>
           </thead>
           <tbody>
@@ -78,33 +85,35 @@ export const RaceReadings = ({
               return (
                 <tr key={person.id}>
                   <th scope="row">{person.name}</th>
-                  <td>{person.startValue?.toFixed(1) ?? '—'}</td>
-                  <td>{last?.value.toFixed(1) ?? '—'}</td>
+                  <td>{person.startValue === null ? '—' : formatNumber(person.startValue)}</td>
+                  <td>{last ? formatNumber(last.value) : '—'}</td>
                   <td>
                     {!last
                       ? '—'
                       : classic
-                        ? Math.max(0, last.value - 75).toFixed(1)
-                        : `${change > 0 ? '+' : ''}${change.toFixed(1)}`}
+                        ? formatNumber(Math.max(0, last.value - 75))
+                        : `${change > 0 ? '+' : ''}${formatNumber(change)}`}
                   </td>
-                  {raw && <td>{person.rawLatest?.toFixed(1) ?? '—'}</td>}
+                  {raw && (
+                    <td>{person.rawLatest === null ? '—' : formatNumber(person.rawLatest)}</td>
+                  )}
                   {score && (
                     <>
                       <td>
                         {components
-                          ? `${components.bicepsIndex.toFixed(1)} (${components.biceps.value.toFixed(1)} cm)`
+                          ? `${formatNumber(components.bicepsIndex)} (${formatNumber(components.biceps.value)} cm)`
                           : '—'}
                       </td>
-                      <td>{components?.biceps.date ?? '—'}</td>
+                      <td>{components ? formatDate(components.biceps.date) : '—'}</td>
                       <td>
                         {components
-                          ? `${components.bmiIndex.toFixed(1)} (BMI ${components.bmi.toFixed(1)})`
+                          ? `${formatNumber(components.bmiIndex)} (BMI ${formatNumber(components.bmi)})`
                           : '—'}
                       </td>
-                      <td>{components?.weight.date ?? '—'}</td>
+                      <td>{components ? formatDate(components.weight.date) : '—'}</td>
                     </>
                   )}
-                  {live && <td>{last?.date ?? '—'}</td>}
+                  {live && <td>{last ? formatDate(last.date) : '—'}</td>}
                 </tr>
               )
             })}

@@ -30,12 +30,14 @@ export type EufyProfile = { id: string; name: string }
 export type EufyReading = { externalId: string; measuredAt: Date; weightKg: number }
 export class EufyAuthError extends Error {
   constructor() {
-    super('Eufy Life sign-in is required.')
+    super('Kirjaudu Eufy Lifeen.')
   }
 }
 export class EufyServiceError extends Error {
   constructor() {
-    super('Eufy Life is unavailable or returned an unexpected response. Try again later.')
+    super(
+      'Eufy Life ei ole käytettävissä tai palautti odottamattoman vastauksen. Yritä myöhemmin uudelleen.'
+    )
   }
 }
 
@@ -104,7 +106,7 @@ export async function loginEufy(email: string, password: string, fetcher = fetch
     expiresAt: new Date(Date.now() + data.expires_in * 1000),
     profiles: data.customers.map((profile) => ({
       id: profile.id,
-      name: profile.name || profile.nick_name || profile.nickname || `Profile ${profile.id}`
+      name: profile.name || profile.nick_name || profile.nickname || `Profiili ${profile.id}`
     }))
   }
 }

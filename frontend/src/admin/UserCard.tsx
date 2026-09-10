@@ -40,7 +40,7 @@ export const UserCard = ({
     try {
       await update({ id: user.id, ...changes }).unwrap()
       setEditing(false)
-      setMessage('Account updated.')
+      setMessage('Tili päivitetty.')
       onChanged()
       return true
     } catch (error) {
@@ -55,26 +55,30 @@ export const UserCard = ({
         <div>
           <h4 id={`user-${user.id}`}>
             {user.display_name}
-            {self && <span className="admin-you"> (you)</span>}
+            {self && <span className="admin-you"> (sinä)</span>}
           </h4>
           <p className="auth-description">{user.email}</p>
         </div>
         <div className="admin-badges">
           <span className={`race-badge ${user.role === 'admin' ? 'personal-low' : ''}`}>
-            {user.role === 'admin' ? 'Admin' : 'Member'}
+            {user.role === 'admin' ? 'Ylläpitäjä' : 'Osallistuja'}
           </span>
           <span className={`race-badge ${disabled ? 'setback' : user.enrolled ? 'winner' : ''}`}>
-            {disabled ? 'Disabled' : user.enrolled ? 'Enrolled' : 'Awaiting enrollment'}
+            {disabled
+              ? 'Poistettu käytöstä'
+              : user.enrolled
+                ? 'Rekisteröitynyt'
+                : 'Odottaa rekisteröitymistä'}
           </span>
         </div>
       </div>
       {editing ? (
         <UserDetailsForm
-          label={`Edit ${user.display_name}`}
+          label={`Muokkaa: ${user.display_name}`}
           initialName={user.display_name}
           initialEmail={user.email}
           busy={busy}
-          submitLabel="Save changes"
+          submitLabel="Tallenna muutokset"
           onSubmit={save}
           onCancel={() => setEditing(false)}
         />
@@ -90,7 +94,7 @@ export const UserCard = ({
               setMessage('')
             }}
           >
-            Edit details
+            Muokkaa tietoja
           </button>
           {!disabled && (
             <button
@@ -100,7 +104,7 @@ export const UserCard = ({
               onClick={async () => {
                 if (
                   !window.confirm(
-                    `Create a new enrollment link for ${user.display_name}? Previous unused links will stop working. Existing passkeys will keep working.`
+                    `Luodaanko käyttäjälle ${user.display_name} uusi rekisteröitymislinkki? Aiemmat käyttämättömät linkit lakkaavat toimimasta. Nykyiset pääsyavaimet toimivat edelleen.`
                   )
                 ) {
                   return
@@ -116,7 +120,7 @@ export const UserCard = ({
                 }
               }}
             >
-              {issuing ? 'Creating link…' : 'New enrollment link'}
+              {issuing ? 'Luodaan linkkiä…' : 'Uusi rekisteröitymislinkki'}
             </button>
           )}
           {!self && (
@@ -130,15 +134,15 @@ export const UserCard = ({
                   if (
                     window.confirm(
                       role === 'admin'
-                        ? `Make ${user.display_name} an admin? They will be able to invite users and manage all accounts.`
-                        : `Make ${user.display_name} a member? They will lose access to user management.`
+                        ? `Tehdäänkö käyttäjästä ${user.display_name} ylläpitäjä? Hän voi kutsua käyttäjiä ja hallita kaikkia tilejä.`
+                        : `Muutetaanko käyttäjä ${user.display_name} osallistujaksi? Hän menettää pääsyn käyttäjähallintaan.`
                     )
                   ) {
                     void save({ role })
                   }
                 }}
               >
-                {user.role === 'admin' ? 'Demote to member' : 'Promote to admin'}
+                {user.role === 'admin' ? 'Muuta osallistujaksi' : 'Tee ylläpitäjäksi'}
               </button>
               <button
                 type="button"
@@ -148,21 +152,23 @@ export const UserCard = ({
                   if (
                     disabled ||
                     window.confirm(
-                      `Disable ${user.display_name}? App access will be blocked and unused enrollment links revoked. Readings and passkeys are kept; Withings imports continue.`
+                      `Poistetaanko käyttäjän ${user.display_name} tili käytöstä? Pääsy sovellukseen estetään ja käyttämättömät rekisteröitymislinkit mitätöidään. Mittaukset ja pääsyavaimet säilytetään. Withings-tuonti jatkuu.`
                     )
                   ) {
                     void save({ disabled: !disabled })
                   }
                 }}
               >
-                {disabled ? 'Enable account' : 'Disable account'}
+                {disabled ? 'Ota tili käyttöön' : 'Poista tili käytöstä'}
               </button>
             </>
           )}
         </div>
       )}
       {self && (
-        <p className="auth-hint">Another admin can change your role or disable your account.</p>
+        <p className="auth-hint">
+          Toinen ylläpitäjä voi vaihtaa rooliasi tai poistaa tilisi käytöstä.
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
       {message && (

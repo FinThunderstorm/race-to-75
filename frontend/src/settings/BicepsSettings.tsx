@@ -5,6 +5,7 @@ import {
   useDeleteBicepsMeasurementMutation,
   useGetBicepsMeasurementsQuery
 } from '../api/raceApi'
+import { formatDate, formatNumber } from '../format'
 
 export const BicepsSettings = () => {
   const { data, isLoading, isFetching, isError, refetch } = useGetBicepsMeasurementsQuery()
@@ -24,12 +25,11 @@ export const BicepsSettings = () => {
       aria-labelledby="biceps-heading"
       aria-busy={saving || isFetching}
     >
-      <h2 id="biceps-heading">Biceps measurements</h2>
+      <h2 id="biceps-heading">Hauismittaukset</h2>
       <p className="auth-description">
-        Record your upper-arm circumference in centimetres. Use the same arm and measurement method
-        each time. Add your height in Race profile to show your biceps index: 100 × circumference /
-        height. Your measurements and indices are visible to the group and on the shared race
-        display.
+        Kirjaa olkavartesi ympärysmitta senttimetreinä. Käytä aina samaa käsivartta ja mittaustapaa.
+        Lisää pituutesi kisaprofiiliin, niin näet hauisindeksisi: 100 × ympärysmitta / pituus.
+        Mittauksesi ja indeksisi näkyvät ryhmälle ja yhteisellä kisanäytöllä.
       </p>
       <form
         className="integration-form"
@@ -50,21 +50,21 @@ export const BicepsSettings = () => {
             date > today
           ) {
             setError(
-              'Enter 1–100 cm with at most one decimal and a valid date no later than today (UTC).'
+              'Anna 1–100 cm enintään yhden desimaalin tarkkuudella ja kelvollinen päivämäärä, joka on viimeistään tänään (UTC).'
             )
             return
           }
           try {
             await add({ measuredAt: date, circumferenceCm }).unwrap()
             setCircumference('')
-            setMessage('Measurement added.')
+            setMessage('Mittaus lisätty.')
           } catch {
-            setError('Could not save your measurement. Please try again.')
+            setError('Mittauksen tallentaminen epäonnistui. Yritä uudelleen.')
           }
         }}
       >
         <label htmlFor="biceps-circumference">
-          Circumference (cm)
+          Ympärysmitta (cm)
           <input
             id="biceps-circumference"
             type="number"
@@ -83,7 +83,7 @@ export const BicepsSettings = () => {
           />
         </label>
         <label htmlFor="biceps-date">
-          Measurement date (UTC)
+          Mittauspäivä (UTC)
           <input
             id="biceps-date"
             type="date"
@@ -99,27 +99,25 @@ export const BicepsSettings = () => {
             }}
           />
         </label>
-        <p className="auth-hint">
-          Multiple measurements on the same day are averaged in the chart.
-        </p>
+        <p className="auth-hint">Saman päivän mittauksista näytetään kuvaajassa keskiarvo.</p>
         <button className="primary-button" type="submit" disabled={saving}>
-          {adding ? 'Saving…' : 'Add measurement'}
+          {adding ? 'Tallennetaan…' : 'Lisää mittaus'}
         </button>
       </form>
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
       {isLoading ? (
-        <p>Loading measurements…</p>
+        <p>Ladataan mittauksia…</p>
       ) : isError ? (
         <div role="alert">
-          <p>Could not load your measurements. Please try again.</p>
+          <p>Mittausten lataaminen epäonnistui. Yritä uudelleen.</p>
           <button
             className="text-button"
             type="button"
             disabled={isFetching}
             onClick={() => refetch()}
           >
-            Retry measurements
+            Yritä ladata mittaukset uudelleen
           </button>
         </div>
       ) : (
@@ -127,37 +125,37 @@ export const BicepsSettings = () => {
         (data.measurements.length ? (
           <div className="table-scroll">
             <table>
-              <caption>Your biceps measurements</caption>
+              <caption>Hauismittauksesi</caption>
               <thead>
                 <tr>
-                  <th scope="col">Date (UTC)</th>
+                  <th scope="col">Päivämäärä (UTC)</th>
                   <th scope="col">cm</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col">Toiminnot</th>
                 </tr>
               </thead>
               <tbody>
                 {data.measurements.map((reading) => (
                   <tr key={reading.id}>
-                    <td>{reading.measuredAt}</td>
-                    <td>{reading.circumferenceCm.toFixed(1)}</td>
+                    <td>{formatDate(reading.measuredAt)}</td>
+                    <td>{formatNumber(reading.circumferenceCm)}</td>
                     <td>
                       <button
                         className="text-button"
                         type="button"
                         disabled={saving}
-                        aria-label={`Delete measurement ${reading.measuredAt}, ${reading.circumferenceCm.toFixed(1)} cm`}
+                        aria-label={`Poista mittaus ${formatDate(reading.measuredAt)}, ${formatNumber(reading.circumferenceCm)} cm`}
                         onClick={async () => {
                           setError('')
                           setMessage('')
                           try {
                             await remove(reading.id).unwrap()
-                            setMessage('Measurement deleted.')
+                            setMessage('Mittaus poistettu.')
                           } catch {
-                            setError('Could not delete your measurement. Please try again.')
+                            setError('Mittauksen poistaminen epäonnistui. Yritä uudelleen.')
                           }
                         }}
                       >
-                        Delete
+                        Poista
                       </button>
                     </td>
                   </tr>
@@ -166,7 +164,7 @@ export const BicepsSettings = () => {
             </table>
           </div>
         ) : (
-          <p>No measurements yet.</p>
+          <p>Ei vielä mittauksia.</p>
         ))
       )}
     </section>

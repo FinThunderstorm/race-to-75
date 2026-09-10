@@ -13,59 +13,67 @@ export const WithingsSettings = () => {
   return (
     <section className="settings-panel" aria-labelledby="withings-heading">
       <h2 id="withings-heading">Withings</h2>
-      {result === 'connected' && <p role="status">Withings connected.</p>}
+      {result === 'connected' && <p role="status">Withings yhdistetty.</p>}
       {result === 'cancelled' && (
-        <p role="status">Connection cancelled. You can try again below.</p>
+        <p role="status">Yhdistäminen peruutettu. Voit yrittää uudelleen alta.</p>
       )}
-      {result === 'error' && <p role="alert">Could not connect Withings. Please try again.</p>}
+      {result === 'error' && (
+        <p role="alert">Withings-yhteyden muodostaminen epäonnistui. Yritä uudelleen.</p>
+      )}
       {result === 'unavailable' && (
-        <p role="alert">Withings connection is currently unavailable.</p>
+        <p role="alert">Withings-yhteys ei ole tällä hetkellä käytettävissä.</p>
       )}
       {params.get('sync') === 'failed' && (
         <p role="alert">
-          Your connection was saved, but importing readings failed. Reconnect to try again.
+          Yhteys tallennettiin, mutta mittausten tuonti epäonnistui. Yritä uudelleen yhdistämällä
+          uudestaan.
         </p>
       )}
       {params.get('updates') === 'failed' && (
-        <p role="alert">Automatic updates could not be enabled. Reconnect to try again.</p>
+        <p role="alert">
+          Automaattisia päivityksiä ei voitu ottaa käyttöön. Yritä uudelleen yhdistämällä uudestaan.
+        </p>
       )}
       {isLoading ? (
-        <p role="status">Checking connection…</p>
+        <p role="status">Tarkistetaan yhteyttä…</p>
       ) : isError ? (
         <div role="alert">
-          <p>Could not check your Withings connection.</p>
+          <p>Withings-yhteyden tarkistaminen epäonnistui.</p>
           <button
             className="text-button"
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
           >
-            Try again
+            Yritä uudelleen
           </button>
         </div>
       ) : (
         data && (
           <>
             <p className="connection-status" role="status">
-              {data.connected ? 'Connected' : 'Not connected'}
+              {data.connected ? 'Yhdistetty' : 'Ei yhdistetty'}
             </p>
             <p className="auth-description">
               {data.connected
-                ? 'Your imported weighings are available in the live chart.'
-                : 'Connect your Withings account to import your weighings into the race.'}
+                ? 'Tuodut painomittauksesi näkyvät reaaliaikaisessa kuvaajassa.'
+                : 'Yhdistä Withings-tilisi tuodaksesi painomittauksesi kisaan.'}
             </p>
             {data.configured ? (
               <a className="primary-button" href="/api/integrations/withings/connect">
-                {data.connected ? 'Reconnect Withings' : 'Connect Withings'}
+                {data.connected ? 'Yhdistä Withings uudelleen' : 'Yhdistä Withings'}
               </a>
             ) : (
-              <p className="auth-description">Withings has not been configured for this app yet.</p>
+              <p className="auth-description">
+                Withingsiä ei ole vielä määritetty tähän sovellukseen.
+              </p>
             )}
             {data.connected && (
               <>
                 {!data.automaticUpdates && (
                   <p className="auth-hint">
-                    Automatic updates are off. Reconnect to import your latest weighings.
+                    Automaattiset päivitykset ovat pois käytöstä. Tuo uusimmat painomittaukset
+                    yhdistämällä uudelleen.
                   </p>
                 )}
                 <button
@@ -82,17 +90,20 @@ export const WithingsSettings = () => {
                     }
                   }}
                 >
-                  {disconnecting ? 'Disconnecting…' : 'Disconnect Withings'}
+                  {disconnecting ? 'Katkaistaan yhteyttä…' : 'Katkaise Withings-yhteys'}
                 </button>
                 <p className="auth-hint">
-                  Disconnecting stops future imports. Previously imported readings stay in the race.
+                  Yhteyden katkaiseminen lopettaa uusien mittausten tuonnin. Aiemmin tuodut
+                  mittaukset säilyvät kisassa.
                 </p>
               </>
             )}
           </>
         )
       )}
-      {disconnectError && <p role="alert">Could not disconnect Withings. Please try again.</p>}
+      {disconnectError && (
+        <p role="alert">Withings-yhteyden katkaiseminen epäonnistui. Yritä uudelleen.</p>
+      )}
     </section>
   )
 }

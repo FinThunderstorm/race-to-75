@@ -2,6 +2,10 @@
 
 A simple app to track progress toward a shared goal: everyone reaching 75 kg.
 
+The interface is in Finnish under the name **Kisa 75 kiloon**, with Finnish
+number and date formatting. The combined score is **Ihmisarvo**, measured in
+**kansalaispisteet** (`kp`).
+
 ## Goal
 
 Keep everyone's weight on record over time and make the shared target —
@@ -12,17 +16,17 @@ Keep everyone's weight on record over time and make the shared target —
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Classic, BMI index, Biceps index and Score modes
+deployment setup are implemented. Paino, BMI, Hauis and Ihmisarvo modes
 are available.
 Manual weight entry is still planned.
 
 ### Biceps circumference
 
-Select **Biceps** or open `/?mode=biceps`. In **Settings → Biceps measurements**,
+Select **Hauis** or open `/?mode=biceps`. In **Asetukset → Hauismittaukset**,
 record your own circumference in centimetres and the measurement date (UTC).
 You can delete your own entries to correct mistakes. Multiple readings on one
 day are averaged; completed weeks use weekly averages. Add your height in
-**Settings → Race profile** to show the **biceps index: 100 × circumference / height**
+**Asetukset → Kisaprofiili** to show the **biceps index: 100 × circumference / height**
 (both in cm). For example, 34 cm at 170 cm and 38 cm at 190 cm both score 20.
 The readings table also shows the current circumference in cm. The group and
 shared display can view the index history. This mode has no shared target or
@@ -108,7 +112,7 @@ race to 75 — glanceable, no interaction, auto-updating.
   `RADIATOR_ALLOWED_IP` to see the live group graph and standings, refreshing
   every 30 seconds. Server-Sent Events and live reaction events remain planned.
 - IP access hides the profile/settings link, logout, and sample-data switch.
-  A compact bottom-left footer keeps **Full screen** available (Esc to exit).
+  A compact bottom-left footer keeps **Koko näyttö** available (Esc to exit).
   If the browser blocks fullscreen, the control explains how to use the browser's
   own full-screen option instead of disappearing.
   The graph expands vertically with the browser window, including tall
@@ -120,10 +124,11 @@ race to 75 — glanceable, no interaction, auto-updating.
 - Set `RADIATOR_ALLOWED_IP` to one IPv4 or IPv6 address; leave it empty to disable
   anonymous access. IPv4-mapped IPv6 addresses are matched as well. No URL query
   parameter can grant IP access.
-- A small bottom-right indicator shows **IP allowed** or **IP not allowed** on
+- A small bottom-right indicator shows **IP-osoite sallittu** or **IP-osoitetta
+  ei sallittu** on
   every screen, including login and the signed-in dashboard. It checks the
   current network every 30 seconds independently of your session. A failed
-  check shows **IP check unavailable** until the next successful check.
+  check shows **IP-tarkistus ei onnistu** until the next successful check.
 - When using a reverse proxy, set `TRUST_PROXY` to a comma-separated list of
   trusted proxy IPs or CIDRs. Forwarded client addresses are ignored by default.
   Use the actual proxy address/subnet, and ensure that proxy sets or appends the
@@ -189,7 +194,7 @@ itself is phishing-resistant and inherently multi-factor, so no separate MFA.
 ### Integrations
 
 Integrations have provider-specific connection and sync code and share the
-`measurement` table. Users can connect both Withings and Eufy Life in Settings.
+`measurement` table. Users can connect both Withings and Eufy Life in **Asetukset**.
 Withings uses OAuth and a webhook worker. Eufy Life uses a temporary sign-in,
 profile selection, and polling inside the backend process.
 
@@ -271,29 +276,31 @@ node scripts/with-local-env.mjs npm run auth:bootstrap-admin -w backend -- \
 This email identifies your app account and does **not** have to match the email
 you use to log into Withings.
 
-Open the printed enrollment link on this computer, click **Create passkey**,
+Open the printed enrollment link on this computer, click **Luo pääsyavain**,
 and follow your browser's prompt. Enrollment logs you in automatically; later,
-use **Log in with passkey**. Enrollment links are single-use and expire after
+use **Kirjaudu sisään pääsyavaimella**. Enrollment links are single-use and
+expire after
 24 hours by default. Use `localhost`, matching the example's passkey settings.
 
 The bootstrap command refuses to run if any admin already exists. If you already
 have an account, use its passkey. An existing admin can issue a new enrollment
-link from **Manage users** in settings. If no admin can sign in, recovery still
+link from **Käyttäjähallinta** in settings. If no admin can sign in, recovery still
 requires database access.
 
 #### Invite and manage other users
 
-Click your signed-in name in the dashboard footer to open **Settings**
+Click your signed-in name in the dashboard footer to open **Asetukset**
 (direct URL: `/settings`). All users see their account details and Withings
-connection controls. Admins also see **Manage users** on this page. Enter an email
-and display name, select **Create invitation**, and copy the enrollment link to
+connection controls. Admins also see **Käyttäjähallinta** on this page.
+Enter an email and display name, select **Luo kutsu**, and copy the enrollment
+link to
 share privately with that person.
 The app does not send email. Opening the link lets them create a passkey and
 sign in as a member. Links are single-use and expire after 24 hours by default
 (`ENROLLMENT_TOKEN_TTL_SECONDS`).
 
 The user list lets admins edit details, promote members to admin, demote other
-admins, and disable or re-enable accounts. **New enrollment link** replaces
+admins, and disable or re-enable accounts. **Uusi rekisteröitymislinkki** replaces
 previous unused links while retaining existing passkeys. Admins cannot demote
 or disable themselves; another enabled admin must make those changes.
 
@@ -329,26 +336,28 @@ Keep `WITHINGS_REDIRECT_URI` set to the localhost callback above. Set
 uses **180 days**. Leave `WITHINGS_WEBHOOK_CALLBACK_URL` empty for a local import.
 
 Restart `./start-local-env.sh`, log in, and click your name in the dashboard footer
-to open **<http://localhost:7500/settings>**. Click **Connect Withings**, log into
+to open **<http://localhost:7500/settings>**. Click **Yhdistä Withings**, log into
 Withings, and approve access. The callback connects the signed-in app account,
 imports your history, and returns to settings. No bootstrap email or connect
 token is needed for this flow.
 
-The profile shows connection status and any import errors. Use **Reconnect Withings**
+The profile shows connection status and any import errors. Use **Yhdistä
+Withings uudelleen**
 to import the history window again; existing readings are updated without duplicates.
-**Disconnect Withings** removes the app's stored connection and tokens, stopping
+**Katkaise Withings-yhteys** removes the app's stored connection and tokens, stopping
 future imports while keeping previously imported readings. It does not revoke the
 app's authorization in Withings; that can be removed from Withings separately.
 
 ### Connect Eufy Life
 
-Open **<http://localhost:7500/settings>**, choose **Connect Eufy Life**, sign in
+Open **<http://localhost:7500/settings>**, choose **Yhdistä Eufy Life**, sign in
 with your Eufy Life account, and select your own profile. A user may connect both
 Withings and Eufy Life; different users may select different profiles from the
 same Eufy account. A profile cannot be connected to two race participants at once.
 
 The initial import includes weight readings from **one calendar month before
-connection**. The backend checks for new readings every 15 minutes; **Sync now**
+connection**. The backend checks for new readings every 15 minutes; **Synkronoi
+nyt**
 runs an immediate check. Only data uploaded to Eufy Life can be imported. Older
 imports can change the starting weight used for race progress. Repeated imports
 update matching readings without duplicates within Eufy; the same weighing
@@ -357,7 +366,7 @@ imported through two different providers is not automatically merged.
 The app never saves your Eufy email or password and never automatically signs
 in again. It stores an encrypted access token, account ID, and selected profile.
 Temporary profile-selection tokens expire after 10 minutes. When the access
-token expires or is rejected, Settings prompts you to **Reconnect Eufy Life**.
+token expires or is rejected, Asetukset prompts you to **Yhdistä Eufy Life uudelleen**.
 Reconnecting the same profile preserves the original history boundary to recover
 missed readings. Disconnecting removes the token and stops imports; existing
 weight readings remain.
@@ -377,8 +386,8 @@ that secret requires users to reconnect Eufy. Keep it stable across instances.
 
 ### 5. View live data and keep it current
 
-Open **<http://localhost:7500/>** to view live data by default. Click **Live data**
-in the header to open the sample preview (`?data=sample`), and click **Sample data**
+Open **<http://localhost:7500/>** to view live data by default. Click **Ryhmän mittaukset**
+in the header to open the sample preview (`?data=sample`), and click **Esimerkkimittaukset**
 to switch back to live data.
 
 Live mode requires login and reads every participant's recorded weight history
@@ -394,7 +403,8 @@ use the full history and daily averages, independent of chart grouping. Particip
 without recent readings remain visible, and the table shows the latest reading date.
 
 **The dashboard refresh does not fetch from Withings.** For local use without a
-public webhook, use **Reconnect Withings** in your profile whenever you want
+public webhook, use **Yhdistä Withings uudelleen** in your profile whenever you
+want
 fresh data.
 
 Automatic updates require a public webhook callback configured in the Withings
@@ -412,9 +422,9 @@ history. Coolify's `withings-worker` service repeats this command automatically.
 
 ### BMI view
 
-Select **BMI** from **Race mode**, or open **<http://localhost:7500/?mode=bmi>**.
-Classic (75 kg) remains the default mode; both modes use live data by default.
-Add your height in centimetres under **Settings → Race profile**, then save.
+Select **BMI** from **Kisanäkymä**, or open **<http://localhost:7500/?mode=bmi>**.
+Paino (75 kg) remains the default mode; both modes use live data by default.
+Add your height in centimetres under **Asetukset → Kisaprofiili**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.
 
@@ -442,12 +452,12 @@ Apply database migration `0007_user_height.sql` through `npm run db:migrate` bef
 running this version against an existing database. Raw imported weights stay
 in kg.
 
-### Combined race score
+### Ihmisarvo (combined race score)
 
-Select **Score** or open `/?mode=score`. The shared formula is:
+Select **Ihmisarvo** or open `/?mode=score`. The shared formula is:
 
 ```text
-Score = biceps index × BMI index / 100
+Ihmisarvo = hauisindeksi × BMI-indeksi / 100
 ```
 
 For example, a biceps index of 20 and BMI of 30 give a BMI index of 83.33…
@@ -462,12 +472,12 @@ uses that day's average and the latest preceding daily average of the other
 measurement. History begins only when both are available; future readings never
 fill earlier dates. Completed weeks average those observed-day scores, while
 the current week shows them daily. Calculations retain full precision and the
-display rounds to one decimal.
+display rounds to one decimal using a Finnish decimal comma.
 
-Expand **View live readings** to see the formulas, both component indices, raw
+Expand **Näytä mittaukset** to see the formulas, both component indices, raw
 values and their measurement dates. Old component readings can be carried forward;
-their original dates remain visible. Score supports live and sample data, the
-read-only radiator, automatic mode switching and returning from Settings.
+their original dates remain visible. Ihmisarvo supports live and sample data, the
+read-only radiator, automatic mode switching and returning from Asetukset.
 
 Blood pressure is not included yet. The current score uses existing data and
 requires no new database migration.

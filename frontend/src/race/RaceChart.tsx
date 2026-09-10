@@ -1,5 +1,6 @@
 import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
+import { formatDate, formatNumber } from '../format'
 import { Racer } from '../Racer'
 import { RaceReadings } from './RaceReadings'
 import { type RaceMode, type RaceViewParticipant, raceModes, raceViewBounds } from './raceModes'
@@ -7,7 +8,7 @@ import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
 const formatChange = (change: number) => {
   const rounded = Number(change.toFixed(1))
-  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}`
+  return `${rounded > 0 ? '+' : ''}${formatNumber(rounded)}`
 }
 
 export const RaceChart = ({
@@ -25,7 +26,7 @@ export const RaceChart = ({
   radiator?: boolean
   mode?: RaceMode
 }) => {
-  const { unit, metric, reference: goal, title, referenceLabel } = raceModes[mode]
+  const { unit, unitLabel, metric, reference: goal, title, referenceLabel } = raceModes[mode]
   const bmi = mode === 'bmi'
   const classic = mode === 'classic'
   const [selected, setSelected] = useState<string | null>(null)
@@ -162,33 +163,33 @@ export const RaceChart = ({
           <span className="remaining">
             {person.needsHeight
               ? radiator
-                ? `Height needed for ${metric}`
-                : 'Add height in Settings'
+                ? 'Pituus tarvitaan laskentaan'
+                : 'Lisää pituus asetuksissa'
               : mode === 'score'
-                ? 'Weight and biceps needed'
-                : 'No readings'}
+                ? 'Paino- ja hauismittaus tarvitaan'
+                : 'Ei mittauksia'}
           </span>
         ) : (
           <>
             <span className="participant-weight">
-              {current.toFixed(1)}
-              <small>{unit}</small>
+              {formatNumber(current)}
+              <small title={unitLabel}>{unit}</small>
             </span>
             {!classic ? (
               <span className="remaining">
-                Change {formatChange(person.change)} {unit}
+                Muutos {formatChange(person.change)} {unit}
               </span>
             ) : person.streak >= 7 ? (
-              <span className="race-badge winner">✓ Goal · {person.streak} days</span>
+              <span className="race-badge winner">✓ Tavoite · {person.streak} päivää</span>
             ) : person.change > 0 ? (
-              <span className="race-badge setback">▲ +{person.change.toFixed(1)} kg</span>
+              <span className="race-badge setback">▲ +{formatNumber(person.change)} kg</span>
             ) : (
               <span className="remaining">
-                {Math.max(0, current - (goal ?? 0)).toFixed(1)} to go
+                {formatNumber(Math.max(0, current - (goal ?? 0)))} kg jäljellä
               </span>
             )}
             {person.personalLow && person.streak < 7 && (
-              <span className="race-badge personal-low">New personal low</span>
+              <span className="race-badge personal-low">Uusi alin paino</span>
             )}
           </>
         )}
@@ -206,7 +207,7 @@ export const RaceChart = ({
             } as CSSProperties)
           : undefined
       }
-      aria-label={`${live ? 'Live' : 'Sample'} group ${metric} history`}
+      aria-label={live ? title : `Esimerkki: ${title}`}
     >
       <div className="race-art">
         <Racer />
@@ -221,16 +222,18 @@ export const RaceChart = ({
           >
             <title id="chart-title">{title}</title>
             <desc id="chart-description">
-              {live ? 'Live' : 'Sample'} {metric} trends over the last three months.{' '}
+              {live ? 'Ryhmän mittaukset' : 'Esimerkkimittaukset'}: {metric} viimeisen kolmen
+              kuukauden ajalta.{' '}
               {mode === 'score'
-                ? 'Completed weeks average scores on measurement days; each score uses the latest available daily averages for weight and biceps. The current week shows those daily scores.'
-                : 'Completed weeks use the average of all measurements; the current week uses daily averages. Indices are calculated from those averages.'}{' '}
-              Weeks start on Monday in UTC. The last known value before the window anchors the left
-              edge; when there are no newer measurements, its line stays flat across the chart.
-              Three rolling month sections and this week each occupy one quarter of the chart. Solid
-              vertical markers separate historical sections; the cyan dashed marker starts this
-              week. Dates are proportional within each section. Starting and current values are
-              available in the table below. Select a participant to highlight their history.
+                ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon ja hauiksen päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
+                : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
+              Viikko alkaa maanantaina UTC-ajassa. Aikaväliä edeltävä viimeinen tunnettu arvo
+              näytetään vasemmassa reunassa. Jos uudempia mittauksia ei ole, viiva jatkuu
+              vaakasuorana. Kolme kuukausijaksoa ja kuluva viikko vievät kukin neljänneksen
+              kuvaajasta. Yhtenäiset pystyviivat erottavat jaksot, ja syaani katkoviiva aloittaa
+              kuluvan viikon. Päivämäärät sijoittuvat suhteellisesti kunkin jakson sisällä. Alku- ja
+              nykyarvot näkyvät alla olevassa taulukossa. Korosta historiaa valitsemalla
+              osallistuja.
             </desc>
             <defs>
               <clipPath id="chart-weight-range">
@@ -256,7 +259,7 @@ export const RaceChart = ({
               <g key={weight}>
                 <line className="chart-grid" x1={left} x2={right} y1={y(weight)} y2={y(weight)} />
                 <text className="axis-label" x={left - 14} y={y(weight) + 5} textAnchor="end">
-                  {weight}
+                  {weight.toLocaleString('fi-FI', { maximumFractionDigits: 6 })}
                 </text>
               </g>
             ))}
@@ -273,7 +276,7 @@ export const RaceChart = ({
                     textAnchor="middle"
                   >
                     {new Date(month)
-                      .toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
+                      .toLocaleDateString('fi-FI', { month: 'short', timeZone: 'UTC' })
                       .toUpperCase()}
                   </text>
                 </g>
@@ -292,7 +295,7 @@ export const RaceChart = ({
               y="-10"
               textAnchor="middle"
             >
-              THIS WEEK
+              TÄMÄ VIIKKO
             </text>
             {goal !== null && (
               <>
@@ -348,8 +351,9 @@ export const RaceChart = ({
                       fill={person.color}
                     >
                       <title>
-                        {person.name}: {point.value.toFixed(1)} {unit} ·{' '}
-                        {point.period === 'week' ? 'Weekly' : 'Daily'} average · {point.date}
+                        {person.name}: {formatNumber(point.value)} {unitLabel} ·{' '}
+                        {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
+                        {formatDate(point.date)}
                       </title>
                     </circle>
                   ))}
@@ -387,29 +391,29 @@ export const RaceChart = ({
         <p className="race-message" role="status">
           {needingHeight.length > 0
             ? radiator
-              ? `Height is needed to show ${metric} history.`
-              : `Add height in Settings to show ${metric} history.`
+              ? 'Tulosten näyttämiseen tarvitaan pituus.'
+              : 'Lisää pituus asetuksissa, jotta tulokset voidaan näyttää.'
             : participants.some((person) => person.latest)
-              ? 'No measurements in the last three months.'
+              ? 'Ei mittauksia viimeisen kolmen kuukauden ajalta.'
               : mode === 'score'
-                ? 'Weight and biceps measurements are needed to show a score.'
+                ? 'Ihmisarvon näyttämiseen tarvitaan paino- ja hauismittaus.'
                 : mode === 'biceps'
-                  ? 'No biceps measurements yet.'
-                  : 'No measurements have been imported yet.'}
+                  ? 'Ei vielä hauismittauksia.'
+                  : 'Mittauksia ei ole vielä tuotu.'}
         </p>
       )}
       <div
         className="race-standings"
-        aria-label="Participants. Select a participant to highlight their history."
+        aria-label="Osallistujat. Korosta mittaushistoriaa valitsemalla osallistuja."
       >
         {standingsParticipants.map((person) => renderParticipant(person, person.needsHeight))}
       </div>
       {withoutReadings.length > 0 && (
-        <section className="race-unplotted" aria-label="Participants without recent readings">
+        <section className="race-unplotted" aria-label="Osallistujat, joilta puuttuu mittauksia">
           <p className="unplotted-heading">
             {mode === 'score'
-              ? 'Measurements needed for score'
-              : 'No readings in the last three months'}
+              ? 'Ihmisarvoon tarvitaan mittaukset'
+              : 'Ei mittauksia viimeisen kolmen kuukauden ajalta'}
           </p>
           <div className="unplotted-list">
             {withoutReadings.map((person) => renderParticipant(person))}
@@ -419,11 +423,11 @@ export const RaceChart = ({
       {heightParticipants.length > 0 && (
         <section
           className={`race-unplotted ${classic ? 'layout-placeholder' : ''}`}
-          aria-label="Participants needing height"
+          aria-label="Osallistujat, joilta puuttuu pituus"
           aria-hidden={classic || undefined}
           inert={classic}
         >
-          <p className="unplotted-heading">Height needed for {classic ? 'BMI index' : metric}</p>
+          <p className="unplotted-heading">Pituus puuttuu</p>
           <div className="unplotted-list">
             {heightParticipants.map((person) => renderParticipant(person))}
           </div>

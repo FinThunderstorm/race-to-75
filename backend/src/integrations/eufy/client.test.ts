@@ -30,7 +30,7 @@ test('login sends credentials only to Eufy and returns a token and normalized pr
   assert.equal(account.accountId, '123')
   assert.deepEqual(account.profiles, [
     { id: '1', name: 'Racer' },
-    { id: '2', name: 'Profile 2' }
+    { id: '2', name: 'Profiili 2' }
   ])
   assert.equal('password' in account, false)
   assert.equal('email' in account, false)

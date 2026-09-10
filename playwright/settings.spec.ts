@@ -50,39 +50,41 @@ test('signed-in name opens settings with connection controls and retryable failu
   await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
   await page.getByRole('link', { name: 'Profile Racer', exact: true }).click()
   await expect(page).toHaveURL(/\/settings$/)
-  await expect(page.getByRole('heading', { name: 'Manage users' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Käyttäjähallinta' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Asetukset' })).toBeVisible()
   await expect(page.getByText('profile@example.com', { exact: true })).toBeVisible()
   await expect(withings.getByRole('alert')).toContainText(
-    'Could not check your Withings connection'
+    'Withings-yhteyden tarkistaminen epäonnistui'
   )
   statusFailed = false
-  await withings.getByRole('button', { name: 'Try again', exact: true }).click()
-  await expect(withings.getByRole('status')).toHaveText('Connected')
-  await withings.getByRole('button', { name: 'Disconnect Withings' }).click()
+  await withings.getByRole('button', { name: 'Yritä uudelleen', exact: true }).click()
+  await expect(withings.getByRole('status')).toHaveText('Yhdistetty')
+  await withings.getByRole('button', { name: 'Katkaise Withings-yhteys' }).click()
   await expect(withings.getByRole('alert')).toHaveText(
-    'Could not disconnect Withings. Please try again.'
+    'Withings-yhteyden katkaiseminen epäonnistui. Yritä uudelleen.'
   )
   disconnectFailed = false
-  await withings.getByRole('button', { name: 'Disconnect Withings' }).click()
-  await expect(withings.getByRole('status')).toHaveText('Not connected')
-  const connect = withings.getByRole('link', { name: 'Connect Withings', exact: true })
+  await withings.getByRole('button', { name: 'Katkaise Withings-yhteys' }).click()
+  await expect(withings.getByRole('status')).toHaveText('Ei yhdistetty')
+  const connect = withings.getByRole('link', { name: 'Yhdistä Withings', exact: true })
   await expect(connect).toHaveAttribute('href', '/api/integrations/withings/connect')
   await page.route('**/api/integrations/withings/connect', (route) =>
     route.fulfill({ status: 302, headers: { location: '/profile?withings=cancelled' } })
   )
   await connect.click()
-  await expect(page.getByText('Connection cancelled. You can try again below.')).toBeVisible()
+  await expect(
+    page.getByText('Yhdistäminen peruutettu. Voit yrittää uudelleen alta.')
+  ).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.getByRole('link', { name: 'Back to the race' }).click()
+  await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/\/$/)
   expect(adminRequests).toBe(0)
 })
 
 test('settings requires login', async ({ page }) => {
   await page.goto('/settings')
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
 })
 
 for (const path of ['/profile', '/admin']) {
@@ -108,11 +110,11 @@ for (const path of ['/profile', '/admin']) {
     )
     await page.goto(`${path}?withings=connected&sync=failed#withings-heading`)
     await expect(page).toHaveURL(/\/settings\?withings=connected&sync=failed#withings-heading$/)
-    await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
-    await expect(page.getByText('Withings connected.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
+    await expect(page.getByText('Withings yhdistetty.', { exact: true })).toBeVisible()
     await expect(
       page.getByRole('region', { name: 'Withings', exact: true }).getByRole('alert')
-    ).toContainText('importing readings failed')
-    await expect(page.getByRole('heading', { name: 'Manage users' })).toHaveCount(0)
+    ).toContainText('mittausten tuonti epäonnistui')
+    await expect(page.getByRole('heading', { name: 'Käyttäjähallinta' })).toHaveCount(0)
   })
 }

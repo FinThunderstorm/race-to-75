@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }: { children: ReactElement }) => {
   if (isLoading) {
     return (
       <p className="loading-screen" role="status">
-        Loading the race…
+        Ladataan kisaa…
       </p>
     )
   }
@@ -43,7 +43,7 @@ const RaceRoute = () => {
   if (isLoading || radiator.isUninitialized || radiator.isLoading) {
     return (
       <p className="loading-screen" role="status">
-        Loading the race…
+        Ladataan kisaa…
       </p>
     )
   }

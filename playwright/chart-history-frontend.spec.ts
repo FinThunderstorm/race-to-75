@@ -27,7 +27,7 @@ for (const count of [1, 11]) {
       })
     )
     await page.goto('/?mode=biceps')
-    await page.getByRole('button', { name: 'Pause automatic mode switching' }).click()
+    await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
     const series = page.locator('.chart-series')
     await expect(series).toHaveCount(count)
     const geometry = await page.locator('.race-chart svg').evaluate((svg) => {
@@ -47,9 +47,9 @@ for (const count of [1, 11]) {
       expect(line[1].x).toBeCloseTo(geometry.right)
       expect(line[0].y).toBe(line[1].y)
     }
-    await expect(series.first().locator('circle title')).toContainText('2025-02-06')
+    await expect(series.first().locator('circle title')).toContainText('6.2.2025')
     await expect(
-      page.getByText('No measurements in the last three months.', { exact: true })
+      page.getByText('Ei mittauksia viimeisen kolmen kuukauden ajalta.', { exact: true })
     ).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })

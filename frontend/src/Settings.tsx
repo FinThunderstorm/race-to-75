@@ -17,11 +17,11 @@ export const Settings = () => {
   return (
     <main className={`settings-page${isAdmin ? ' settings-page--admin' : ''}`}>
       <Link className="text-button" to={mode === 'classic' ? '/' : `/?mode=${mode}`}>
-        ← Back to the race
+        ← Takaisin kisaan
       </Link>
       <header>
-        <p className="eyebrow">Race to 75</p>
-        <h1>Settings</h1>
+        <p className="eyebrow">Kisa 75 kiloon</p>
+        <h1>Asetukset</h1>
         <p className="settings-name">{user?.display_name}</p>
         <p className="auth-description">{user?.email}</p>
       </header>

@@ -36,23 +36,23 @@ test('live chart plots weekly averages and current-week daily averages over thre
   await page.goto('/?data=live')
   const points = page.locator('.chart-series circle title')
   await expect(points).toHaveText([
-    'Weekly Racer: 150.0 kg · Daily average · 2020-01-01',
-    'Weekly Racer: 90.0 kg · Weekly average · 2026-08-31',
-    'Weekly Racer: 84.0 kg · Daily average · 2026-09-07',
-    'Weekly Racer: 82.0 kg · Daily average · 2026-09-09'
+    'Weekly Racer: 150,0 kilogrammaa · Päiväkeskiarvo · 1.1.2020',
+    'Weekly Racer: 90,0 kilogrammaa · Viikkokeskiarvo · 31.8.2026',
+    'Weekly Racer: 84,0 kilogrammaa · Päiväkeskiarvo · 7.9.2026',
+    'Weekly Racer: 82,0 kilogrammaa · Päiväkeskiarvo · 9.9.2026'
   ])
   await expect(page.locator('.race-chart svg')).not.toContainText('10 JUN 2026')
   await expect(page.locator('.race-chart svg')).not.toContainText('10 SEPT 2026')
-  await page.getByText('View live readings', { exact: true }).click()
+  await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(
-    page.getByRole('row', { name: 'Weekly Racer 150.0 82.0 7.0 2026-09-09' })
+    page.getByRole('row', { name: 'Weekly Racer 150,0 82,0 7,0 9.9.2026' })
   ).toBeVisible()
 })
 
 test('serves the SPA shell with the login screen for unauthenticated users', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
 })
 
 test('defaults to live history, persists on reload, and switches between sample and live', async ({
@@ -79,30 +79,28 @@ test('defaults to live history, persists on reload, and switches between sample 
     })
   })
   await page.goto('/')
-  await expect(page.getByRole('link', { name: 'Live data' })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Live Racer 85.0/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ryhmän mittaukset' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Live Racer 85,0/ })).toBeVisible()
   expect(requests).toBeGreaterThan(0)
-  await expect(page.getByRole('button', { name: /Waiting Racer No readings/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Waiting Racer Ei mittauksia/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Heikki/ })).toHaveCount(0)
-  await page.getByText('View live readings', { exact: true }).click()
-  await expect(
-    page.getByRole('row', { name: 'Live Racer 130.0 85.0 10.0 2026-09-01' })
-  ).toBeVisible()
+  await page.getByText('Näytä mittaukset', { exact: true }).click()
+  await expect(page.getByRole('row', { name: 'Live Racer 130,0 85,0 10,0 1.9.2026' })).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('link', { name: 'Live data' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ryhmän mittaukset' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer/ })).toBeVisible()
-  await page.getByRole('link', { name: 'Live data' }).click()
+  await page.getByRole('link', { name: 'Ryhmän mittaukset' }).click()
   await expect(page).toHaveURL(/data=sample/)
   await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer/ })).toHaveCount(0)
   const liveRequests = requests
   await page.reload()
-  await expect(page.getByRole('link', { name: 'Sample data' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Esimerkkimittaukset' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()
   expect(requests).toBe(liveRequests)
-  await page.getByRole('link', { name: 'Sample data' }).click()
+  await page.getByRole('link', { name: 'Esimerkkimittaukset' }).click()
   await expect(page).toHaveURL(/data=live/)
-  await expect(page.getByRole('button', { name: /Live Racer 85.0/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Live Racer 85,0/ })).toBeVisible()
 })
 
 test('live data errors can be retried and empty responses never show sample participants', async ({
@@ -116,12 +114,12 @@ test('live data errors can be retried and empty responses never show sample part
       : route.fulfill({ json: { participants: [] } })
   )
   await page.goto('/?data=live')
-  await expect(page.getByRole('alert')).toContainText('Could not load measurement history')
+  await expect(page.getByRole('alert')).toContainText('Mittaushistorian lataaminen epäonnistui')
   fail = false
-  await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByRole('status')).toHaveText('No measurements have been imported yet.')
+  await page.getByRole('button', { name: 'Yritä uudelleen' }).click()
+  await expect(page.getByRole('status')).toHaveText('Mittauksia ei ole vielä tuotu.')
   await expect(page.getByRole('button', { name: /Heikki/ })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Live data' }).click()
+  await page.getByRole('link', { name: 'Ryhmän mittaukset' }).click()
   await expect(page.getByRole('button', { name: /Heikki/ })).toBeVisible()
 })
 
@@ -141,16 +139,16 @@ test('sample dashboard supports highlighting racers and reading the data on mobi
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/?data=sample')
 
-  await expect(page.getByText('Sample data', { exact: true })).toBeVisible()
+  await expect(page.getByText('Esimerkkimittaukset', { exact: true })).toBeVisible()
   const racer = page.getByRole('button', { name: /Mikko/ })
   await racer.click()
   await expect(racer).toHaveAttribute('aria-pressed', 'true')
   await racer.click()
   await expect(racer).toHaveAttribute('aria-pressed', 'false')
 
-  await page.getByText('View sample readings', { exact: true }).click()
+  await page.getByText('Näytä esimerkkimittaukset', { exact: true }).click()
   await expect(page.getByRole('table')).toBeVisible()
-  await expect(page.getByRole('row', { name: 'Sanna 84.0 73.2 0.0' })).toBeVisible()
+  await expect(page.getByRole('row', { name: 'Sanna 84,0 73,2 0,0' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true
   )

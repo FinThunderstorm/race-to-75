@@ -27,20 +27,22 @@ export const Enroll = () => {
 
   return (
     <AuthLayout>
-      <p className="eyebrow">Join the race</p>
-      <h1>Set up your passkey</h1>
-      <p className="auth-description">One quick setup. Then you’re on the starting line.</p>
+      <p className="eyebrow">Liity kisaan</p>
+      <h1>Ota pääsyavain käyttöön</h1>
+      <p className="auth-description">Nopea käyttöönotto, ja olet lähtöviivalla.</p>
       <button
         className="primary-button"
         type="button"
         onClick={enroll}
         disabled={status === 'working' || !token}
       >
-        {status === 'working' ? 'Creating passkey…' : 'Create passkey'}
+        {status === 'working' ? 'Luodaan pääsyavainta…' : 'Luo pääsyavain'}
       </button>
-      {(status === 'error' || !token) && <p role="alert">Enrollment link is invalid or expired.</p>}
+      {(status === 'error' || !token) && (
+        <p role="alert">Rekisteröitymislinkki on virheellinen tai vanhentunut.</p>
+      )}
       <p className="auth-hint">
-        Use your device’s fingerprint, face recognition, or security key to sign in.
+        Kirjaudu sisään laitteesi sormenjäljellä, kasvojentunnistuksella tai turva-avaimella.
       </p>
     </AuthLayout>
   )

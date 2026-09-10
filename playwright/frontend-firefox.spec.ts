@@ -60,7 +60,7 @@ const expectUndistortedChart = async (page: Page) => {
 test('BMI uses the same undistorted chart geometry on desktop and mobile', async ({ page }) => {
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
   await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.goal-label')).toHaveText('100 PTS — BMI 18.5–25')
+  await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
   for (const viewport of [
     { width: 1600, height: 1000 },
     { width: 390, height: 844 }
@@ -99,7 +99,7 @@ test('live data retains the preview chart size and character when participants h
   await expect(page.locator('.race-art img')).toBeVisible()
   await expectUndistortedChart(page)
   const preview = await page.locator('.race-chart').boundingBox()
-  await page.getByRole('link', { name: 'Sample data' }).click()
+  await page.getByRole('link', { name: 'Esimerkkimittaukset' }).click()
   await expect(page.getByRole('button', { name: /Recent Racer/ })).toBeVisible()
   await expect(page.locator('.race-art img')).toBeVisible()
   const live = await page.locator('.race-chart').boundingBox()
@@ -107,7 +107,7 @@ test('live data retains the preview chart size and character when participants h
   await expectUndistortedChart(page)
   const recent = await page.getByRole('button', { name: /Recent Racer/ }).boundingBox()
   expect(recent!.x).toBeGreaterThanOrEqual(live!.x + live!.width - 1)
-  const absent = page.getByRole('region', { name: 'Participants without recent readings' })
+  const absent = page.getByRole('region', { name: 'Osallistujat, joilta puuttuu mittauksia' })
   await expect(
     page.locator('.race-standings').getByRole('button', { name: /Old Racer/ })
   ).toBeVisible()

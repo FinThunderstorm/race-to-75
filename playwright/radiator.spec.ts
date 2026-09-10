@@ -28,23 +28,23 @@ test('bottom-right IP indicator reports network access independently of login an
   )
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/')
-  const indicator = page.getByRole('complementary', { name: 'Network access' })
-  await expect(indicator).toHaveText('IP allowed')
+  const indicator = page.getByRole('complementary', { name: 'Verkon käyttöoikeus' })
+  await expect(indicator).toHaveText('IP-osoite sallittu')
   await expect(page.getByRole('link', { name: 'Office Racer' })).toBeVisible()
   const bounds = (await indicator.boundingBox())!
   expect(bounds.x + bounds.width).toBeGreaterThan(1400)
   expect(bounds.y + bounds.height).toBeGreaterThan(960)
   allowed = false
   await page.clock.fastForward(30_100)
-  await expect(indicator).toHaveText('IP not allowed')
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  await expect(indicator).toHaveText('IP-osoitetta ei sallittu')
+  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toBeVisible()
   fail = true
   await page.clock.fastForward(30_100)
-  await expect(indicator).toHaveText('IP check unavailable')
+  await expect(indicator).toHaveText('IP-tarkistus ei onnistu')
   fail = false
   allowed = true
   await page.clock.fastForward(30_100)
-  await expect(indicator).toHaveText('IP allowed')
+  await expect(indicator).toHaveText('IP-osoite sallittu')
 })
 
 test('IP indicator is also visible on login without making the visitor authenticated', async ({
@@ -56,8 +56,10 @@ test('IP indicator is also visible on login without making the visitor authentic
   await page.route('**/api/radiator/access', (route) => route.fulfill({ json: { allowed: true } }))
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await expect(page.getByRole('complementary', { name: 'Network access' })).toHaveText('IP allowed')
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Verkon käyttöoikeus' })).toHaveText(
+    'IP-osoite sallittu'
+  )
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 })
 
@@ -71,10 +73,12 @@ test('IP visitor gets live data without account links and the chart fills and re
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/')
   await expect(page.getByRole('button', { name: /Office Racer/ })).toBeVisible()
-  await expect(page.locator('.dashboard-footer')).toHaveText('Full screen')
+  await expect(page.locator('.dashboard-footer')).toHaveText('Koko näyttö')
   await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /Sample data|Live data/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: /Esimerkkimittaukset|Ryhmän mittaukset/ })
+  ).toHaveCount(0)
   const chart = page.locator('.race-chart')
   await expect.poll(async () => (await chart.boundingBox())!.height).toBeGreaterThan(730)
   const before = (await chart.boundingBox())!
@@ -101,13 +105,13 @@ test('login and settings remain protected by a real session on an allowed networ
   await expect(page.locator('.dashboard--radiator')).toBeVisible()
   await page.goto('/settings')
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
   await page.goto('/login')
-  await expect(page.getByRole('button', { name: 'Log in with passkey' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
   signedIn = true
   await page.reload()
   await expect(page.getByRole('link', { name: 'Office Racer' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toBeVisible()
   await expect(page.locator('.dashboard--radiator')).toHaveCount(0)
 })
 
@@ -120,11 +124,11 @@ test('IP radiator can enter fullscreen without showing profile or logout control
   await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/')
-  const fullscreen = page.getByRole('button', { name: 'Full screen', exact: true })
+  const fullscreen = page.getByRole('button', { name: 'Koko näyttö', exact: true })
   await expect(fullscreen).toBeVisible()
-  await expect(page.locator('.dashboard-footer')).toHaveText('Full screen')
+  await expect(page.locator('.dashboard-footer')).toHaveText('Koko näyttö')
   await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
   await fullscreen.click()
   await expect
     .poll(() => page.evaluate(() => document.fullscreenElement === document.documentElement))
@@ -146,13 +150,13 @@ test('anonymous radiator keeps its fullscreen footer visible when the browser bl
   await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
   await page.goto('/')
   const footer = page.locator('.dashboard-footer')
-  await expect(footer).toHaveText('Full screen')
-  await footer.getByRole('button', { name: 'Full screen', exact: true }).click()
+  await expect(footer).toHaveText('Koko näyttö')
+  await footer.getByRole('button', { name: 'Koko näyttö', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText(
-    'Full screen is unavailable in this browser or embedded view. Use your browser’s full-screen option.'
+    'Koko näytön tila ei ole käytettävissä tässä näkymässä. Käytä selaimen koko näytön toimintoa.'
   )
   await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
 })
 
 test('radiator standings stay aligned to the graph when other participants have no readings', async ({

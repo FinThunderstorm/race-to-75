@@ -22,7 +22,7 @@ const envSchema = z
     JWT_SECRET: z.string().min(16),
     COOKIE_SECRET: z.string().min(16),
     WEBAUTHN_RP_ID: z.string().default('localhost'),
-    WEBAUTHN_RP_NAME: z.string().default('race-to-75'),
+    WEBAUTHN_RP_NAME: z.string().default('Kisa 75 kiloon'),
     WEBAUTHN_ORIGIN: z.url().default('http://localhost:7500'),
     SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(43_200),
     ENROLLMENT_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(86_400),

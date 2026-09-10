@@ -31,19 +31,19 @@ export const Login = () => {
 
   return (
     <AuthLayout>
-      <p className="eyebrow">Ready, player?</p>
-      <h1>Log in</h1>
-      <p className="auth-description">Your next step toward 75 starts here.</p>
+      <p className="eyebrow">Oletko valmis?</p>
+      <h1>Kirjaudu sisään</h1>
+      <p className="auth-description">Seuraava askeleesi kohti 75 kiloa alkaa tästä.</p>
       <button
         className="primary-button"
         type="button"
         onClick={login}
         disabled={status === 'working'}
       >
-        {status === 'working' ? 'Waiting for passkey…' : 'Log in with passkey'}
+        {status === 'working' ? 'Odotetaan pääsyavainta…' : 'Kirjaudu sisään pääsyavaimella'}
       </button>
-      {status === 'error' && <p role="alert">Login failed.</p>}
-      <p className="auth-hint">New to the race? Ask your admin for an invitation.</p>
+      {status === 'error' && <p role="alert">Kirjautuminen epäonnistui.</p>}
+      <p className="auth-hint">Uutena kisassa? Pyydä kutsu ylläpitäjältä.</p>
     </AuthLayout>
   )
 }

@@ -9,35 +9,39 @@ export function parseRaceMode(value: string | null): RaceMode {
 
 export const raceModes = {
   classic: {
-    label: 'Classic',
+    label: 'Paino',
     unit: 'kg',
-    metric: 'weight',
+    unitLabel: 'kilogrammaa',
+    metric: 'paino',
     reference: 75,
-    title: 'The race to 75 kilograms',
-    referenceLabel: '75.0 KG — GOAL LINE'
+    title: 'Kisa 75 kiloon',
+    referenceLabel: '75,0 KG — TAVOITE'
   },
   bmi: {
     label: 'BMI',
-    unit: 'pts',
-    metric: 'BMI index',
+    unit: 'p.',
+    unitLabel: 'pistettä',
+    metric: 'BMI-indeksi',
     reference: 100,
-    title: 'Group BMI index history',
-    referenceLabel: '100 PTS — BMI 18.5–25'
+    title: 'Ryhmän BMI-indeksin historia',
+    referenceLabel: '100 PISTETTÄ — BMI 18,5–25'
   },
   biceps: {
-    label: 'Biceps',
-    unit: 'pts',
-    metric: 'biceps index',
+    label: 'Hauis',
+    unit: 'p.',
+    unitLabel: 'pistettä',
+    metric: 'hauisindeksi',
     reference: null,
-    title: 'Group biceps index history',
+    title: 'Ryhmän hauisindeksin historia',
     referenceLabel: null
   },
   score: {
-    label: 'Score',
-    unit: 'pts',
-    metric: 'race score',
+    label: 'Ihmisarvo',
+    unit: 'kp',
+    unitLabel: 'kansalaispistettä',
+    metric: 'ihmisarvo',
     reference: null,
-    title: 'Group race score history',
+    title: 'Ryhmän ihmisarvon historia',
     referenceLabel: null
   }
 } as const
