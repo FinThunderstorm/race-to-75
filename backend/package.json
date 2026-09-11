@@ -13,7 +13,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@fastify/auth": "5.0.4",
+    "@fastify/auth": "5.1.0",
     "@fastify/cookie": "11.1.2",
     "@fastify/jwt": "10.2.0",
     "@fastify/rate-limit": "11.1.0",
