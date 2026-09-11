@@ -104,5 +104,5 @@ test('allowed network can view real data, enroll, log out and log back in with a
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toBeVisible()
   expect((await page.request.get('/api/race')).status()).toBe(200)
   await page.getByRole('link', { name: 'Radiator Login Tester' }).click()
-  await expect(page).toHaveURL(/\/settings\?mode=bmi$/)
+  await expect(page).toHaveURL(/\/settings\?mode=classic$/)
 })

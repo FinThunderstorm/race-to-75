@@ -52,6 +52,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const sampleRace = useMemo(() => createSampleRace(), [today])
   const views = useMemo(
     () => ({
+      classic: createRaceView(live ? participants : sampleRace, 'classic'),
       bmi: createRaceView(live ? participants : sampleRace, 'bmi'),
       biceps: createRaceView(live ? participants : sampleRace, 'biceps'),
       'blood-pressure': createRaceView(live ? participants : sampleRace, 'blood-pressure'),
@@ -129,11 +130,14 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                   setParams(next)
                 }}
               >
-                {raceModes[option].label}
+                {option === 'classic' ? 'Paino · 75 kg' : raceModes[option].label}
               </button>
             ))}
           </div>
           <div className="race-subtitles">
+            <p className="subtitle" aria-hidden={mode !== 'classic'}>
+              Painohistoria <span>·</span> Tavoite 75,0 kg
+            </p>
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
               BMI <span>·</span> Kansalaispisteet suluissa
             </p>
@@ -182,6 +186,8 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         <RaceChart
           key={live ? 'live' : 'sample'}
           participants={view}
+          classicParticipants={views.classic}
+          bmiParticipants={views.bmi}
           mode={mode}
           live={live}
           radiator={radiator}

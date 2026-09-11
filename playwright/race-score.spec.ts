@@ -22,9 +22,9 @@ const participant: RaceHistoryParticipant = {
 const view = (person: RaceHistoryParticipant, mode: 'bmi' | 'biceps' | 'score' = 'score') =>
   createRaceView(prepareRace([person], now), mode, now)[0]
 
-test('BMI is the default for absent, legacy weight and unknown modes', () => {
+test('weight is the default for absent and unknown modes', () => {
   for (const value of [null, '', 'classic', 'weight', 'unknown']) {
-    expect(parseRaceMode(value)).toBe('bmi')
+    expect(parseRaceMode(value)).toBe('classic')
   }
   for (const mode of raceModeOrder) {
     expect(parseRaceMode(mode)).toBe(mode)
@@ -33,7 +33,7 @@ test('BMI is the default for absent, legacy weight and unknown modes', () => {
 
 test('score is a selectable mode with finite empty chart bounds', () => {
   expect(parseRaceMode('score')).toBe('score')
-  expect(raceModeOrder).toEqual(['bmi', 'biceps', 'blood-pressure', 'score'])
+  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'blood-pressure', 'score'])
   const bounds = raceViewBounds([], 'score', now)
   expect(Number.isFinite(bounds.bottom)).toBe(true)
   expect(bounds.top).toBeGreaterThan(bounds.bottom)

@@ -21,7 +21,7 @@ test('every chart mode leaves room above and below readings on desktop and mobil
   )
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
-    for (const mode of ['bmi', 'biceps', 'blood-pressure', 'score']) {
+    for (const mode of ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']) {
       await page.goto(`/?mode=${mode}`)
       await expect(page.locator('.chart-series circle').first()).toBeVisible()
       await expect

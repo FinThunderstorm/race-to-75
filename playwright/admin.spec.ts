@@ -1,8 +1,5 @@
-import { execFile } from 'node:child_process'
 import { createHmac, randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { promisify } from 'node:util'
 
 import fastifyStatic from '@fastify/static'
 import { type BrowserContext, test as base, expect } from '@playwright/test'
@@ -41,11 +38,6 @@ test.use({
 })
 test.beforeAll(async () => {
   const frontendDist = resolve(__dirname, '../frontend/dist')
-  if (!existsSync(resolve(frontendDist, 'index.html'))) {
-    await promisify(execFile)('npm', ['run', 'build', '-w', 'frontend'], {
-      cwd: resolve(__dirname, '..')
-    })
-  }
   await app.register(authPlugin)
   await registerAdminRoutes(app)
   await registerRaceRoutes(app)
@@ -266,7 +258,7 @@ test('admin UI invites a member who enrolls and gains management access after pr
   await page.goto('/')
   await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
   await page.getByRole('link', { name: 'Admin Test', exact: true }).click()
-  await expect(page).toHaveURL(`${baseURL}/settings?mode=bmi`)
+  await expect(page).toHaveURL(`${baseURL}/settings?mode=classic`)
   await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Withings', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })).toBeVisible()

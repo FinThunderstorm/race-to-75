@@ -1,6 +1,6 @@
 # race-to-75
 
-A shared dashboard for BMI, biceps circumference, blood pressure and citizen points.
+A shared dashboard for weight, BMI, biceps, blood pressure and citizen points.
 
 The dashboard is in Finnish under the name **Resu-ranking**, with Finnish
 number and date formatting. The combined score is **Ihmisarvo**, measured in
@@ -9,14 +9,14 @@ number and date formatting. The combined score is **Ihmisarvo**, measured in
 ## Goal
 
 Track the group's measurements over time and compare their combined Ihmisarvo.
-Weight history feeds BMI and the combined score; there is no standalone weight
-mode or shared 75 kg target in the dashboard.
+Weight is the first/default chart mode, with values in kg and the original 75 kg
+target. The same weight history feeds BMI and the combined score.
 
 ## Status
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. BMI, Hauis, Verenpaine and Ihmisarvo modes
+deployment setup are implemented. Paino, BMI, Hauis, Verenpaine and Ihmisarvo modes
 are available.
 Manual weight entry is still planned.
 
@@ -97,8 +97,9 @@ and Getting started for the current local workflow.
 
 ### Progress
 
-- BMI is the default view; imported weight and saved height determine its values.
-- Each mode shows its current value, change and a three-month trend chart.
+- Paino is the default view. BMI uses imported weight and saved height.
+- Each mode shows its current value and a three-month trend chart. Weight shows
+  kilograms remaining to 75 kg; other modes show the latest change.
 - Completed weeks show averages; the current week shows daily values.
 - Metric values include citizen points in parentheses. BMI and blood pressure
   show faint reference bands, and charts add proportional padding at both ends.
@@ -431,10 +432,10 @@ history. Coolify's `withings-worker` service repeats this command automatically.
 ### BMI view
 
 Select **BMI** from **Kisanäkymä**, or open **<http://localhost:7500/?mode=bmi>**.
-BMI is the default mode and uses live data. The standalone weight mode has been
-removed; existing `?mode=classic` links also open BMI. Available modes are BMI,
-Hauis, Verenpaine and Ihmisarvo, in that order. Automatic switching cycles through
-these four modes; Ihmisarvo remains the last, highlighted button.
+Paino is the first/default mode (`?mode=classic`) and uses live data. Available
+modes are Paino, BMI, Hauis, Verenpaine and Ihmisarvo, in that order. Automatic
+switching cycles through these five modes; Ihmisarvo remains the last, highlighted
+button. Mode selection is preserved when visiting settings and returning.
 Add your height in centimetres under **Asetukset → Kisaprofiili**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.
