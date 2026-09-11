@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { chartBounds, prepareRace } from '../frontend/src/race/prepareRace'
+import { prepareRace } from '../frontend/src/race/prepareRace'
 import { createRaceView, raceViewBounds } from '../frontend/src/race/raceModes'
 
 const now = new Date('2026-09-10T12:00:00Z')
@@ -35,45 +35,6 @@ test('BMI plots raw values and changes without changing colors or source data', 
   expect(view.map((person) => person.color)).toEqual(prepared.map((person) => person.color))
   expect(prepared[0].latest?.weight).toBe(81)
   expect(view[1]).toMatchObject({ needsHeight: true, points: [], latest: null, startValue: null })
-})
-
-test('Classic keeps existing values and bounds', () => {
-  const prepared = prepareRace(people, now)
-  const view = createRaceView(prepared, 'classic')
-  expect(view[0].latest?.value).toBe(81)
-  expect(view[1].latest?.value).toBe(80)
-  expect(raceViewBounds(view, 'classic', now)).toEqual(chartBounds(prepared, now))
-})
-
-test('Classic scales around low historical and current weights with proportional padding', () => {
-  for (const [earlier, current, bottom, top] of [
-    [68, 74, 38.25, 76.75],
-    [80, 67, 38, 82]
-  ]) {
-    const prepared = prepareRace(
-      [
-        {
-          id: 'low',
-          name: 'Low',
-          measurements: [
-            { measuredAt: '2026-09-07T08:00:00Z', weightKg: earlier },
-            { measuredAt: '2026-09-09T08:00:00Z', weightKg: current }
-          ]
-        },
-        {
-          id: 'stale',
-          name: 'Stale',
-          measurements: [{ measuredAt: '2020-01-01T08:00:00Z', weightKg: 40 }]
-        }
-      ],
-      now
-    )
-    const bounds = raceViewBounds(createRaceView(prepared, 'classic'), 'classic', now)
-    expect(bounds.bottom).toBe(bottom)
-    expect(bounds.top).toBe(top)
-    expect(bounds.top).toBeGreaterThan(75)
-    expect(bounds).toEqual(chartBounds(prepared, now))
-  }
 })
 
 test('BMI bounds include values below reference and handle missing or invalid heights', () => {

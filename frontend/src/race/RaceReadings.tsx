@@ -12,56 +12,51 @@ export const RaceReadings = ({
   mode: RaceMode
   live: boolean
 }) => {
-  const classic = mode === 'classic'
   const score = mode === 'score'
   const raw = mode === 'bmi' || mode === 'biceps'
   return (
     <details className={`race-data${score ? ' race-data--score' : ''}`}>
       <summary>{live ? 'Näytä mittaukset' : 'Näytä esimerkkimittaukset'}</summary>
-      {!classic && (
-        <div className="index-explanation">
-          {(mode === 'biceps' || score) && (
-            <p>Hauisindeksi = 100 × ympärys / pituus (molemmat senttimetreinä).</p>
-          )}
-          {(mode === 'bmi' || score) && (
-            <p>
-              BMI-indeksi = 100, kun BMI on 18,5–25. Alle 18,5: 100 × BMI / 18,5. Yli 25: 100 × 25 /
-              BMI.
-            </p>
-          )}
-          {score && (
-            <>
-              <p>
-                Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10 000. Yksikkö on
-                kansalaispiste (kp). Laskentaan tarvitaan paino-, hauis- ja verenpainemittaus sekä
-                pituus.
-              </p>
-              <p>
-                Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon, hauiksen
-                ja verenpaineen päiväkeskiarvoja. Alla näkyvät kaikkien mittausten päivämäärät.
-                Päättyneiltä viikoilta näytetään näiden kansalaispisteiden keskiarvo.
-              </p>
-              <BloodPressureIndexExplanation />
-            </>
-          )}
+      <div className="index-explanation">
+        {(mode === 'biceps' || score) && (
+          <p>Hauisindeksi = 100 × ympärys / pituus (molemmat senttimetreinä).</p>
+        )}
+        {(mode === 'bmi' || score) && (
           <p>
-            Suurempi indeksi antaa paremman tuloksen. Pisteet on tarkoitettu yhteiseen kisaan. Niitä
-            ei ole validoitu terveysmittariksi. Hauisindeksi huomioi pituuden, mutta ei
-            sukupuolieroja.
+            BMI-indeksi = 100, kun BMI on 18,5–25. Alle 18,5: 100 × BMI / 18,5. Yli 25: 100 × 25 /
+            BMI.
           </p>
-        </div>
-      )}
+        )}
+        {score && (
+          <>
+            <p>
+              Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10 000. Yksikkö on
+              kansalaispiste (kp). Laskentaan tarvitaan paino-, hauis- ja verenpainemittaus sekä
+              pituus.
+            </p>
+            <p>
+              Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon, hauiksen
+              ja verenpaineen päiväkeskiarvoja. Alla näkyvät kaikkien mittausten päivämäärät.
+              Päättyneiltä viikoilta näytetään näiden kansalaispisteiden keskiarvo.
+            </p>
+            <BloodPressureIndexExplanation />
+          </>
+        )}
+        <p>
+          Suurempi indeksi antaa paremman tuloksen. Pisteet on tarkoitettu yhteiseen kisaan. Niitä
+          ei ole validoitu terveysmittariksi. Hauisindeksi huomioi pituuden, mutta ei
+          sukupuolieroja.
+        </p>
+      </div>
       <div className="table-scroll">
         <table>
           <caption>
             {live ? 'Mittausten yhteenveto' : 'Esimerkkimittausten yhteenveto'}{' '}
-            {classic
-              ? 'kilogrammoina'
-              : score
-                ? 'kansalaispisteinä'
-                : mode === 'bmi'
-                  ? 'BMI-arvoina (kp suluissa)'
-                  : 'senttimetreinä (kp suluissa)'}{' '}
+            {score
+              ? 'kansalaispisteinä'
+              : mode === 'bmi'
+                ? 'BMI-arvoina (kp suluissa)'
+                : 'senttimetreinä (kp suluissa)'}{' '}
             ·{' '}
             {score
               ? 'Nykyinen ihmisarvo lasketaan viimeisimmistä päiväkeskiarvoista (UTC)'
@@ -72,7 +67,7 @@ export const RaceReadings = ({
               <th scope="col">Osallistuja</th>
               <th scope="col">Alku</th>
               <th scope="col">Nykyarvo</th>
-              <th scope="col">{classic ? 'Jäljellä' : 'Muutos'}</th>
+              <th scope="col">Muutos</th>
               {score && (
                 <>
                   <th scope="col">Hauis (kp)</th>
@@ -108,13 +103,7 @@ export const RaceReadings = ({
                         : formatNumber(last.value)
                       : '—'}
                   </td>
-                  <td>
-                    {!last
-                      ? '—'
-                      : classic
-                        ? formatNumber(Math.max(0, last.value - 75))
-                        : `${change > 0 ? '+' : ''}${formatNumber(change)}`}
-                  </td>
+                  <td>{!last ? '—' : `${change > 0 ? '+' : ''}${formatNumber(change)}`}</td>
                   {score && (
                     <>
                       <td>

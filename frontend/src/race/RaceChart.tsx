@@ -23,24 +23,18 @@ const formatChange = (change: number) => {
 
 export const RaceChart = ({
   participants,
-  classicParticipants = participants,
-  bmiParticipants = participants,
   live = false,
   radiator = false,
-  mode = 'classic'
+  mode = 'bmi'
 }: {
   participants: RaceViewParticipant[]
-  classicParticipants?: RaceViewParticipant[]
-  bmiParticipants?: RaceViewParticipant[]
   live?: boolean
   radiator?: boolean
   mode?: RaceMode
 }) => {
-  const { unit, unitLabel, metric, reference: goal, title, referenceLabel } = raceModes[mode]
+  const { unit, unitLabel, metric, title } = raceModes[mode]
   const bloodPressure = mode === 'blood-pressure'
-  const bmi = mode === 'bmi'
-  const classic = mode === 'classic'
-  const component = !classic && mode !== 'score'
+  const component = mode !== 'score'
   const [selected, setSelected] = useState<string | null>(null)
   const chartRef = useRef<HTMLDivElement>(null)
   const standingsRef = useRef<HTMLDivElement>(null)
@@ -126,27 +120,10 @@ export const RaceChart = ({
     (person) => person.points.length === 0 && !person.needsHeight
   )
   const needingHeight = participants.filter((person) => person.needsHeight)
-  // Reserve the BMI notice only when there is a BMI plot whose size must stay
-  // stable. An empty BMI view should not take space from the Classic chart.
-  const heightParticipants =
-    radiator && (classic || bmi) && bmiParticipants.some((person) => person.points.length > 0)
-      ? bmiParticipants.filter((person) => person.needsHeight)
-      : needingHeight
-  const standingsParticipants =
-    radiator && (classic || bmi)
-      ? participants.filter((person) =>
-          classicParticipants.some(
-            (classic) => classic.id === person.id && classic.points.length > 0
-          )
-        )
-      : withReadings
-  const stacked =
-    (classic || bmi ? classicParticipants : participants).filter(
-      (person) => person.points.length > 0
-    ).length > 10
+  const stacked = withReadings.length > 10
   const targetCoordinates = useMemo(() => {
     const y = (value: number) => ((bounds.top - value) / (bounds.top - bounds.bottom)) * plotHeight
-    const coordinates: Record<string, number> = goal === null ? {} : { goal: y(goal) }
+    const coordinates: Record<string, number> = {}
     const plotted = participants.filter((person) => person.points.length > 0)
     for (const person of plotted) {
       for (const point of person.diastolic?.points ?? []) {
@@ -171,12 +148,12 @@ export const RaceChart = ({
       next = position
     }
     return coordinates
-  }, [participants, bounds, plotHeight, size.height, goal, rowSpacing])
+  }, [participants, bounds, plotHeight, size.height, rowSpacing])
   const animatedCoordinates = useAnimatedCoordinates(targetCoordinates, mode)
   const coordinate = (key: string) => animatedCoordinates[key] ?? targetCoordinates[key]
   const pointY = (person: RaceViewParticipant, date: string) =>
     coordinate(`point:${person.id}:${date}`)
-  const renderParticipant = (person: RaceViewParticipant, placeholder = false) => {
+  const renderParticipant = (person: RaceViewParticipant) => {
     const current = person.latest?.value
     const points =
       current === undefined
@@ -190,9 +167,7 @@ export const RaceChart = ({
       <button
         key={person.id}
         type="button"
-        className={`participant ${selected && selected !== person.id ? 'muted' : ''} ${placeholder ? 'layout-placeholder' : ''}`}
-        aria-hidden={placeholder || undefined}
-        tabIndex={placeholder ? -1 : undefined}
+        className={`participant ${selected && selected !== person.id ? 'muted' : ''}`}
         style={style}
         aria-pressed={selected === person.id}
         onClick={() => setSelected(selected === person.id ? null : person.id)}
@@ -221,26 +196,13 @@ export const RaceChart = ({
                 <span className="participant-points"> ({formatNumber(points)} kp)</span>
               )}
             </span>
-            {!classic ? (
-              <span className="remaining">
-                Muutos {formatChange(person.change)}
-                {bloodPressure && person.diastolic
-                  ? ` / ${formatChange(person.diastolic.change)}`
-                  : ''}{' '}
-                {unit}
-              </span>
-            ) : person.streak >= 7 ? (
-              <span className="race-badge winner">✓ Tavoite · {person.streak} päivää</span>
-            ) : person.change > 0 ? (
-              <span className="race-badge setback">▲ +{formatNumber(person.change)} kg</span>
-            ) : (
-              <span className="remaining">
-                {formatNumber(Math.max(0, current - (goal ?? 0)))} kg jäljellä
-              </span>
-            )}
-            {person.personalLow && person.streak < 7 && (
-              <span className="race-badge personal-low">Uusi alin paino</span>
-            )}
+            <span className="remaining">
+              Muutos {formatChange(person.change)}
+              {bloodPressure && person.diastolic
+                ? ` / ${formatChange(person.diastolic.change)}`
+                : ''}{' '}
+              {unit}
+            </span>
           </>
         )}
       </button>
@@ -249,13 +211,13 @@ export const RaceChart = ({
 
   return (
     <section
-      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''} ${!classic && mode !== 'score' ? 'race--component' : ''}`}
+      className={`race ${live ? 'race--live' : ''} ${stacked ? 'race--stacked' : ''} ${component ? 'race--component' : ''}`}
       style={
         {
-          '--component-chart-min-height': `${Math.max(200, standingsParticipants.length * rowSpacing + 40)}px`,
+          '--component-chart-min-height': `${Math.max(200, withReadings.length * rowSpacing + 40)}px`,
           ...(radiator
             ? {
-                '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, standingsParticipants.length * rowSpacing + 40)}px`
+                '--radiator-chart-min-height': `${stacked ? 200 : Math.max(200, withReadings.length * rowSpacing + 40)}px`
               }
             : {})
         } as CSSProperties
@@ -284,8 +246,7 @@ export const RaceChart = ({
                   : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
               {raceBands[mode].length > 0 &&
                 'Himmeät värialueet näyttävät täysien osapisteiden rajat. '}
-              {mode !== 'classic' &&
-                mode !== 'score' &&
+              {component &&
                 'Viivojen sijainti perustuu mittausarvoihin. Suluissa näkyvät mittarista lasketut kansalaispisteet. '}
               Viikko alkaa maanantaina UTC-ajassa. Aikaväliä edeltävä viimeinen tunnettu arvo
               näytetään vasemmassa reunassa. Jos uudempia mittauksia ei ole, viiva jatkuu
@@ -358,20 +319,6 @@ export const RaceChart = ({
             >
               TÄMÄ VIIKKO
             </text>
-            {goal !== null && (
-              <>
-                <line
-                  className="goal-line"
-                  x1={left}
-                  x2={right}
-                  y1={coordinate('goal')}
-                  y2={coordinate('goal')}
-                />
-                <text className="goal-label" x={left + 4} y={coordinate('goal') - 12}>
-                  {referenceLabel}
-                </text>
-              </>
-            )}
             {withReadings.map((person) => {
               const last = person.points[person.points.length - 1]
               const points = person.points.map(
@@ -456,7 +403,7 @@ export const RaceChart = ({
                     >
                       <title>
                         {person.name}:{' '}
-                        {classic || mode === 'score'
+                        {mode === 'score'
                           ? `${formatNumber(point.value)} ${unitLabel}`
                           : formatRaceReading(
                               mode,
@@ -521,7 +468,7 @@ export const RaceChart = ({
         className="race-standings"
         aria-label="Osallistujat. Korosta mittaushistoriaa valitsemalla osallistuja."
       >
-        {standingsParticipants.map((person) => renderParticipant(person, person.needsHeight))}
+        {withReadings.map((person) => renderParticipant(person))}
       </div>
       {withoutReadings.length > 0 && (
         <section className="race-unplotted" aria-label="Osallistujat, joilta puuttuu mittauksia">
@@ -535,16 +482,11 @@ export const RaceChart = ({
           </div>
         </section>
       )}
-      {heightParticipants.length > 0 && (
-        <section
-          className={`race-unplotted ${classic ? 'layout-placeholder' : ''}`}
-          aria-label="Osallistujat, joilta puuttuu pituus"
-          aria-hidden={classic || undefined}
-          inert={classic}
-        >
+      {needingHeight.length > 0 && (
+        <section className="race-unplotted" aria-label="Osallistujat, joilta puuttuu pituus">
           <p className="unplotted-heading">Pituus puuttuu</p>
           <div className="unplotted-list">
-            {heightParticipants.map((person) => renderParticipant(person))}
+            {needingHeight.map((person) => renderParticipant(person))}
           </div>
         </section>
       )}

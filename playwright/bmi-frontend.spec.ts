@@ -9,6 +9,7 @@ const participants = [
     id: user.id,
     name: user.display_name,
     heightCm: 180,
+    bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 36 }],
     measurements: [
       { measuredAt: '2026-09-07T08:00:00Z', weightKg: 84.24 },
       { measuredAt: '2026-09-09T08:00:00Z', weightKg: 81 }
@@ -27,6 +28,24 @@ test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
   await page.route('**/api/race', (route) => route.fulfill({ json: { participants } }))
+})
+
+test('default and legacy weight links open BMI with only the four remaining modes', async ({
+  page
+}) => {
+  for (const query of ['', '?mode=classic', '?mode=unknown']) {
+    await page.goto(`/${query}`)
+    const buttons = page.locator('.race-mode button[aria-pressed]')
+    await expect(buttons).toHaveText(['BMI', 'Hauis', 'Verenpaine', 'Ihmisarvo'])
+    await expect(buttons.first()).toHaveAttribute('aria-pressed', 'true')
+    await expect(buttons.last()).toHaveClass('race-mode-score')
+    await expect(page.locator('.chart-series')).toHaveCount(1)
+    await expect(page.locator('.goal-line, .goal-label')).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'BMI Racer', exact: true })).toHaveAttribute(
+      'href',
+      '/settings?mode=bmi'
+    )
+  }
 })
 
 test('BMI updates the chart, table and badges, preserving colors and mode across data switches', async ({
@@ -71,9 +90,8 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
   await page.getByRole('link', { name: 'Esimerkkimittaukset', exact: true }).click()
   await expect(racer).toContainText('100,0')
-  await page.getByRole('button', { name: 'Paino · 75 kg', exact: true }).click()
-  await expect(racer).toContainText('81,0')
-  await expect(page.locator('.goal-label')).toHaveText('75,0 KG — TAVOITE')
+  await expect(page.getByRole('button', { name: /Paino/ })).toHaveCount(0)
+  await expect(page.locator('.goal-label')).toHaveCount(0)
 })
 
 test('missing heights explain an empty chart even when another participant has no readings', async ({
@@ -99,8 +117,10 @@ test('missing heights explain an empty chart even when another participant has n
   ).toContainText('BMI Racer')
   await expect(page.getByRole('link', { name: 'Lisää pituutesi' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await page.getByRole('button', { name: 'Paino · 75 kg', exact: true }).click()
-  await expect(page.getByRole('button', { name: /BMI Racer 81,0/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Lisää pituutesi' })).toHaveAttribute(
+    'href',
+    '/settings?mode=bmi'
+  )
 })
 
 test('BMI radiator stays read-only and renders without account controls', async ({ page }) => {
@@ -192,9 +212,8 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   page
 }) => {
   await page.goto('/?data=sample')
-  const classic = page.getByRole('button', { name: 'Paino · 75 kg', exact: true })
   const bmi = page.getByRole('button', { name: 'BMI', exact: true })
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
   await expect(
     page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' })
   ).toBeVisible()
@@ -203,11 +222,9 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   await page.getByRole('button', { name: 'Käynnistä näkymien automaattinen vaihto' }).click()
   const historyLength = await page.evaluate(() => history.length)
   await page.clock.runFor(9999)
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
-  await page.clock.runFor(1)
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
-  await expect(page).toHaveURL(/data=sample&mode=bmi/)
-  await page.clock.runFor(10000)
+  await page.clock.runFor(1)
+  await expect(page).toHaveURL(/data=sample&mode=biceps/)
   await expect(page.getByRole('button', { name: 'Hauis', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true'
@@ -223,7 +240,7 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
     'true'
   )
   await page.clock.runFor(10000)
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await expect(bmi).toHaveAttribute('aria-pressed', 'true')
   expect(await page.evaluate(() => history.length)).toBe(historyLength)
 
   await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
@@ -244,17 +261,17 @@ test('manual mode selection restarts the automatic countdown on the radiator', a
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
   await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
   await page.goto('/?mode=bmi')
-  const classic = page.getByRole('button', { name: 'Paino · 75 kg', exact: true })
+  const score = page.getByRole('button', { name: 'Ihmisarvo', exact: true })
   const bmi = page.getByRole('button', { name: 'BMI', exact: true })
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
   await page.clock.pauseAt(pausedTime)
   await page.getByRole('button', { name: 'Käynnistä näkymien automaattinen vaihto' }).click()
   await page.clock.runFor(5000)
-  await classic.click()
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await score.click()
+  await expect(score).toHaveAttribute('aria-pressed', 'true')
   await page.clock.runFor(9999)
-  await expect(classic).toHaveAttribute('aria-pressed', 'true')
+  await expect(score).toHaveAttribute('aria-pressed', 'true')
   await page.clock.runFor(1)
   await expect(bmi).toHaveAttribute('aria-pressed', 'true')
 })
@@ -275,12 +292,15 @@ test('mode switches keep the header, controls and plot in place on desktop and m
       const before = await Promise.all(
         selectors.map((selector) => page.locator(selector).boundingBox())
       )
-      await page.getByRole('button', { name: 'BMI', exact: true }).click()
-      await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
+      await page.getByRole('button', { name: 'Hauis', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Hauis', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
       for (const [index, selector] of selectors.entries()) {
         await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
       }
-      await page.getByRole('button', { name: 'Paino · 75 kg', exact: true }).click()
+      await page.getByRole('button', { name: 'BMI', exact: true }).click()
       for (const [index, selector] of selectors.entries()) {
         await expect.poll(() => page.locator(selector).boundingBox()).toEqual(before[index])
       }
@@ -298,13 +318,14 @@ test('chart lines and markers interpolate between modes without remounting or lo
   const series = page.locator('.chart-series').first()
   const line = await series.locator('polyline').last().elementHandle()
   const before = await line!.getAttribute('points')
-  await page.getByRole('button', { name: 'BMI', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'BMI', exact: true })).toHaveAttribute(
+  await page.getByRole('button', { name: 'Hauis', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Hauis', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true'
   )
   expect(await line!.evaluate((element) => element.isConnected)).toBe(true)
-  expect(await line!.getAttribute('points')).toBe(before)
+  // Different metrics may have different dates; shared points retain their position.
+  expect((await line!.getAttribute('points'))!.split(' ')[0]).toBe(before!.split(' ')[0])
   await page.clock.runFor(300)
   const halfway = await line!.getAttribute('points')
   expect(halfway).not.toBe(before)
@@ -326,7 +347,7 @@ test('reduced motion switches chart positions immediately', async ({ page }) => 
   await page.clock.pauseAt(pausedTime)
   const line = page.locator('.chart-series').first().locator('polyline').last()
   const before = await line.getAttribute('points')
-  await page.getByRole('button', { name: 'BMI', exact: true }).click()
+  await page.getByRole('button', { name: 'Hauis', exact: true }).click()
   await expect(line).not.toHaveAttribute('points', before!)
   const after = await line.getAttribute('points')
   await page.clock.runFor(700)

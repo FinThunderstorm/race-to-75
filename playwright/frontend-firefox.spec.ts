@@ -28,15 +28,17 @@ const expectUndistortedChart = async (page: Page) => {
           diameter: circle.r.baseVal.value * 2 + stroke
         }
       })
-      const goal = svg.querySelector<SVGLineElement>('.goal-line')!
-      const goalStyle = getComputedStyle(goal)
-      const labelTransform = svg.querySelector<SVGTextElement>('.goal-label')!.getScreenCTM()!
+      const boundary = svg.querySelector<SVGLineElement>('.reference-band line')!
+      const boundaryStyle = getComputedStyle(boundary)
+      const labelTransform = svg
+        .querySelector<SVGTextElement>('.reference-band-label')!
+        .getScreenCTM()!
       return {
         scaleX: transform.a,
         scaleY: transform.d,
         circles,
-        goalStroke: goalStyle.strokeWidth,
-        goalDashes: goalStyle.strokeDasharray,
+        boundaryStroke: boundaryStyle.strokeWidth,
+        boundaryDashes: boundaryStyle.strokeDasharray,
         labelScaleX: labelTransform.a,
         labelScaleY: labelTransform.d
       }
@@ -50,8 +52,8 @@ const expectUndistortedChart = async (page: Page) => {
       expect(Math.abs(circle.width - circle.diameter)).toBeLessThan(0.1)
       expect(Math.abs(circle.height - circle.diameter)).toBeLessThan(0.1)
     }
-    expect(geometry.goalStroke).toBe('1px')
-    expect(geometry.goalDashes).toBe('8px, 8px')
+    expect(geometry.boundaryStroke).toBe('1px')
+    expect(geometry.boundaryDashes).toBe('3px, 5px')
     expect(geometry.labelScaleX).toBeCloseTo(1, 3)
     expect(geometry.labelScaleY).toBeCloseTo(1, 3)
   }).toPass()
@@ -60,7 +62,7 @@ const expectUndistortedChart = async (page: Page) => {
 test('BMI uses the same undistorted chart geometry on desktop and mobile', async ({ page }) => {
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: previewUser }))
   await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.goal-label')).toHaveText('100 PISTETTÄ — BMI 18,5–25')
+  await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
   for (const viewport of [
     { width: 1600, height: 1000 },
     { width: 390, height: 844 }
@@ -83,14 +85,16 @@ test('live data retains the preview chart size and character when participants h
           {
             id: 'recent',
             name: 'Recent Racer',
+            heightCm: 180,
             measurements: [{ measuredAt: '2026-09-09T08:00:00Z', weightKg: 82 }]
           },
           {
             id: 'old',
             name: 'Old Racer',
+            heightCm: 180,
             measurements: [{ measuredAt: '2020-01-01T08:00:00Z', weightKg: 95 }]
           },
-          { id: 'empty', name: 'New Racer', measurements: [] }
+          { id: 'empty', name: 'New Racer', heightCm: 180, measurements: [] }
         ]
       }
     })

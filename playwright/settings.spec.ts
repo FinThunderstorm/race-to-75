@@ -5,6 +5,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/biceps-measurements', (route) =>
     route.fulfill({ json: { measurements: [] } })
   )
+  await page.route('**/api/blood-pressure-measurements', (route) =>
+    route.fulfill({ json: { measurements: [] } })
+  )
   await page.route('**/api/integrations/eufy/status', (route) =>
     route.fulfill({ json: { status: 'disconnected' } })
   )
@@ -49,7 +52,7 @@ test('signed-in name opens settings with connection controls and retryable failu
   await page.goto('/')
   await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
   await page.getByRole('link', { name: 'Profile Racer', exact: true }).click()
-  await expect(page).toHaveURL(/\/settings$/)
+  await expect(page).toHaveURL(/\/settings\?mode=bmi$/)
   await expect(page.getByRole('heading', { name: 'Käyttäjähallinta' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Asetukset' })).toBeVisible()
   await expect(page.getByText('profile@example.com', { exact: true })).toBeVisible()
@@ -78,7 +81,7 @@ test('signed-in name opens settings with connection controls and retryable failu
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/\?mode=bmi$/)
   expect(adminRequests).toBe(0)
 })
 

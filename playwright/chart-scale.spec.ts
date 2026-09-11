@@ -4,7 +4,6 @@ import {
   createRaceView,
   raceBands,
   raceModeOrder,
-  raceModes,
   raceViewBounds
 } from '../frontend/src/race/raceModes'
 
@@ -46,8 +45,7 @@ for (const mode of raceModeOrder) {
       const included = [
         ...values,
         ...(person.diastolic?.points.map((point) => point.value) ?? []),
-        ...raceBands[mode].flatMap((band) => [band.min, band.max]),
-        ...(raceModes[mode].reference === null ? [] : [raceModes[mode].reference!])
+        ...raceBands[mode].flatMap((band) => [band.min, band.max])
       ]
       const bounds = raceViewBounds([person], mode, now)
       const range = bounds.top - bounds.bottom

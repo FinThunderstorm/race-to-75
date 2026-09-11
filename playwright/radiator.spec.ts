@@ -4,6 +4,7 @@ const user = {
   id: 'racer',
   email: 'racer@example.com',
   display_name: 'Office Racer',
+  heightCm: 180,
   role: 'member'
 }
 const race = {
@@ -11,6 +12,7 @@ const race = {
     {
       id: 'racer',
       name: 'Office Racer',
+      heightCm: 180,
       measurements: [{ measuredAt: new Date().toISOString(), weightKg: 82 }]
     }
   ]
@@ -170,7 +172,7 @@ test('radiator standings stay aligned to the graph when other participants have 
       json: {
         participants: [
           ...race.participants,
-          { id: 'waiting', name: 'Waiting Racer', measurements: [] }
+          { id: 'waiting', name: 'Waiting Racer', heightCm: 180, measurements: [] }
         ]
       }
     })
@@ -210,6 +212,7 @@ test('short desktop windows keep every participant below the header and reachabl
         participants: Array.from({ length: 10 }, (_, index) => ({
           id: `racer-${index}`,
           name: `Racer ${index}`,
+          heightCm: 180,
           measurements: [{ measuredAt: new Date().toISOString(), weightKg: 82 + index }]
         }))
       }

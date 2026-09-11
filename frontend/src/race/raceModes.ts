@@ -10,63 +10,45 @@ import {
   type ScoreComponents
 } from './raceIndices'
 
-export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure'
-export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']
+export type RaceMode = 'bmi' | 'biceps' | 'score' | 'blood-pressure'
+export const raceModeOrder: RaceMode[] = ['bmi', 'biceps', 'blood-pressure', 'score']
 export function parseRaceMode(value: string | null): RaceMode {
-  return raceModeOrder.find((mode) => mode === value) ?? 'classic'
+  return raceModeOrder.find((mode) => mode === value) ?? 'bmi'
 }
 
 export const raceModes = {
-  classic: {
-    label: 'Paino',
-    unit: 'kg',
-    unitLabel: 'kilogrammaa',
-    metric: 'paino',
-    reference: 75,
-    title: 'Kisa 75 kiloon',
-    referenceLabel: '75,0 KG — TAVOITE'
-  },
   bmi: {
     label: 'BMI',
     unit: 'BMI',
     unitLabel: 'BMI',
     metric: 'BMI',
-    reference: null,
-    title: 'Ryhmän BMI-historia',
-    referenceLabel: null
+    title: 'Ryhmän BMI-historia'
   },
   biceps: {
     label: 'Hauis',
     unit: 'cm',
     unitLabel: 'cm',
     metric: 'hauiksen ympärysmitta',
-    reference: null,
-    title: 'Ryhmän hauismittausten historia',
-    referenceLabel: null
+    title: 'Ryhmän hauismittausten historia'
   },
   'blood-pressure': {
     label: 'Verenpaine',
     unit: 'mmHg',
     unitLabel: 'mmHg',
     metric: 'verenpaine',
-    reference: null,
-    title: 'Ryhmän verenpainehistoria',
-    referenceLabel: null
+    title: 'Ryhmän verenpainehistoria'
   },
   score: {
     label: 'Ihmisarvo',
     unit: 'kp',
     unitLabel: 'kansalaispistettä',
     metric: 'ihmisarvo',
-    reference: null,
-    title: 'Ryhmän ihmisarvon historia',
-    referenceLabel: null
+    title: 'Ryhmän ihmisarvon historia'
   }
 } as const
 
 export type ReferenceBand = { min: number; max: number; label: string; color: string }
 export const raceBands: Record<RaceMode, readonly ReferenceBand[]> = {
-  classic: [],
   score: [],
   biceps: [],
   bmi: [{ ...bmiRange, label: 'BMI', color: '#00eda0' }],
@@ -111,7 +93,6 @@ export function createRaceView(
   return participants.map(({ points, latest, startWeight, ...person }) => {
     const height = person.heightCm
     const needsHeight =
-      mode !== 'classic' &&
       mode !== 'blood-pressure' &&
       (!height || !Number.isFinite(height) || height < 50 || height > 300)
     const base = {
@@ -174,7 +155,7 @@ export function createRaceView(
         change: history.change
       }
     }
-    const divisor = mode === 'bmi' ? (height! / 100) ** 2 : 1
+    const divisor = (height! / 100) ** 2
     const convert = (weight: number) => weight / divisor
     const previous = person.dailyWeights.at(-2)
     return {
@@ -183,8 +164,8 @@ export function createRaceView(
       latest: latest && { date: latest.date, value: convert(latest.weight) },
       startValue: startWeight === null ? null : convert(startWeight),
       change: latest && previous ? convert(latest.weight) - convert(previous.weight) : 0,
-      streak: mode === 'classic' ? person.streak : 0,
-      personalLow: mode === 'classic' && person.personalLow
+      streak: 0,
+      personalLow: false
     }
   })
 }
@@ -194,9 +175,8 @@ export function raceViewBounds(
   mode: RaceMode,
   now = new Date()
 ) {
-  const reference = raceModes[mode].reference
-  let minValue: number = reference ?? Number.POSITIVE_INFINITY
-  let maxValue: number = reference ?? Number.NEGATIVE_INFINITY
+  let minValue = Number.POSITIVE_INFINITY
+  let maxValue = Number.NEGATIVE_INFINITY
   for (const band of raceBands[mode]) {
     minValue = Math.min(minValue, band.min)
     maxValue = Math.max(maxValue, band.max)
@@ -226,9 +206,7 @@ export function raceViewBounds(
   const ticks = []
   for (let tick = Math.ceil(bottom / step) * step; tick < top; tick += step) {
     const value = Number(tick.toFixed(6))
-    if (value !== reference) {
-      ticks.push(value)
-    }
+    ticks.push(value)
   }
   return { bottom, top, ticks, ...chartWindow(now) }
 }

@@ -67,7 +67,7 @@ test('old biceps and weight readings remain plottable with appropriate chart bou
     ],
     now
   )
-  for (const mode of ['classic', 'bmi', 'biceps'] as const) {
+  for (const mode of ['bmi', 'biceps'] as const) {
     const view = createRaceView(prepared, mode, now)
     expect(view[0].points).toHaveLength(1)
     expect(view[0].points[0].date).toBe('2025-02-06')

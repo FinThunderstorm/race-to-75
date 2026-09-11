@@ -43,7 +43,7 @@ test('biceps uses independent readings, retaining colors and neutral changes', (
     { date: '2026-09-09', value: 37, period: 'day' }
   ])
   expect(view[1].latest).toBeNull()
-  expect(createRaceView(prepared, 'classic')[0].latest).toBeNull()
+  expect(createRaceView(prepared, 'bmi')[0].latest).toBeNull()
   const bounds = raceViewBounds(view, 'biceps', now)
   expect(bounds.bottom).toBeLessThan(35)
   expect(bounds.top).toBeGreaterThan(37)

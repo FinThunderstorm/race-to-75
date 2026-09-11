@@ -94,6 +94,7 @@ test('height validates input, persists only for its owner, and reaches race and 
         name: 'Height member 0',
         heightCm: 179.9,
         bicepsMeasurements: [],
+        bloodPressureMeasurements: [],
         measurements: [{ measuredAt: '2026-09-09T08:00:00.000Z', weightKg: 80.25 }]
       })
     }

@@ -1,22 +1,22 @@
 # race-to-75
 
-A simple app to track progress toward a shared goal: everyone reaching 75 kg.
+A shared dashboard for BMI, biceps circumference, blood pressure and citizen points.
 
-The interface is in Finnish under the name **Kisa 75 kiloon**, with Finnish
+The dashboard is in Finnish under the name **Resu-ranking**, with Finnish
 number and date formatting. The combined score is **Ihmisarvo**, measured in
 **kansalaispisteet** (`kp`).
 
 ## Goal
 
-Keep everyone's weight on record over time and make the shared target —
-75 kg per person — easy to follow and stay accountable to. The target is global:
-75 kg for everyone.
+Track the group's measurements over time and compare their combined Ihmisarvo.
+Weight history feeds BMI and the combined score; there is no standalone weight
+mode or shared 75 kg target in the dashboard.
 
 ## Status
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Paino, BMI, Hauis, Ihmisarvo and Verenpaine modes
+deployment setup are implemented. BMI, Hauis, Verenpaine and Ihmisarvo modes
 are available.
 Manual weight entry is still planned.
 
@@ -97,32 +97,13 @@ and Getting started for the current local workflow.
 
 ### Progress
 
-- Start weight is the **first recorded measurement** (derived, not stored
-  separately).
-- Shows current weight (most recent daily average), kg lost since start, kg to
-  go, and % of the way from start to 75 kg.
-- Three-month trend chart: one average per completed week, with daily averages
-  for the current week. No timeframe filters.
-
-### Reactions
-
-Light "juice" on logging, derived from existing measurements — no new data.
-
-- Logging a **new personal low** (lowest daily average to date) triggers a
-  celebration.
-- Logging a weight **higher than your previous reading** triggers a playful
-  "buu" — louder if it is a new personal high.
-
-### Leaderboard
-
-- Competitive ranking of all users toward the shared 75 kg goal.
-- Users **above** 75 kg are ranked by how close they are (kg to go, ascending).
-- Users **at or below** 75 kg form the winner group, sorted ahead of the rest
-  and ordered by current streak length.
-- **Goal status** requires holding a daily average ≤ 75 kg for **7 qualifying
-  days**: unlogged days are skipped, a logged day above 75 kg resets the streak.
-- A **"goal reached" badge** is shown once the 7-day streak is met. It is a live
-  status and is lost if the user drifts back above 75 kg.
+- BMI is the default view; imported weight and saved height determine its values.
+- Each mode shows its current value, change and a three-month trend chart.
+- Completed weeks show averages; the current week shows daily values.
+- Metric values include citizen points in parentheses. BMI and blood pressure
+  show faint reference bands, and charts add proportional padding at both ends.
+- The combined **Ihmisarvo** uses BMI, biceps and blood pressure indices. It is
+  the last, highlighted mode; higher citizen points give a higher score.
 
 ### Integrations
 
@@ -133,7 +114,7 @@ Light "juice" on logging, derived from existing measurements — no new data.
 ### Radiator
 
 An ambient, read-only big-screen display (office TV/monitor) of the group's
-race to 75 — glanceable, no interaction, auto-updating.
+measurement history — glanceable and auto-updating.
 
 - Open `/` without a session from the address configured in
   `RADIATOR_ALLOWED_IP` to see the live group graph and standings, refreshing
@@ -170,8 +151,8 @@ race to 75 — glanceable, no interaction, auto-updating.
 
 TypeScript monorepo, cloud backend with shared data.
 
-- **Frontend** — React single-page web app: manual weight entry, per-user
-  progress toward 75 kg, comparison view, and connecting integrations.
+- **Frontend** — React single-page web app: metric charts, citizen points, manual
+  biceps/blood pressure entry, profiles and connecting weight integrations.
 - **Backend** — Node + Fastify REST API.
 - **Database** — PostgreSQL.
 
@@ -425,9 +406,9 @@ has at most one point per logged day, averaging that day's weighings. Weeks star
 on Monday in UTC. Empty weeks/days have no point, and the first partial week
 only includes readings within the displayed window.
 
-Start weight, current weight, personal records, and qualifying-day streaks still
-use the full history and daily averages, independent of chart grouping. Participants
-without recent readings remain visible, and the table shows the latest reading date.
+Start and current values use the full history and daily averages, independent
+of chart grouping. Participants without recent readings remain visible, and the
+table shows the latest reading date.
 
 **The dashboard refresh does not fetch from Withings.** For local use without a
 public webhook, use **Yhdistä Withings uudelleen** in your profile whenever you
@@ -450,7 +431,10 @@ history. Coolify's `withings-worker` service repeats this command automatically.
 ### BMI view
 
 Select **BMI** from **Kisanäkymä**, or open **<http://localhost:7500/?mode=bmi>**.
-Paino (75 kg) remains the default mode; both modes use live data by default.
+BMI is the default mode and uses live data. The standalone weight mode has been
+removed; existing `?mode=classic` links also open BMI. Available modes are BMI,
+Hauis, Verenpaine and Ihmisarvo, in that order. Automatic switching cycles through
+these four modes; Ihmisarvo remains the last, highlighted button.
 Add your height in centimetres under **Asetukset → Kisaprofiili**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.

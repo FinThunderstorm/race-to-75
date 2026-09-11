@@ -34,7 +34,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     }, 10_000)
     return () => window.clearTimeout(timeout)
   }, [playing, mode, params, setParams])
-  const settingsUrl = mode === 'classic' ? '/settings' : `/settings?mode=${mode}`
+  const settingsUrl = `/settings?mode=${mode}`
   const live = radiator || params.get('data') !== 'sample'
   const {
     data,
@@ -52,7 +52,6 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const sampleRace = useMemo(() => createSampleRace(), [today])
   const views = useMemo(
     () => ({
-      classic: createRaceView(live ? participants : sampleRace, 'classic'),
       bmi: createRaceView(live ? participants : sampleRace, 'bmi'),
       biceps: createRaceView(live ? participants : sampleRace, 'biceps'),
       'blood-pressure': createRaceView(live ? participants : sampleRace, 'blood-pressure'),
@@ -91,7 +90,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
       <header className="race-header">
         <div>
-          <h1 className="wordmark">Arvokkaimmat resut</h1>
+          <h1 className="wordmark">Resu-ranking</h1>
           <div className="race-mode" role="group" aria-label="Kisanäkymä">
             <button
               className="race-mode-playback"
@@ -130,14 +129,11 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
                   setParams(next)
                 }}
               >
-                {option === 'classic' ? 'Paino · 75 kg' : raceModes[option].label}
+                {raceModes[option].label}
               </button>
             ))}
           </div>
           <div className="race-subtitles">
-            <p className="subtitle" aria-hidden={mode !== 'classic'}>
-              Painohistoria <span>·</span> Tavoite 75,0 kg
-            </p>
             <p className="subtitle" aria-hidden={mode !== 'bmi'}>
               BMI <span>·</span> Kansalaispisteet suluissa
             </p>
@@ -186,8 +182,6 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
         <RaceChart
           key={live ? 'live' : 'sample'}
           participants={view}
-          classicParticipants={views.classic}
-          bmiParticipants={views.bmi}
           mode={mode}
           live={live}
           radiator={radiator}

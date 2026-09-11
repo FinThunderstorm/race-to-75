@@ -266,7 +266,7 @@ test('admin UI invites a member who enrolls and gains management access after pr
   await page.goto('/')
   await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
   await page.getByRole('link', { name: 'Admin Test', exact: true }).click()
-  await expect(page).toHaveURL(`${baseURL}/settings`)
+  await expect(page).toHaveURL(`${baseURL}/settings?mode=bmi`)
   await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Withings', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })).toBeVisible()

@@ -17,7 +17,7 @@ export const Settings = () => {
 
   return (
     <main className={`settings-page${isAdmin ? ' settings-page--admin' : ''}`}>
-      <Link className="text-button" to={mode === 'classic' ? '/' : `/?mode=${mode}`}>
+      <Link className="text-button" to={`/?mode=${mode}`}>
         ← Takaisin kisaan
       </Link>
       <header>
