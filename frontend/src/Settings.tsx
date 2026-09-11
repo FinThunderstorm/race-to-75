@@ -7,6 +7,7 @@ import { BicepsSettings } from './settings/BicepsSettings'
 import { BloodPressureSettings } from './settings/BloodPressureSettings'
 import { EufySettings } from './settings/EufySettings'
 import { RaceProfileSettings } from './settings/RaceProfileSettings'
+import { SbdSettings } from './settings/SbdSettings'
 import { WithingsSettings } from './settings/WithingsSettings'
 
 export const Settings = () => {
@@ -29,6 +30,7 @@ export const Settings = () => {
       <RaceProfileSettings />
       <BicepsSettings />
       <BloodPressureSettings />
+      <SbdSettings />
       <WithingsSettings />
       <EufySettings />
       {isAdmin && <UserManagement />}

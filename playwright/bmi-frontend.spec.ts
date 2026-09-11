@@ -33,7 +33,14 @@ test('weight is first and opens by default and from existing links', async ({ pa
   for (const query of ['', '?mode=classic', '?mode=unknown']) {
     await page.goto(`/${query}`)
     const buttons = page.locator('.race-mode button[aria-pressed]')
-    await expect(buttons).toHaveText(['Paino · 75 kg', 'BMI', 'Hauis', 'Verenpaine', 'Ihmisarvo'])
+    await expect(buttons).toHaveText([
+      'Paino · 75 kg',
+      'BMI',
+      'Hauis',
+      'Verenpaine',
+      'DOTS',
+      'Ihmisarvo'
+    ])
     await expect(buttons.first()).toHaveAttribute('aria-pressed', 'true')
     await expect(buttons.last()).toHaveClass('race-mode-score')
     await expect(page.getByRole('button', { name: /BMI Racer 81,0/ })).toBeVisible()
@@ -142,6 +149,10 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
       if (failSave) {
         return route.fulfill({ status: 500, json: {} })
       }
+      expect(route.request().postDataJSON()).toEqual({
+        heightCm: route.request().postDataJSON().heightCm,
+        sex: null
+      })
       heightCm = route.request().postDataJSON().heightCm
     } else if (failLoad) {
       return route.fulfill({ status: 500, json: {} })
@@ -160,27 +171,27 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
   await page.goto('/?mode=bmi')
   await page.getByRole('link', { name: 'Lisää pituutesi' }).click()
   const panel = page.getByRole('region', { name: 'Kisaprofiili' })
-  await expect(panel.getByRole('alert')).toContainText('Pituuden lataaminen epäonnistui')
+  await expect(panel.getByRole('alert')).toContainText('Profiilin lataaminen epäonnistui')
   failLoad = false
-  await panel.getByRole('button', { name: 'Yritä ladata pituus uudelleen' }).click()
+  await panel.getByRole('button', { name: 'Yritä ladata profiili uudelleen' }).click()
   await panel.getByRole('spinbutton', { name: 'Pituus (cm)' }).fill('180')
-  await panel.getByRole('button', { name: 'Tallenna pituus' }).click()
-  await expect(panel.getByRole('alert')).toContainText('Pituuden tallentaminen epäonnistui')
+  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
+  await expect(panel.getByRole('alert')).toContainText('Profiilin tallentaminen epäonnistui')
   failSave = false
-  await panel.getByRole('button', { name: 'Tallenna pituus' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Pituus tallennettu.')
+  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
+  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=bmi/)
   await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
   await page.getByRole('link', { name: 'BMI Racer', exact: true }).click()
   await panel.getByRole('spinbutton', { name: 'Pituus (cm)' }).fill('190')
-  await panel.getByRole('button', { name: 'Tallenna pituus' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Pituus tallennettu.')
+  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
+  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
   await page.reload()
   await expect(panel.getByRole('spinbutton', { name: 'Pituus (cm)' })).toHaveValue('190')
   await panel.getByRole('spinbutton', { name: 'Pituus (cm)' }).fill('')
-  await panel.getByRole('button', { name: 'Tallenna pituus' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Pituus poistettu.')
+  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
+  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/\/\?mode=bmi$/)
   await expect(page.locator('.dashboard').getByRole('status')).toHaveText(
@@ -230,6 +241,11 @@ test('mode buttons automatically cycle every ten seconds and support pause and r
   )
   await page.clock.runFor(10000)
   await expect(page.getByRole('button', { name: 'Verenpaine', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
+  await page.clock.runFor(10000)
+  await expect(page.getByRole('button', { name: 'DOTS', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true'
   )

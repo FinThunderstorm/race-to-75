@@ -9,13 +9,23 @@ const participant: RaceHistoryParticipant = {
   id: 'one',
   name: 'One',
   heightCm: 200,
+  sex: 'male',
+  sbdMeasurements: [
+    {
+      measuredAt: '2026-08-01',
+      squatKg: 100,
+      benchKg: 50,
+      deadliftKg: 140.045723264,
+      bodyweightKg: 80
+    }
+  ],
   measurements: [{ measuredAt: '2026-09-01', weightKg: 100 }],
   bicepsMeasurements: [{ measuredAt: '2026-09-01', circumferenceCm: 40 }]
 }
 const view = (person: RaceHistoryParticipant) =>
   createRaceView(prepareRace([person], now), 'score', now)[0]
 
-test('blood pressure multiplies score with a capped plateau and the weaker pressure ratio', () => {
+test('blood pressure contributes one quarter of score with a capped plateau and the weaker pressure ratio', () => {
   for (const [systolic, diastolic, index] of [
     [90, 60, 100],
     [120, 80, 100],
@@ -31,7 +41,9 @@ test('blood pressure multiplies score with a capped plateau and the weaker press
       ...participant,
       bloodPressureMeasurements: [{ measuredAt: '2026-09-01', systolic, diastolic }]
     })
-    expect(result.latest?.value, `${systolic}/${diastolic}`).toBeCloseTo((20 * index) / 100)
+    expect(result.latest?.value, `${systolic}/${diastolic}`).toBeCloseTo(
+      (100 + 100 + index + 100) / 4
+    )
     expect(result.scoreComponents?.bloodPressureIndex).toBeCloseTo(index)
   }
 })
@@ -52,7 +64,7 @@ test('score waits for blood pressure and never fills earlier dates with later re
     ...participant,
     bloodPressureMeasurements: [{ measuredAt: '2026-09-09', systolic: 160, diastolic: 100 }]
   })
-  expect(result.points).toEqual([{ date: '2026-09-09', value: 15, period: 'day' }])
+  expect(result.points).toEqual([{ date: '2026-09-09', value: 93.75, period: 'day' }])
   expect(result.scoreComponents?.bloodPressure).toEqual({
     date: '2026-09-09',
     systolic: 160,
@@ -72,10 +84,10 @@ test('pressure-only days update score, averaging paired pressures before indexin
     ]
   })
   expect(result.points).toEqual([
-    { date: '2026-08-31', value: 17.5, period: 'week' },
-    { date: '2026-09-09', value: 20, period: 'day' }
+    { date: '2026-08-31', value: 96.875, period: 'week' },
+    { date: '2026-09-09', value: 100, period: 'day' }
   ])
-  expect(result.change).toBe(5)
+  expect(result.change).toBe(6.25)
   expect(result.scoreComponents).toMatchObject({
     bloodPressureIndex: 100,
     bloodPressure: { date: '2026-09-09', systolic: 120, diastolic: 80 },
@@ -90,7 +102,7 @@ test('later weight readings carry preceding blood pressure and deleting the last
     bloodPressureMeasurements: [{ measuredAt: '2026-09-01', systolic: 160, diastolic: 100 }]
   }
   const result = view(person)
-  expect(result.latest?.value).toBeCloseTo(12.5)
+  expect(result.latest?.value).toBeCloseTo((100 + (100 * 25) / 30 + 75 + 100) / 4)
   expect(result.scoreComponents?.bloodPressure.date).toBe('2026-09-01')
   expect(view({ ...person, bloodPressureMeasurements: [] }).latest).toBeNull()
 })

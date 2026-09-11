@@ -8,6 +8,8 @@ export type RaceParticipant = {
   name: string
   color: string
   heightCm?: number | null
+  sex?: RaceHistoryParticipant['sex']
+  sbdMeasurements?: RaceHistoryParticipant['sbdMeasurements']
   bloodPressureMeasurements?: RaceHistoryParticipant['bloodPressureMeasurements']
   bicepsMeasurements?: RaceHistoryParticipant['bicepsMeasurements']
   dailyWeights: WeightPoint[]
@@ -144,6 +146,8 @@ export function prepareRace(
       name: participant.name,
       color: colors[index % colors.length],
       heightCm: participant.heightCm ?? null,
+      sex: participant.sex ?? null,
+      sbdMeasurements: participant.sbdMeasurements,
       dailyWeights: daily,
       points,
       latest,

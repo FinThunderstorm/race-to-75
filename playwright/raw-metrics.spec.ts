@@ -10,6 +10,16 @@ const prepared = prepareRace(
       id: 'one',
       name: 'One',
       heightCm: 200,
+      sex: 'male',
+      sbdMeasurements: [
+        {
+          measuredAt: '2026-09-01',
+          bodyweightKg: 80,
+          squatKg: 100,
+          benchKg: 50,
+          deadliftKg: 140.045723264
+        }
+      ],
       measurements: [{ measuredAt: '2026-09-09', weightKg: 120 }],
       bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 40 }],
       bloodPressureMeasurements: [{ measuredAt: '2026-09-09', systolic: 160, diastolic: 100 }]
@@ -31,7 +41,9 @@ test('metric labels expose raw measurements with component citizen points and le
       label
     )
   }
-  expect(createRaceView(prepared, 'score', now)[0].latest?.value).toBeCloseTo(12.5)
+  expect(createRaceView(prepared, 'score', now)[0].latest?.value).toBeCloseTo(
+    (100 + (100 * 25) / 30 + 75 + 100) / 4
+  )
 })
 
 test('chart bounds include whole reference bands for outlying and empty histories', () => {

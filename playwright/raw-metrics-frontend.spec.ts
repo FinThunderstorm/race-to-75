@@ -5,6 +5,16 @@ const participant = {
   id: user.id,
   name: user.display_name,
   heightCm: 200,
+  sex: 'male',
+  sbdMeasurements: [
+    {
+      measuredAt: '2026-09-09',
+      bodyweightKg: 80,
+      squatKg: 100,
+      benchKg: 50,
+      deadliftKg: 140.045723264
+    }
+  ],
   measurements: [{ measuredAt: '2026-09-09', weightKg: 120 }],
   bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 40 }],
   bloodPressureMeasurements: [{ measuredAt: '2026-09-09', systolic: 160, diastolic: 100 }]
@@ -21,7 +31,7 @@ test('every chart mode leaves room above and below readings on desktop and mobil
   )
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 })
-    for (const mode of ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']) {
+    for (const mode of ['classic', 'bmi', 'biceps', 'blood-pressure', 'dots', 'score']) {
       await page.goto(`/?mode=${mode}`)
       await expect(page.locator('.chart-series circle').first()).toBeVisible()
       await expect

@@ -1,3 +1,4 @@
+import { dotsIndex, hasDotsSex, prepareDotsHistory } from './dots'
 import { prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 
 export const bicepsIndex = (circumferenceCm: number, heightCm: number) =>
@@ -30,11 +31,18 @@ export type ScoreComponents = {
   bmi: number
   bmiIndex: number
   bicepsIndex: number
+  bicepsPoints: number
+  dots: DailyValue
+  dotsIndex: number
   bloodPressure: DailyBloodPressure
   bloodPressureIndex: number
 }
 
 export function prepareScoreHistory(person: RaceParticipant, heightCm: number, now: Date) {
+  if (!hasDotsSex(person.sex)) {
+    return { ...prepareMeasurementHistory([], now), scoreComponents: null }
+  }
+  const dotsDaily = prepareDotsHistory(person, now).daily
   const bicepsDaily = prepareMeasurementHistory(
     (person.bicepsMeasurements ?? []).map(({ measuredAt, circumferenceCm }) => ({
       measuredAt,
@@ -53,10 +61,18 @@ export function prepareScoreHistory(person: RaceParticipant, heightCm: number, n
   ).daily
   const days = new Map<
     string,
-    { weight?: DailyValue; biceps?: DailyValue; bloodPressure?: DailyBloodPressure }
+    {
+      weight?: DailyValue
+      biceps?: DailyValue
+      bloodPressure?: DailyBloodPressure
+      dots?: DailyValue
+    }
   >()
+  for (const reading of dotsDaily) {
+    days.set(reading.date, { dots: reading })
+  }
   for (const { date, weight } of person.dailyWeights) {
-    days.set(date, { weight: { date, value: weight } })
+    days.set(date, { ...days.get(date), weight: { date, value: weight } })
   }
   for (const reading of bicepsDaily) {
     days.set(reading.date, { ...days.get(reading.date), biceps: reading })
@@ -72,16 +88,18 @@ export function prepareScoreHistory(person: RaceParticipant, heightCm: number, n
       }
     })
   }
+  let dots: DailyValue | undefined
   let bloodPressure: DailyBloodPressure | undefined
   let weight: DailyValue | undefined
   let biceps: DailyValue | undefined
   let scoreComponents: ScoreComponents | null = null
   const measurements = []
   for (const [date, day] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
+    dots = day.dots ?? dots
     weight = day.weight ?? weight
     biceps = day.biceps ?? biceps
     bloodPressure = day.bloodPressure ?? bloodPressure
-    if (!weight || !biceps || !bloodPressure) {
+    if (!weight || !biceps || !bloodPressure || !dots) {
       continue
     }
     const bmi = weight.value / (heightCm / 100) ** 2
@@ -91,16 +109,20 @@ export function prepareScoreHistory(person: RaceParticipant, heightCm: number, n
       bmi,
       bmiIndex: bmiIndex(bmi),
       bicepsIndex: bicepsIndex(biceps.value, heightCm),
+      bicepsPoints: 5 * bicepsIndex(biceps.value, heightCm),
+      dots,
+      dotsIndex: dotsIndex(dots.value, person.sex),
       bloodPressure,
       bloodPressureIndex: bloodPressureIndex(bloodPressure.systolic, bloodPressure.diastolic)
     }
     measurements.push({
       measuredAt: date,
       value:
-        (scoreComponents.bicepsIndex *
-          scoreComponents.bmiIndex *
-          scoreComponents.bloodPressureIndex) /
-        10_000
+        (scoreComponents.bicepsPoints +
+          scoreComponents.bmiIndex +
+          scoreComponents.bloodPressureIndex +
+          scoreComponents.dotsIndex) /
+        4
     })
   }
   return { ...prepareMeasurementHistory(measurements, now), scoreComponents }

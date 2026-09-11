@@ -1,4 +1,6 @@
+import type { Sex } from '../api/raceApi'
 import { paddedChartRange } from './chartScale'
+import { dotsIndex, hasDotsSex, prepareDotsHistory } from './dots'
 import { chartWindow, prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
 import {
   bicepsIndex,
@@ -10,8 +12,15 @@ import {
   type ScoreComponents
 } from './raceIndices'
 
-export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure'
-export const raceModeOrder: RaceMode[] = ['classic', 'bmi', 'biceps', 'blood-pressure', 'score']
+export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure' | 'dots'
+export const raceModeOrder: RaceMode[] = [
+  'classic',
+  'bmi',
+  'biceps',
+  'blood-pressure',
+  'dots',
+  'score'
+]
 export function parseRaceMode(value: string | null): RaceMode {
   return raceModeOrder.find((mode) => mode === value) ?? 'classic'
 }
@@ -53,6 +62,15 @@ export const raceModes = {
     title: 'Ryhmän verenpainehistoria',
     referenceLabel: null
   },
+  dots: {
+    label: 'DOTS',
+    unit: 'DOTS',
+    unitLabel: 'DOTS-pistettä',
+    metric: 'DOTS',
+    reference: null,
+    title: 'Ryhmän DOTS-historia',
+    referenceLabel: null
+  },
   score: {
     label: 'Ihmisarvo',
     unit: 'kp',
@@ -68,6 +86,7 @@ export type ReferenceBand = { min: number; max: number; label: string; color: st
 export const raceBands: Record<RaceMode, readonly ReferenceBand[]> = {
   classic: [],
   score: [],
+  dots: [],
   biceps: [],
   bmi: [{ ...bmiRange, label: 'BMI', color: '#00eda0' }],
   'blood-pressure': [
@@ -80,8 +99,12 @@ export function raceCitizenPoints(
   mode: RaceMode,
   value: number,
   heightCm?: number | null,
-  diastolic?: number
+  diastolic?: number,
+  sex?: Sex | null
 ): number | null {
+  if (mode === 'dots' && hasDotsSex(sex)) {
+    return dotsIndex(value, sex)
+  }
   if (mode === 'bmi') {
     return bmiIndex(value)
   }
@@ -99,6 +122,7 @@ export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 's
   latest: { date: string; value: number } | null
   startValue: number | null
   needsHeight: boolean
+  needsSex: boolean
   diastolic?: ReturnType<typeof prepareMeasurementHistory>
   scoreComponents: ScoreComponents | null
 }
@@ -113,10 +137,13 @@ export function createRaceView(
     const needsHeight =
       mode !== 'classic' &&
       mode !== 'blood-pressure' &&
+      mode !== 'dots' &&
       (!height || !Number.isFinite(height) || height < 50 || height > 300)
+    const needsSex = (mode === 'dots' || mode === 'score') && !hasDotsSex(person.sex)
     const base = {
       ...person,
       needsHeight,
+      needsSex,
       scoreComponents: null,
       points: [],
       latest: null,
@@ -125,8 +152,18 @@ export function createRaceView(
       streak: 0,
       personalLow: false
     }
-    if (needsHeight) {
+    if (needsHeight || needsSex) {
       return base
+    }
+    if (mode === 'dots') {
+      const history = prepareDotsHistory(person, now)
+      return {
+        ...base,
+        points: history.points,
+        latest: history.latest,
+        startValue: history.startValue,
+        change: history.change
+      }
     }
     if (mode === 'blood-pressure') {
       const readings = person.bloodPressureMeasurements ?? []

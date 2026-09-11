@@ -1,3 +1,4 @@
+import type { Sex } from '../api/raceApi'
 import { chartWindow, prepareRace } from './prepareRace'
 
 const sampleReadings = [
@@ -32,6 +33,16 @@ export function createSampleRace(now = new Date()) {
     return {
       ...participant,
       color: person.color,
+      sex: (index === 5 ? 'female' : 'male') as Sex,
+      sbdMeasurements: measurements
+        .filter((_, day) => day % 14 === 0 || day === days)
+        .map(({ measuredAt, weightKg }, reading) => ({
+          measuredAt,
+          bodyweightKg: weightKg,
+          squatKg: 80 + index * 10 + reading * 2.5,
+          benchKg: 50 + index * 5 + reading * 1.5,
+          deadliftKg: 110 + index * 12.5 + reading * 2.5
+        })),
       heightCm: [185, 180, 178, 175, 172, null][index],
       bloodPressureMeasurements: measurements
         .filter((_, day) => day % 7 === 0 || day === days)

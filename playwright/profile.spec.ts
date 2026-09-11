@@ -19,7 +19,7 @@ const test = base.extend<{}, { profileWorker: void }>({
   ]
 })
 
-test('height validates input, persists only for its owner, and reaches race and radiator unchanged', async () => {
+test('profile validates input, persists height and sex only for its owner, and reaches race and radiator', async () => {
   const app = Fastify()
   const ids = [randomUUID(), randomUUID()]
   const originalAllowedIp = config.radiatorAllowedIp
@@ -49,15 +49,15 @@ test('height validates input, persists only for its owner, and reaches race and 
 
     const initial = await getProfile(ids[0])
     expect(initial.statusCode).toBe(200)
-    expect(initial.json()).toEqual({ heightCm: null })
+    expect(initial.json()).toEqual({ heightCm: null, sex: null })
     expect(initial.headers['cache-control']).toBe('no-store')
 
     for (const heightCm of [50, 300, 179.9]) {
       const saved = await putProfile(ids[0], { heightCm })
       expect(saved.statusCode).toBe(200)
-      expect(saved.json()).toEqual({ heightCm })
+      expect(saved.json()).toEqual({ heightCm, sex: null })
       expect(saved.headers['cache-control']).toBe('no-store')
-      expect((await getProfile(ids[0])).json()).toEqual({ heightCm })
+      expect((await getProfile(ids[0])).json()).toEqual({ heightCm, sex: null })
     }
 
     for (const payload of [
@@ -70,16 +70,34 @@ test('height validates input, persists only for its owner, and reaches race and 
       { heightCm: '180' },
       { heightCm: true },
       { heightCm: 180, userId: ids[1] },
-      { heightCm: 180, role: 'admin' }
+      { heightCm: 180, role: 'admin' },
+      { heightCm: 180, sex: 'other' },
+      { heightCm: 180, sex: '' },
+      { heightCm: 180, sex: 0 },
+      { heightCm: 180, sex: true },
+      { sex: 'male' }
     ]) {
       const invalid = await putProfile(ids[0], payload)
       expect(invalid.statusCode, JSON.stringify(payload)).toBe(400)
       expect(invalid.headers['cache-control']).toBe('no-store')
     }
-    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: 179.9 })
-    expect((await getProfile(ids[1])).json()).toEqual({ heightCm: null })
+    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: 179.9, sex: null })
+    expect((await getProfile(ids[1])).json()).toEqual({ heightCm: null, sex: null })
     expect((await putProfile(ids[1], { heightCm: 165 })).statusCode).toBe(200)
-    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: 179.9 })
+    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: 179.9, sex: null })
+
+    for (const sex of ['male', 'female'] as const) {
+      const saved = await putProfile(ids[0], { heightCm: 179.9, sex })
+      expect(saved.statusCode).toBe(200)
+      expect(saved.json()).toEqual({ heightCm: 179.9, sex })
+      expect((await getProfile(ids[0])).json()).toEqual({ heightCm: 179.9, sex })
+    }
+    // Older clients can update height without clearing a saved sex.
+    expect((await putProfile(ids[0], { heightCm: 179.9 })).json()).toEqual({
+      heightCm: 179.9,
+      sex: 'female'
+    })
+    expect((await getProfile(ids[1])).json()).toEqual({ heightCm: 165, sex: null })
 
     await sql`INSERT INTO measurement (user_id, weight_kg, measured_at, source)
       VALUES (${ids[0]}, 80.25, '2026-09-09T08:00:00Z', 'manual')`
@@ -93,19 +111,22 @@ test('height validates input, persists only for its owner, and reaches race and 
         id: ids[0],
         name: 'Height member 0',
         heightCm: 179.9,
+        sex: 'female',
+        sbdMeasurements: [],
         bicepsMeasurements: [],
         bloodPressureMeasurements: [],
         measurements: [{ measuredAt: '2026-09-09T08:00:00.000Z', weightKg: 80.25 }]
       })
     }
 
-    const cleared = await putProfile(ids[0], { heightCm: null })
+    const cleared = await putProfile(ids[0], { heightCm: null, sex: null })
     expect(cleared.statusCode).toBe(200)
-    expect(cleared.json()).toEqual({ heightCm: null })
-    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: null })
-    const [stored] = await sql`SELECT height_cm FROM users WHERE id = ${ids[0]}`
+    expect(cleared.json()).toEqual({ heightCm: null, sex: null })
+    expect((await getProfile(ids[0])).json()).toEqual({ heightCm: null, sex: null })
+    const [stored] = await sql`SELECT height_cm, sex FROM users WHERE id = ${ids[0]}`
     expect(stored.height_cm).toBeNull()
-    expect((await getProfile(ids[1])).json()).toEqual({ heightCm: 165 })
+    expect(stored.sex).toBeNull()
+    expect((await getProfile(ids[1])).json()).toEqual({ heightCm: 165, sex: null })
 
     await sql`UPDATE users SET disabled_at = now() WHERE id = ${ids[1]}`
     expect((await getProfile(ids[1])).statusCode).toBe(401)

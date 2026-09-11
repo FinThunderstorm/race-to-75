@@ -1,38 +1,41 @@
 import { useState } from 'react'
-
 import { useGetProfileQuery, useSaveProfileMutation } from '../api/profileApi'
+import type { Sex } from '../api/raceApi'
 
 export const RaceProfileSettings = () => {
   const { data, isLoading, isFetching, isError, refetch } = useGetProfileQuery()
   const [save, { isLoading: saving }] = useSaveProfileMutation()
   const [height, setHeight] = useState<string | null>(null)
+  const [sex, setSex] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
   return (
     <section
+      id="race-profile"
       className="settings-panel"
       aria-labelledby="race-profile-heading"
       aria-busy={saving || isFetching}
     >
       <h2 id="race-profile-heading">Kisaprofiili</h2>
       <p className="auth-description">
-        Lisää pituutesi, niin näet BMI-indeksisi, hauisindeksisi ja ihmisarvosi kansalaispisteinä.
-        Ihmisarvoon tarvitaan lisäksi verenpainemittaus. Arvot näkyvät ryhmälle ja yhteisellä
-        kisanäytöllä. Pituuden päivittäminen laskee koko indeksihistorian uudelleen.
+        Lisää pituutesi BMI- ja hauisindeksiä varten sekä sukupuoli DOTS-laskentaa varten.
+        Ihmisarvoon tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä nämä profiilitiedot.
+        Arvot näkyvät ryhmälle ja yhteisellä kisanäytöllä. Pituuden tai sukupuolen korjaaminen
+        laskee niistä riippuvan historian uudelleen.
       </p>
       {isLoading ? (
-        <p>Ladataan pituutta…</p>
+        <p>Ladataan profiilia…</p>
       ) : isError ? (
         <div role="alert">
-          <p>Pituuden lataaminen epäonnistui. Yritä uudelleen.</p>
+          <p>Profiilin lataaminen epäonnistui. Yritä uudelleen.</p>
           <button
             className="text-button"
             type="button"
             disabled={isFetching}
             onClick={() => refetch()}
           >
-            Yritä ladata pituus uudelleen
+            Yritä ladata profiili uudelleen
           </button>
         </div>
       ) : (
@@ -58,11 +61,16 @@ export const RaceProfileSettings = () => {
                 return
               }
               try {
-                const saved = await save({ heightCm }).unwrap()
+                const selectedSex = sex ?? data.sex ?? ''
+                const saved = await save({
+                  heightCm,
+                  sex: selectedSex === '' ? null : (selectedSex as Sex)
+                }).unwrap()
                 setHeight(String(saved.heightCm ?? ''))
-                setMessage(saved.heightCm === null ? 'Pituus poistettu.' : 'Pituus tallennettu.')
+                setSex(saved.sex ?? '')
+                setMessage('Profiili tallennettu.')
               } catch {
-                setError('Pituuden tallentaminen epäonnistui. Yritä uudelleen.')
+                setError('Profiilin tallentaminen epäonnistui. Yritä uudelleen.')
               }
             }}
           >
@@ -88,8 +96,30 @@ export const RaceProfileSettings = () => {
             <p id="height-hint" className="auth-hint">
               Esimerkiksi 180,5 cm. Poista pituutesi jättämällä kenttä tyhjäksi ja tallentamalla.
             </p>
+            <label htmlFor="race-sex">
+              Sukupuoli
+              <select
+                id="race-sex"
+                value={sex ?? data.sex ?? ''}
+                disabled={saving}
+                aria-describedby="sex-hint"
+                onChange={(event) => {
+                  setSex(event.target.value)
+                  setMessage('')
+                  setError('')
+                }}
+              >
+                <option value="">Ei valittu</option>
+                <option value="male">Mies</option>
+                <option value="female">Nainen</option>
+              </select>
+            </label>
+            <p id="sex-hint" className="auth-hint">
+              DOTS-kaava ja tasorajat valitaan sukupuolen mukaan. Valinta tarvitaan DOTS- ja
+              Ihmisarvo-laskentaan.
+            </p>
             <button className="primary-button" type="submit" disabled={saving}>
-              {saving ? 'Tallennetaan…' : 'Tallenna pituus'}
+              {saving ? 'Tallennetaan…' : 'Tallenna profiili'}
             </button>
           </form>
         )

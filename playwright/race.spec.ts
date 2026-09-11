@@ -50,6 +50,8 @@ test('members can read all participants and history from multiple sources withou
           id: ids[0],
           name: 'Race member 0',
           heightCm: null,
+          sex: null,
+          sbdMeasurements: [],
           bloodPressureMeasurements: [],
           bicepsMeasurements: [],
           measurements: [
@@ -62,6 +64,8 @@ test('members can read all participants and history from multiple sources withou
           id: ids[1],
           name: 'Race member 1',
           heightCm: null,
+          sex: null,
+          sbdMeasurements: [],
           bloodPressureMeasurements: [],
           bicepsMeasurements: [],
           measurements: [
@@ -73,6 +77,8 @@ test('members can read all participants and history from multiple sources withou
           id: ids[2],
           name: 'Race member 2',
           heightCm: null,
+          sex: null,
+          sbdMeasurements: [],
           measurements: [],
           bloodPressureMeasurements: [],
           bicepsMeasurements: []
@@ -86,7 +92,9 @@ test('members can read all participants and history from multiple sources withou
         'heightCm',
         'id',
         'measurements',
-        'name'
+        'name',
+        'sbdMeasurements',
+        'sex'
       ])
     }
     await sql`DELETE FROM users WHERE id = ${ids[0]}`

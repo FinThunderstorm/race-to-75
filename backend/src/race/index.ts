@@ -5,10 +5,12 @@ import { sql } from '../database.js'
 import { registerBicepsRoutes } from './biceps.js'
 import { registerBloodPressureRoutes } from './blood-pressure.js'
 import { registerRadiatorRoutes } from './radiator.js'
+import { registerSbdRoutes, type SbdMeasurement } from './sbd.js'
 
 export async function registerRaceRoutes(app: FastifyInstance) {
   await registerBicepsRoutes(app)
   await registerBloodPressureRoutes(app)
+  await registerSbdRoutes(app)
   app.get('/api/race', { preHandler: app.auth([app.verifyJwt]) }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store')
 
@@ -27,12 +29,13 @@ async function loadRace() {
       id: string
       display_name: string
       height_cm: number | null
+      sex: 'male' | 'female' | null
       measured_at: Date | null
       weight_kg: number | null
     }[]
   >`
       SELECT app_user.id, app_user.display_name, reading.measured_at,
-        app_user.height_cm::float8 AS height_cm,
+        app_user.height_cm::float8 AS height_cm, app_user.sex,
         reading.weight_kg::float8 AS weight_kg
       FROM users app_user
       LEFT JOIN measurement reading
@@ -45,6 +48,8 @@ async function loadRace() {
       id: string
       name: string
       heightCm: number | null
+      sex: 'male' | 'female' | null
+      sbdMeasurements: SbdMeasurement[]
       measurements: { measuredAt: string; weightKg: number }[]
       bloodPressureMeasurements: { measuredAt: string; systolic: number; diastolic: number }[]
       bicepsMeasurements: { measuredAt: string; circumferenceCm: number }[]
@@ -58,6 +63,8 @@ async function loadRace() {
         id: row.id,
         name: row.display_name,
         heightCm: row.height_cm,
+        sex: row.sex,
+        sbdMeasurements: [],
         measurements: [],
         bicepsMeasurements: [],
         bloodPressureMeasurements: []
@@ -94,6 +101,15 @@ async function loadRace() {
       systolic: reading.systolic,
       diastolic: reading.diastolic
     })
+  }
+  const sbd = await sql<(SbdMeasurement & { userId: string })[]>`
+    SELECT user_id AS "userId", measured_at::text AS "measuredAt",
+      squat_kg::float8 AS "squatKg", bench_kg::float8 AS "benchKg",
+      deadlift_kg::float8 AS "deadliftKg", bodyweight_kg::float8 AS "bodyweightKg"
+    FROM sbd_measurement ORDER BY measured_at, created_at, id
+  `
+  for (const { userId, ...reading } of sbd) {
+    participants.get(userId)?.sbdMeasurements.push(reading)
   }
   return { participants: [...participants.values()] }
 }

@@ -6,6 +6,17 @@ const participants = [
     id: user.id,
     name: user.display_name,
     heightCm: 200,
+    sex: 'male',
+    sbdMeasurements: [
+      {
+        measuredAt: '2026-08-01',
+        squatKg: 100,
+        benchKg: 50,
+        deadliftKg: 140.045723264,
+        bodyweightKg: 80
+      }
+    ],
+
     measurements: [{ measuredAt: '2026-09-07', weightKg: 120 }],
     bloodPressureMeasurements: [{ measuredAt: '2026-09-08', systolic: 160, diastolic: 100 }],
     bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 40 }]
@@ -14,6 +25,7 @@ const participants = [
     id: 'missing',
     name: 'Missing Height',
     heightCm: null,
+    sex: 'male',
     measurements: [],
     bicepsMeasurements: []
   },
@@ -21,6 +33,7 @@ const participants = [
     id: 'weight-only',
     name: 'Weight Only',
     heightCm: 180,
+    sex: 'male',
     measurements: [{ measuredAt: '2026-09-08', weightKg: 80 }],
     bicepsMeasurements: []
   }
@@ -41,7 +54,7 @@ test('Score shows the combined index, formulas and dated components, and preserv
     'aria-pressed',
     'true'
   )
-  await expect(page.getByRole('button', { name: /Score Racer.*12,5/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Score Racer.*89,6/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Weight Only.*Mittauksia puuttuu/ })).toBeVisible()
   await expect(
     page.getByRole('region', { name: 'Osallistujat, joilta puuttuu pituus' })
@@ -49,10 +62,10 @@ test('Score shows the combined index, formulas and dated components, and preserv
   await expect(page.locator('.goal-line, .winner, .setback, .personal-low')).toHaveCount(0)
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.locator('.race-data')).toContainText(
-    'Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10 000'
+    'Ihmisarvo = (hauiksen osapisteet + BMI-indeksi + verenpaineindeksi + DOTS-osapisteet) / 4'
   )
   const row = page.getByRole('row', { name: /Score Racer/ })
-  await expect(row).toContainText('40,0 cm (20,0 kp)')
+  await expect(row).toContainText('40,0 cm (100,0 kp)')
   await expect(row).toContainText('30,0 BMI (83,3 kp)')
   await expect(row).toContainText('7.9.2026')
   await expect(row).toContainText('9.9.2026')
@@ -85,7 +98,7 @@ test('Score radiator is read-only and missing components never become a partial 
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
   await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
   await page.goto('/?mode=score')
-  await expect(page.getByRole('button', { name: /Score Racer.*12,5/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Score Racer.*89,6/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Weight Only.*Mittauksia puuttuu/ })).toBeVisible()
   await expect(
     page.getByRole('link', {
@@ -98,7 +111,7 @@ test('Score radiator is read-only and missing components never become a partial 
   )
   await page.reload()
   await expect(page.getByRole('status')).toHaveText(
-    'Ihmisarvon näyttämiseen tarvitaan paino-, hauis- ja verenpainemittaus.'
+    'Ihmisarvon näyttämiseen tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä profiilin pituus ja sukupuoli.'
   )
   await expect(page.locator('.chart-series')).toHaveCount(0)
 })
@@ -152,5 +165,5 @@ test('missing blood pressure prompts entry and a manual reading enables the scor
   await expect(panel.getByRole('status')).toHaveText('Mittaus lisätty.')
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=score$/)
-  await expect(page.getByRole('button', { name: /Score Racer.*12,5/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Score Racer.*89,6/ })).toBeVisible()
 })

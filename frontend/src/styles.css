@@ -479,11 +479,15 @@ p {
 .index-explanation p + p {
   margin-top: 8px;
 }
-.race-data--score table {
+.race-data--score > .table-scroll table {
   width: 100%;
   min-width: 900px;
 }
 .race-data--score td {
+  white-space: nowrap;
+}
+.sbd-readings-table {
+  min-width: 760px;
   white-space: nowrap;
 }
 .table-scroll {

@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
-import { raceApi } from './raceApi'
+import { raceApi, type Sex } from './raceApi'
 
-type RaceProfile = { heightCm: number | null }
+type RaceProfile = { heightCm: number | null; sex: Sex | null }
 
 export const profileApi = createApi({
   reducerPath: 'profileApi',
@@ -21,7 +21,7 @@ export const profileApi = createApi({
           await queryFulfilled
           dispatch(raceApi.util.invalidateTags(['race']))
         } catch {
-          // The form displays the mutation error and retains the entered height.
+          // The form displays the mutation error and retains the entered profile.
         }
       }
     })

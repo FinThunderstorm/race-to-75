@@ -16,9 +16,46 @@ target. The same weight history feeds BMI and the combined score.
 
 Passkey enrollment/login, admin user management, a sample/live race dashboard,
 Withings and Eufy Life weight imports, an IP-allowed radiator, and a Docker/Coolify
-deployment setup are implemented. Paino, BMI, Hauis, Verenpaine and Ihmisarvo modes
+deployment setup are implemented. Paino, BMI, Hauis, Verenpaine, DOTS and
+Ihmisarvo modes
 are available.
 Manual weight entry is still planned.
+
+### DOTS and SBD totals
+
+Select **DOTS** or open `/?mode=dots`. Add **Sukupuoli** (Mies / Nainen) in
+**Asetukset → Kisaprofiili**, then record your **SBD-tulokset**: squat (Kyykky),
+bench press (Penkkipunnerrus), deadlift (Maastaveto), result date and bodyweight.
+The bodyweight field uses your last weighing on or before that date and can
+be corrected manually. The saved weight stays attached to that SBD result;
+later weighings do not change it. Correct entries by deleting and re-entering.
+
+DOTS uses the sum of the three lifts and the sex-specific bodyweight polynomial
+used by [OpenPowerlifting](https://gitlab.com/openpowerlifting/opl-data/blob/main/crates/coefficients/src/dots.rs).
+The coefficient clamps bodyweight to 40–210 kg for men and 40–150 kg for women;
+the preview explains clamping and the original entered weight is preserved.
+Changing profile sex recalculates historical DOTS and the combined score.
+Each result is scored before the existing daily/weekly averaging.
+Height and imported weight history are not required for DOTS itself.
+
+The game's approximate level boundaries are:
+
+| Level | Men | Women |
+| --- | --- | --- |
+| Novice | 200 | 150 |
+| Intermediate | 300 | 250 |
+| Advanced | 400 | 325 |
+| Elite / National Level | 500+ | 400+ |
+
+Levels use unrounded scores. Below the first boundary the label is
+**Alle Novice-tason**. Labels and tooltips include normalized citizen points:
+`100 × DOTS / Novice boundary`. Novice is 100 kp for either sex.
+
+Lifts must be 0.1–1000 kg each and bodyweight 1–500 kg, with at most one decimal.
+Dates must be valid and no later than today (UTC). Existing users start with
+no sex selection; select it before recording SBD. The group and shared display
+can see these measurements. Apply `0013_sbd_measurement.sql` using
+`npm run db:migrate` before starting the updated backend.
 
 ### Blood pressure
 
@@ -103,7 +140,8 @@ and Getting started for the current local workflow.
 - Completed weeks show averages; the current week shows daily values.
 - Metric values include citizen points in parentheses. BMI and blood pressure
   show faint reference bands, and charts add proportional padding at both ends.
-- The combined **Ihmisarvo** uses BMI, biceps and blood pressure indices. It is
+- The combined **Ihmisarvo** averages normalized BMI, biceps, blood pressure
+  and DOTS points. It is
   the last, highlighted mode; higher citizen points give a higher score.
 
 ### Integrations
@@ -433,8 +471,8 @@ history. Coolify's `withings-worker` service repeats this command automatically.
 
 Select **BMI** from **Kisanäkymä**, or open **<http://localhost:7500/?mode=bmi>**.
 Paino is the first/default mode (`?mode=classic`) and uses live data. Available
-modes are Paino, BMI, Hauis, Verenpaine and Ihmisarvo, in that order. Automatic
-switching cycles through these five modes; Ihmisarvo remains the last, highlighted
+modes are Paino, BMI, Hauis, Verenpaine, DOTS and Ihmisarvo, in that order. Automatic
+switching cycles through these six modes; Ihmisarvo remains the last, highlighted
 button. Mode selection is preserved when visiting settings and returning.
 Add your height in centimetres under **Asetukset → Kisaprofiili**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
@@ -472,7 +510,10 @@ in kg.
 Select **Ihmisarvo** or open `/?mode=score`. The shared formula is:
 
 ```text
-Ihmisarvo = hauisindeksi × BMI-indeksi × verenpaineindeksi / 10,000
+Ihmisarvo = (hauiksen osapisteet + BMI-indeksi +
+            verenpaineindeksi + DOTS-osapisteet) / 4
+Hauiksen osapisteet = 5 × hauisindeksi
+DOTS-osapisteet = 100 × DOTS / Novice boundary (men 200, women 150)
 Verenpaineindeksi = 100 × min(1, systolic/90, 120/systolic,
                                diastolic/60, 80/diastolic)
 ```
@@ -486,17 +527,20 @@ boundaries by [NHS](https://www.nhs.uk/conditions/low-blood-pressure-hypotension
 The inclusive plateau, ratios and combined score are game rules, not clinical
 categories, a validated health index, or individual treatment targets.
 
-For example, biceps index 20, BMI 25 and blood pressure 120/80 give 20 kp.
-At 160/100, the blood pressure index is 75 and the same participant gets 15 kp.
-At BMI 30 and blood pressure 160/100, the BMI index is 83.33… and the combined
-score is 12.5 kp. Higher scores are better. The biceps formula adjusts for height
-but does not correct sex differences. There are no personal targets, and the
-combined score has no fixed maximum of 100.
+All four components have equal 25% weight on a common 100-point baseline.
+Biceps index 20 (circumference 20% of height), BMI 25, blood pressure 120/80
+and Novice DOTS give 100 kp. This is a fixed game baseline, not an empirical
+population or group average. A 20-point change in any normalized component
+changes Ihmisarvo by 5 kp. Half-Novice DOTS gives 87.5 kp with other components
+at baseline; twice-Novice DOTS gives 125 kp. There is no fixed maximum of 100.
 
-Height, weight, biceps and blood pressure are all required. Missing components
+This replaces the previous multiplicative formula, including history.
+Height, sex, weight, biceps, blood pressure and SBD are required. Missing components
 never produce a partial score. Each UTC day with any measurement uses that day's
 average and the latest preceding daily averages of the other measurements.
-Systolic and diastolic are averaged before computing their index. History begins
+Systolic and diastolic are averaged before computing their index.
+DOTS uses the latest preceding daily average of individually calculated SBD
+scores. History begins
 only when all components are available; future readings never fill earlier dates.
 Completed weeks average observed-day scores, while the current week shows them
 daily. Calculations retain full precision; the display rounds to one decimal
@@ -509,8 +553,8 @@ read-only radiator, automatic mode switching and returning from Asetukset.
 Use **Lisää verenpainemittaus** in either Verenpaine or Ihmisarvo to record a
 reading. Adding or deleting readings recalculates the score, including history.
 
-This calculation uses the existing blood pressure data and needs no migration
-beyond `0012_blood_pressure_measurement.sql` from the manual-entry feature.
+Apply `0013_sbd_measurement.sql` before running this version. Until profile sex
+and an SBD result are available, Ihmisarvo displays the missing-data prompt.
 
 ### Local troubleshooting and checks
 

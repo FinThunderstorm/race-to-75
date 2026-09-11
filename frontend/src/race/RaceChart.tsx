@@ -3,6 +3,7 @@ import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from '
 import { formatDate, formatNumber } from '../format'
 import { Racer } from '../Racer'
 import { BloodPressureReadings } from './BloodPressureReadings'
+import { dotsLevel, hasDotsSex } from './dots'
 import { RaceReadings } from './RaceReadings'
 import { ReferenceBands } from './ReferenceBands'
 import { formatRaceReading } from './raceFormatting'
@@ -181,7 +182,13 @@ export const RaceChart = ({
     const points =
       current === undefined
         ? null
-        : raceCitizenPoints(mode, current, person.heightCm, person.diastolic?.latest?.value)
+        : raceCitizenPoints(
+            mode,
+            current,
+            person.heightCm,
+            person.diastolic?.latest?.value,
+            person.sex
+          )
     const style = {
       '--racer-color': person.color,
       '--row-position': `${((coordinate(`label:${person.id}`) ?? 0) / size.height) * 100}%`
@@ -205,9 +212,13 @@ export const RaceChart = ({
               ? radiator
                 ? 'Pituus tarvitaan laskentaan'
                 : 'Lisää pituus asetuksissa'
-              : mode === 'score'
-                ? 'Mittauksia puuttuu'
-                : 'Ei mittauksia'}
+              : person.needsSex
+                ? radiator
+                  ? 'Sukupuoli tarvitaan laskentaan'
+                  : 'Lisää sukupuoli profiiliin'
+                : mode === 'score'
+                  ? 'Mittauksia puuttuu'
+                  : 'Ei mittauksia'}
           </span>
         ) : (
           <>
@@ -223,6 +234,9 @@ export const RaceChart = ({
             </span>
             {!classic ? (
               <span className="remaining">
+                {mode === 'dots' && hasDotsSex(person.sex)
+                  ? `${dotsLevel(current, person.sex)} · `
+                  : ''}
                 Muutos {formatChange(person.change)}
                 {bloodPressure && person.diastolic
                   ? ` / ${formatChange(person.diastolic.change)}`
@@ -280,8 +294,10 @@ export const RaceChart = ({
               {bloodPressure
                 ? 'Yläpaine näkyy yhtenäisenä viivana ja alapaine katkoviivana, molemmat mmHg-yksikössä. Päättyneiltä viikoilta näytetään kaikkien mittausten keskiarvot ja kuluvalta viikolta päiväkeskiarvot.'
                 : mode === 'score'
-                  ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon, hauiksen ja verenpaineen päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
-                  : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
+                  ? 'Päättyneiltä viikoilta näytetään mittauspäivien kansalaispisteiden keskiarvo. Päivän ihmisarvo lasketaan viimeisimmistä painon, hauiksen, verenpaineen ja DOTS-tulosten päiväkeskiarvoista. Kuluvalta viikolta näytetään päivittäiset ihmisarvot.'
+                  : mode === 'dots'
+                    ? 'DOTS lasketaan jokaiselle SBD-tulokselle sen tallennetulla kehonpainolla. Päättyneiltä viikoilta näytetään DOTS-tulosten keskiarvot ja kuluvalta viikolta päiväkeskiarvot.'
+                    : 'Päättyneiltä viikoilta käytetään kaikkien mittausten keskiarvoa ja kuluvalta viikolta päiväkeskiarvoja. Indeksit lasketaan näistä keskiarvoista.'}{' '}
               {raceBands[mode].length > 0 &&
                 'Himmeät värialueet näyttävät täysien osapisteiden rajat. '}
               {mode !== 'classic' &&
@@ -422,7 +438,8 @@ export const RaceChart = ({
                               mode,
                               person.points[index].value,
                               person.heightCm,
-                              point.value
+                              point.value,
+                              person.sex
                             )}{' '}
                             · {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
                             {formatDate(point.date)}
@@ -462,7 +479,8 @@ export const RaceChart = ({
                               mode,
                               point.value,
                               person.heightCm,
-                              person.diastolic?.points[index]?.value
+                              person.diastolic?.points[index]?.value,
+                              person.sex
                             )}{' '}
                         · {point.period === 'week' ? 'Viikkokeskiarvo' : 'Päiväkeskiarvo'} ·{' '}
                         {formatDate(point.date)}
@@ -508,12 +526,16 @@ export const RaceChart = ({
             : participants.some((person) => person.latest)
               ? 'Ei mittauksia viimeisen kolmen kuukauden ajalta.'
               : mode === 'score'
-                ? 'Ihmisarvon näyttämiseen tarvitaan paino-, hauis- ja verenpainemittaus.'
-                : bloodPressure
-                  ? 'Ei vielä verenpainemittauksia.'
-                  : mode === 'biceps'
-                    ? 'Ei vielä hauismittauksia.'
-                    : 'Mittauksia ei ole vielä tuotu.'}
+                ? 'Ihmisarvon näyttämiseen tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä profiilin pituus ja sukupuoli.'
+                : mode === 'dots'
+                  ? participants.some((person) => person.needsSex)
+                    ? 'DOTS-laskentaan tarvitaan profiilin sukupuoli.'
+                    : 'Ei vielä SBD-tuloksia.'
+                  : bloodPressure
+                    ? 'Ei vielä verenpainemittauksia.'
+                    : mode === 'biceps'
+                      ? 'Ei vielä hauismittauksia.'
+                      : 'Mittauksia ei ole vielä tuotu.'}
         </p>
       )}
       <div

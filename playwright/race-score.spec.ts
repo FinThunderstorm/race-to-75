@@ -15,6 +15,16 @@ const participant: RaceHistoryParticipant = {
   id: 'one',
   name: 'One',
   heightCm: 200,
+  sex: 'male',
+  sbdMeasurements: [
+    {
+      measuredAt: '2026-08-01',
+      squatKg: 100,
+      benchKg: 50,
+      deadliftKg: 140.045723264,
+      bodyweightKg: 80
+    }
+  ],
   measurements: [{ measuredAt: '2026-09-07', weightKg: 100 }],
   bloodPressureMeasurements: [{ measuredAt: '2026-08-01', systolic: 120, diastolic: 80 }],
   bicepsMeasurements: [{ measuredAt: '2026-09-09', circumferenceCm: 40 }]
@@ -33,7 +43,7 @@ test('weight is the default for absent and unknown modes', () => {
 
 test('score is a selectable mode with finite empty chart bounds', () => {
   expect(parseRaceMode('score')).toBe('score')
-  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'blood-pressure', 'score'])
+  expect(raceModeOrder).toEqual(['classic', 'bmi', 'biceps', 'blood-pressure', 'dots', 'score'])
   const bounds = raceViewBounds([], 'score', now)
   expect(Number.isFinite(bounds.bottom)).toBe(true)
   expect(bounds.top).toBeGreaterThan(bounds.bottom)
@@ -76,7 +86,7 @@ test('BMI index has a common plateau and falls for both high and low BMI', () =>
     }
     expect(view(person, 'bmi').latest?.value).toBeCloseTo(bmi)
     expect(raceCitizenPoints('bmi', view(person, 'bmi').latest!.value)).toBeCloseTo(expected)
-    expect(view(person).latest?.value).toBeCloseTo((20 * expected) / 100)
+    expect(view(person).latest?.value).toBeCloseTo((100 + expected + 100 + 100) / 4)
   }
 })
 
@@ -95,7 +105,10 @@ test('missing height or any component never produces a partial score', () => {
     { ...participant, bloodPressureMeasurements: undefined },
     { ...participant, measurements: [] },
     { ...participant, bicepsMeasurements: [] },
-    { ...participant, bicepsMeasurements: undefined }
+    { ...participant, bicepsMeasurements: undefined },
+    { ...participant, sbdMeasurements: [] },
+    { ...participant, sbdMeasurements: undefined },
+    { ...participant, sex: null }
   ]) {
     expect(view(person)).toMatchObject({ points: [], latest: null, scoreComponents: null })
   }
@@ -118,12 +131,15 @@ test('score averages each UTC day, carries only preceding data and exposes compo
   }
   const result = view(person)
   expect(result.points.map((point) => point.date)).toEqual(['2026-09-09', '2026-09-10'])
-  expect(result.points[0].value).toBeCloseTo(20)
-  expect(result.latest?.value).toBeCloseTo((20 * 25) / 30)
-  expect(result.startValue).toBeCloseTo(20)
-  expect(result.change).toBeCloseTo((20 * 25) / 30 - 20)
+  expect(result.points[0].value).toBeCloseTo(100)
+  expect(result.latest?.value).toBeCloseTo((100 + (100 * 25) / 30 + 100 + 100) / 4)
+  expect(result.startValue).toBeCloseTo(100)
+  expect(result.change).toBeCloseTo((100 + (100 * 25) / 30 + 100 + 100) / 4 - 100)
   expect(result.scoreComponents).toMatchObject({
     bicepsIndex: 20,
+    bicepsPoints: 100,
+    dotsIndex: 100,
+    dots: { date: '2026-08-01', value: 200 },
     bmi: 30,
     weight: { date: '2026-09-10', value: 120 },
     biceps: { date: '2026-09-09', value: 40 }
@@ -141,16 +157,16 @@ test('score can start on a later weight day and averages observed-day scores per
     ],
     bicepsMeasurements: [{ measuredAt: '2026-08-01', circumferenceCm: 40 }]
   })
-  expect(result.points).toEqual([{ date: '2026-08-31', value: 18, period: 'week' }])
-  expect(result.latest).toEqual({ date: '2026-09-02', value: 16 })
+  expect(result.points).toEqual([{ date: '2026-08-31', value: 97.5, period: 'week' }])
+  expect(result.latest).toEqual({ date: '2026-09-02', value: 95 })
   expect(result.scoreComponents?.biceps.date).toBe('2026-08-01')
 })
 
 test('correcting height recalculates indices without mutating source readings', () => {
   const before = JSON.stringify(participant)
   const corrected = view({ ...participant, heightCm: 180 })
-  expect(view(participant).latest?.value).toBeCloseTo(20)
-  expect(corrected.latest?.value).toBeCloseTo(18)
+  expect(view(participant).latest?.value).toBeCloseTo(100)
+  expect(corrected.latest?.value).toBeCloseTo(((5 * 100 * 40) / 180 + 81 + 100 + 100) / 4)
   expect(JSON.stringify(participant)).toBe(before)
 })
 
