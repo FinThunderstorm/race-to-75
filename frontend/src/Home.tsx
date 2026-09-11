@@ -91,7 +91,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
       <header className="race-header">
         <div>
-          <h1 className="wordmark">Resu-ranking</h1>
+          <h1 className="wordmark">Race to 75</h1>
           <div className="race-mode" role="group" aria-label="Kisanäkymä">
             <button
               className="race-mode-playback"

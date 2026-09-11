@@ -5,7 +5,7 @@ import { Racer } from '../Racer'
 export const AuthLayout = ({ children }: { children: ReactNode }) => (
   <main className="auth-page">
     <div className="auth-brand">
-      <p className="wordmark">Kisa 75 kiloon</p>
+      <p className="wordmark">Race to 75</p>
       <p className="subtitle">Yksi tavoite. Jokainen päivä ratkaisee.</p>
     </div>
     <section className="auth-panel">

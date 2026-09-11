@@ -21,7 +21,7 @@ export const Settings = () => {
         ← Takaisin kisaan
       </Link>
       <header>
-        <p className="eyebrow">Kisa 75 kiloon</p>
+        <p className="eyebrow">Race to 75</p>
         <h1>Asetukset</h1>
         <p className="settings-name">{user?.display_name}</p>
         <p className="auth-description">{user?.email}</p>

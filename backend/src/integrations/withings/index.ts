@@ -315,7 +315,7 @@ async function subscribeToWithingsWeightNotifications(accessToken: string) {
     action: 'subscribe',
     appli: withingsWeightApplication,
     callbackurl: temporaryConfig.webhookCallbackUrl,
-    comment: 'Kisa 75 kiloon -painomittaukset'
+    comment: 'Race to 75 -painomittaukset'
   })
 
   const response = await fetch(new URL('/notify', config.withingsApiBaseUrl), {
