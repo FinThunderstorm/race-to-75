@@ -397,7 +397,7 @@ p {
   padding: 5px 2px;
   text-align: left;
   border: 0;
-  background: transparent;
+  background: #080511;
   color: #eeeaf8;
   white-space: nowrap;
 }
@@ -406,7 +406,7 @@ p {
 }
 .participant:hover,
 .participant[aria-pressed="true"] {
-  background: #ffffff06;
+  background: linear-gradient(#ffffff06, #ffffff06), #080511;
 }
 .participant-dot {
   flex: 0 0 10px;
