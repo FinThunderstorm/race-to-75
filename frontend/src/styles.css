@@ -289,6 +289,7 @@ p {
   margin-top: 32px;
 }
 .race-chart {
+  position: relative;
   width: 61%;
   height: clamp(460px, calc(100svh - 295px), 730px);
 }
@@ -352,6 +353,32 @@ p {
 .chart-series,
 .participant {
   transition: opacity 180ms ease;
+}
+.chart-point {
+  r: 6px;
+  cursor: help;
+  transition: r 120ms ease;
+}
+.chart-point:hover,
+.chart-point:focus {
+  r: 9px;
+  outline: none;
+}
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  width: 260px;
+  max-width: calc(100% - 16px);
+  padding: 10px 12px;
+  border: 1px solid #526b91;
+  border-radius: 8px;
+  background: #080513;
+  color: #fff;
+  box-shadow: 0 4px 16px #0008;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: none;
 }
 .race-standings {
   position: absolute;

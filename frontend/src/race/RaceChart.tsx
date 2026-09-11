@@ -1,4 +1,4 @@
-import { type CSSProperties, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { formatDate, formatNumber } from '../format'
 import { Racer } from '../Racer'
@@ -43,12 +43,38 @@ export const RaceChart = ({
   const classic = mode === 'classic'
   const component = !classic && mode !== 'score'
   const [selected, setSelected] = useState<string | null>(null)
+  const tooltipId = useId()
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
+  const showTooltip = (circle: SVGCircleElement) => {
+    setTooltip({
+      text: circle.querySelector('title')?.textContent ?? '',
+      x: circle.cx.baseVal.value,
+      y: circle.cy.baseVal.value
+    })
+  }
+  const pointInteraction = {
+    className: 'chart-point',
+    tabIndex: 0,
+    'aria-describedby': tooltip ? tooltipId : undefined,
+    onPointerEnter: (event: React.PointerEvent<SVGCircleElement>) =>
+      showTooltip(event.currentTarget),
+    onPointerLeave: () => setTooltip(null),
+    onFocus: (event: React.FocusEvent<SVGCircleElement>) => showTooltip(event.currentTarget),
+    onBlur: () => setTooltip(null),
+    onKeyDown: (event: React.KeyboardEvent<SVGCircleElement>) => {
+      if (event.key === 'Escape') {
+        setTooltip(null)
+      }
+    }
+  }
   const chartRef = useRef<HTMLDivElement>(null)
   const standingsRef = useRef<HTMLDivElement>(null)
   const [componentRowHeight, setComponentRowHeight] = useState(48)
   const rowSpacing = component ? componentRowHeight : 48
   const [size, setSize] = useState({ width: 840, height: 640 })
   const hasReadings = participants.some((person) => person.points.length > 0)
+
+  useLayoutEffect(() => setTooltip(null), [mode, participants])
 
   useLayoutEffect(() => {
     const element = chartRef.current
@@ -424,6 +450,7 @@ export const RaceChart = ({
                       />
                       {person.diastolic.points.map((point, index) => (
                         <circle
+                          {...pointInteraction}
                           key={point.date}
                           cx={x(point.date)}
                           cy={coordinate(`diastolic:${person.id}:${point.date}`)}
@@ -465,6 +492,7 @@ export const RaceChart = ({
                   />
                   {person.points.map((point, index) => (
                     <circle
+                      {...pointInteraction}
                       key={point.date}
                       cx={x(point.date)}
                       cy={pointY(person, point.date)}
@@ -499,6 +527,7 @@ export const RaceChart = ({
                     />
                   )}
                   <circle
+                    pointerEvents="none"
                     cx={x(last.date)}
                     cy={pointY(person, last.date)}
                     r="7"
@@ -507,6 +536,7 @@ export const RaceChart = ({
                     strokeWidth="1"
                   />
                   <circle
+                    pointerEvents="none"
                     cx={x(last.date)}
                     cy={pointY(person, last.date)}
                     r="4.5"
@@ -516,6 +546,20 @@ export const RaceChart = ({
               )
             })}
           </svg>
+          {tooltip && (
+            <div
+              id={tooltipId}
+              role="tooltip"
+              className="chart-tooltip"
+              style={{
+                left: Math.max(8, Math.min(tooltip.x - 130, size.width - 268)),
+                top: tooltip.y,
+                transform: tooltip.y < 100 ? 'translateY(16px)' : 'translateY(calc(-100% - 16px))'
+              }}
+            >
+              {tooltip.text}
+            </div>
+          )}
         </div>
       ) : (
         <p className="race-message" role="status">
