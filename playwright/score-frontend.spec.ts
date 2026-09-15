@@ -111,7 +111,7 @@ test('Score radiator is read-only and missing components never become a partial 
   )
   await page.reload()
   await expect(page.getByRole('status')).toHaveText(
-    'Ihmisarvon näyttämiseen tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä profiilin pituus ja sukupuoli.'
+    'Ihmisarvon näyttämiseen tarvitaan valittujen mittarien tiedot: BMI, Hauis, Verenpaine, DOTS (SBD-tulokset).'
   )
   await expect(page.locator('.chart-series')).toHaveCount(0)
 })

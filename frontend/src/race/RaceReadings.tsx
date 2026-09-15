@@ -4,28 +4,42 @@ import { DotsExplanation } from './DotsExplanation'
 import { dotsLevel, hasDotsSex } from './dots'
 import { formatRaceReading } from './raceFormatting'
 import type { RaceMode, RaceViewParticipant } from './raceModes'
+import { defaultScoreComponents, type ScoreComponent } from './scoreSettings'
 
 export const RaceReadings = ({
   participants,
   mode,
-  live
+  live,
+  scoreComponents = defaultScoreComponents
 }: {
   participants: RaceViewParticipant[]
   mode: RaceMode
   live: boolean
+  scoreComponents?: readonly ScoreComponent[]
 }) => {
   const classic = mode === 'classic'
   const score = mode === 'score'
+  const enabled = (key: ScoreComponent) => scoreComponents.includes(key)
+  const terms = (
+    [
+      ['biceps', 'hauiksen osapisteet'],
+      ['bmi', 'BMI-indeksi'],
+      ['blood-pressure', 'verenpaineindeksi'],
+      ['dots', 'DOTS-osapisteet']
+    ] as const
+  )
+    .filter(([key]) => enabled(key))
+    .map(([, label]) => label)
   const raw = mode === 'bmi' || mode === 'biceps' || mode === 'dots'
   return (
     <details className={`race-data${score ? ' race-data--score' : ''}`}>
       <summary>{live ? 'Näytä mittaukset' : 'Näytä esimerkkimittaukset'}</summary>
       {!classic && (
         <div className="index-explanation">
-          {(mode === 'biceps' || score) && (
+          {(mode === 'biceps' || (score && enabled('biceps'))) && (
             <p>Hauisindeksi = 100 × ympärys / pituus (molemmat senttimetreinä).</p>
           )}
-          {(mode === 'bmi' || score) && (
+          {(mode === 'bmi' || (score && enabled('bmi'))) && (
             <p>
               BMI-indeksi = 100, kun BMI on 18,5–25. Alle 18,5: 100 × BMI / 18,5. Yli 25: 100 × 25 /
               BMI.
@@ -34,21 +48,27 @@ export const RaceReadings = ({
           {score && (
             <>
               <p>
-                Ihmisarvo = (hauiksen osapisteet + BMI-indeksi + verenpaineindeksi +
-                DOTS-osapisteet) / 4. Hauiksen osapisteet = 5 × hauisindeksi, eli 100 kp, kun
-                ympärys on 20 % pituudesta. Jokaisen mittarin painoarvo on 25 %. Perustaso on 100
-                kp; se on kisan kiinteä vertailutaso, ei ryhmän tilastollinen keskiarvo. Laskentaan
-                tarvitaan kaikki neljä mittaria sekä profiilin pituus ja sukupuoli.
+                Ihmisarvo = ({terms.join(' + ')}) / {scoreComponents.length}. Jokaisen valitun
+                mittarin painoarvo on {formatNumber(100 / scoreComponents.length)} %. Perustaso on
+                100 kp; se on kisan kiinteä vertailutaso, ei ryhmän tilastollinen keskiarvo.
+                Laskentaan tarvitaan kaikkien valittujen mittarien tiedot.
               </p>
+              {enabled('biceps') && (
+                <p>
+                  Hauiksen osapisteet = 5 × hauisindeksi, eli 100 kp, kun ympärys on 20 %
+                  pituudesta.
+                </p>
+              )}
               <p>
-                Jokaiselle mittauspäivälle käytetään viimeisimpiä saatavilla olevia painon, hauiksen
-                verenpaineen ja DOTS-tulosten päiväkeskiarvoja. Alla näkyvät kaikkien mittausten
-                päivämäärät. Päättyneiltä viikoilta näytetään näiden kansalaispisteiden keskiarvo.
+                Jokaiselle valitun mittarin mittauspäivälle käytetään viimeisimpiä saatavilla olevia
+                valittujen mittarien päiväkeskiarvoja. Alla näkyvät laskennassa käytettyjen
+                mittausten päivämäärät. Päättyneiltä viikoilta näytetään näiden kansalaispisteiden
+                keskiarvo.
               </p>
-              <BloodPressureIndexExplanation />
+              {enabled('blood-pressure') && <BloodPressureIndexExplanation />}
             </>
           )}
-          {(mode === 'dots' || score) && <DotsExplanation />}
+          {(mode === 'dots' || (score && enabled('dots'))) && <DotsExplanation />}
           {mode !== 'dots' && (
             <p>
               Suurempi indeksi antaa paremman tuloksen. Pisteet on tarkoitettu yhteiseen kisaan.
@@ -85,14 +105,30 @@ export const RaceReadings = ({
               {mode === 'dots' && <th scope="col">Taso</th>}
               {score && (
                 <>
-                  <th scope="col">Hauis (kp)</th>
-                  <th scope="col">Hauiksen mittauspäivä (UTC)</th>
-                  <th scope="col">BMI (kp)</th>
-                  <th scope="col">Punnituspäivä (UTC)</th>
-                  <th scope="col">Verenpaine (kp)</th>
-                  <th scope="col">Verenpaineen mittauspäivä (UTC)</th>
-                  <th scope="col">DOTS (kp)</th>
-                  <th scope="col">SBD-tulospäivä (UTC)</th>
+                  {enabled('biceps') && (
+                    <>
+                      <th scope="col">Hauis (kp)</th>
+                      <th scope="col">Hauiksen mittauspäivä (UTC)</th>
+                    </>
+                  )}
+                  {enabled('bmi') && (
+                    <>
+                      <th scope="col">BMI (kp)</th>
+                      <th scope="col">Punnituspäivä (UTC)</th>
+                    </>
+                  )}
+                  {enabled('blood-pressure') && (
+                    <>
+                      <th scope="col">Verenpaine (kp)</th>
+                      <th scope="col">Verenpaineen mittauspäivä (UTC)</th>
+                    </>
+                  )}
+                  {enabled('dots') && (
+                    <>
+                      <th scope="col">DOTS (kp)</th>
+                      <th scope="col">SBD-tulospäivä (UTC)</th>
+                    </>
+                  )}
                 </>
               )}
               {live && <th scope="col">Viimeisin mittaus (UTC)</th>}
@@ -146,31 +182,55 @@ export const RaceReadings = ({
                   )}
                   {score && (
                     <>
-                      <td>
-                        {components
-                          ? `${formatNumber(components.biceps.value)} cm (${formatNumber(components.bicepsPoints)} kp)`
-                          : '—'}
-                      </td>
-                      <td>{components ? formatDate(components.biceps.date) : '—'}</td>
-                      <td>{components ? formatRaceReading('bmi', components.bmi) : '—'}</td>
-                      <td>{components ? formatDate(components.weight.date) : '—'}</td>
-                      <td>
-                        {components
-                          ? formatRaceReading(
-                              'blood-pressure',
-                              components.bloodPressure.systolic,
-                              undefined,
-                              components.bloodPressure.diastolic
-                            )
-                          : '—'}
-                      </td>
-                      <td>{components ? formatDate(components.bloodPressure.date) : '—'}</td>
-                      <td>
-                        {components
-                          ? `${formatNumber(components.dots.value)} DOTS (${formatNumber(components.dotsIndex)} kp)`
-                          : '—'}
-                      </td>
-                      <td>{components ? formatDate(components.dots.date) : '—'}</td>
+                      {enabled('biceps') && (
+                        <>
+                          <td>
+                            {components?.biceps && components.bicepsPoints !== undefined
+                              ? `${formatNumber(components.biceps.value)} cm (${formatNumber(components.bicepsPoints)} kp)`
+                              : '—'}
+                          </td>
+                          <td>{components?.biceps ? formatDate(components.biceps.date) : '—'}</td>
+                        </>
+                      )}
+                      {enabled('bmi') && (
+                        <>
+                          <td>
+                            {components?.bmi !== undefined
+                              ? formatRaceReading('bmi', components.bmi)
+                              : '—'}
+                          </td>
+                          <td>{components?.weight ? formatDate(components.weight.date) : '—'}</td>
+                        </>
+                      )}
+                      {enabled('blood-pressure') && (
+                        <>
+                          <td>
+                            {components?.bloodPressure
+                              ? formatRaceReading(
+                                  'blood-pressure',
+                                  components.bloodPressure.systolic,
+                                  undefined,
+                                  components.bloodPressure.diastolic
+                                )
+                              : '—'}
+                          </td>
+                          <td>
+                            {components?.bloodPressure
+                              ? formatDate(components.bloodPressure.date)
+                              : '—'}
+                          </td>
+                        </>
+                      )}
+                      {enabled('dots') && (
+                        <>
+                          <td>
+                            {components?.dots && components.dotsIndex !== undefined
+                              ? `${formatNumber(components.dots.value)} DOTS (${formatNumber(components.dotsIndex)} kp)`
+                              : '—'}
+                          </td>
+                          <td>{components?.dots ? formatDate(components.dots.date) : '—'}</td>
+                        </>
+                      )}
                     </>
                   )}
                   {live && <td>{last ? formatDate(last.date) : '—'}</td>}

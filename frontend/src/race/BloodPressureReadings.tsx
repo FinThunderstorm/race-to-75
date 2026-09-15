@@ -24,7 +24,9 @@ export const BloodPressureReadings = ({
     </p>
     <div className="index-explanation">
       <BloodPressureIndexExplanation />
-      <p>Ihmisarvo kerrotaan verenpaineindeksillä / 100.</p>
+      <p>
+        Verenpaineindeksi on yksi Ihmisarvon osatekijöistä, jos ylläpito on valinnut sen mukaan.
+      </p>
     </div>
     <div className="table-scroll">
       <table>

@@ -508,7 +508,8 @@ in kg.
 
 ### Ihmisarvo (combined race score)
 
-Select **Ihmisarvo** or open `/?mode=score`. The shared formula is:
+Select **Ihmisarvo** or open `/?mode=score`. With the default four components,
+the shared formula is:
 
 ```text
 Ihmisarvo = (hauiksen osapisteet + BMI-indeksi +
@@ -528,7 +529,7 @@ boundaries by [NHS](https://www.nhs.uk/conditions/low-blood-pressure-hypotension
 The inclusive plateau, ratios and combined score are game rules, not clinical
 categories, a validated health index, or individual treatment targets.
 
-All four components have equal 25% weight on a common 100-point baseline.
+By default, all four components have equal 25% weight on a common 100-point baseline.
 Biceps index 20 (circumference 20% of height), BMI 25, blood pressure 120/80
 and Novice DOTS give 100 kp. This is a fixed game baseline, not an empirical
 population or group average. A 20-point change in any normalized component
@@ -536,26 +537,39 @@ changes Ihmisarvo by 5 kp. Half-Novice DOTS gives 87.5 kp with other components
 at baseline; twice-Novice DOTS gives 125 kp. There is no fixed maximum of 100.
 
 This replaces the previous multiplicative formula, including history.
-Height, sex, weight, biceps, blood pressure and SBD are required. Missing components
-never produce a partial score. Each UTC day with any measurement uses that day's
+With all four components enabled, height, sex, weight, biceps, blood pressure
+and SBD are required. Missing enabled components never produce a partial score.
+Each UTC day with an enabled measurement uses that day's
 average and the latest preceding daily averages of the other measurements.
 Systolic and diastolic are averaged before computing their index.
 DOTS uses the latest preceding daily average of individually calculated SBD
 scores. History begins
-only when all components are available; future readings never fill earlier dates.
+only when all enabled components are available; future readings never fill
+earlier dates.
 Completed weeks average observed-day scores, while the current week shows them
 daily. Calculations retain full precision; the display rounds to one decimal
 using a Finnish decimal comma.
 
-Expand **Näytä mittaukset** to see the formulas, all component indices, raw
+Administrators can choose the group's components under
+**Asetukset → Ihmisarvon mittarit**.
+Select at least one of BMI, Hauis, Verenpaine and DOTS, then choose **Tallenna mittarit**.
+The selected components have equal weight: two components each contribute 50%.
+Only selected components require measurements; height is needed for BMI or biceps,
+and sex for DOTS. Changes recalculate historical scores and reach the shared display
+on its next refresh. Disabled measurements remain available in their own views,
+but do not add observation dates to score history. Sample mode keeps all four components.
+The selection persists in PostgreSQL and can only be changed by an enabled administrator.
+
+Expand **Näytä mittaukset** to see the formulas, enabled component indices, raw
 values and their measurement dates. Old component readings can be carried forward;
 their original dates remain visible. Ihmisarvo supports live and sample data, the
 read-only radiator, automatic mode switching and returning from Asetukset.
 Use **Lisää verenpainemittaus** in either Verenpaine or Ihmisarvo to record a
 reading. Adding or deleting readings recalculates the score, including history.
 
-Apply `0013_sbd_measurement.sql` before running this version. Until profile sex
-and an SBD result are available, Ihmisarvo displays the missing-data prompt.
+Run `npm run db:migrate` before running this version, including
+`0014_score_settings.sql`. If DOTS is enabled, profile sex and an SBD result
+are required before Ihmisarvo can be shown.
 
 ### Local troubleshooting and checks
 

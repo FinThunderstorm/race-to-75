@@ -12,6 +12,7 @@ import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
 import { createRaceView, parseRaceMode, raceModeOrder, raceModes } from './race/raceModes'
 import { createSampleRace } from './race/sampleRace'
+import { defaultScoreComponents } from './race/scoreSettings'
 
 export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const { user } = useUser()
@@ -50,6 +51,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const today = new Date().toISOString().slice(0, 10)
   const participants = useMemo(() => (data ? prepareRace(data.participants) : []), [data, today])
   const sampleRace = useMemo(() => createSampleRace(), [today])
+  const scoreComponents = live
+    ? (data?.scoreComponents ?? defaultScoreComponents)
+    : defaultScoreComponents
   const views = useMemo(
     () => ({
       classic: createRaceView(live ? participants : sampleRace, 'classic'),
@@ -57,9 +61,9 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       biceps: createRaceView(live ? participants : sampleRace, 'biceps'),
       'blood-pressure': createRaceView(live ? participants : sampleRace, 'blood-pressure'),
       dots: createRaceView(live ? participants : sampleRace, 'dots'),
-      score: createRaceView(live ? participants : sampleRace, 'score')
+      score: createRaceView(live ? participants : sampleRace, 'score', new Date(), scoreComponents)
     }),
-    [live, participants, sampleRace]
+    [live, participants, sampleRace, scoreComponents]
   )
   const view = views[mode]
   const toggleParams = new URLSearchParams(params)
@@ -191,6 +195,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
           key={live ? 'live' : 'sample'}
           participants={view}
           classicParticipants={views.classic}
+          scoreComponents={scoreComponents}
           bmiParticipants={views.bmi}
           mode={mode}
           live={live}

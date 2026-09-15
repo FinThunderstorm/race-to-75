@@ -21,9 +21,9 @@ export const RaceProfileSettings = () => {
       <h2 id="race-profile-heading">Kisaprofiili</h2>
       <p className="auth-description">
         Lisää pituutesi BMI- ja hauisindeksiä varten sekä sukupuoli DOTS-laskentaa varten.
-        Ihmisarvoon tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä nämä profiilitiedot.
-        Arvot näkyvät ryhmälle ja yhteisellä kisanäytöllä. Pituuden tai sukupuolen korjaaminen
-        laskee niistä riippuvan historian uudelleen.
+        Ihmisarvoon tarvittavat mittaukset riippuvat ylläpidon valitsemista mittareista. Arvot
+        näkyvät ryhmälle ja yhteisellä kisanäytöllä. Pituuden tai sukupuolen korjaaminen laskee
+        niistä riippuvan historian uudelleen.
       </p>
       {isLoading ? (
         <p>Ladataan profiilia…</p>

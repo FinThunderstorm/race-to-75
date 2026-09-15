@@ -1,5 +1,6 @@
 import { dotsIndex, hasDotsSex, prepareDotsHistory } from './dots'
 import { prepareMeasurementHistory, type RaceParticipant } from './prepareRace'
+import { defaultScoreComponents, type ScoreComponent } from './scoreSettings'
 
 export const bicepsIndex = (circumferenceCm: number, heightCm: number) =>
   (100 * circumferenceCm) / heightCm
@@ -25,7 +26,7 @@ export const bloodPressureIndex = (systolic: number, diastolic: number) =>
 
 type DailyBloodPressure = { date: string; systolic: number; diastolic: number }
 type DailyValue = { date: string; value: number }
-export type ScoreComponents = {
+export type ScoreComponents = Partial<{
   weight: DailyValue
   biceps: DailyValue
   bmi: number
@@ -36,10 +37,21 @@ export type ScoreComponents = {
   dotsIndex: number
   bloodPressure: DailyBloodPressure
   bloodPressureIndex: number
-}
+}>
 
-export function prepareScoreHistory(person: RaceParticipant, heightCm: number, now: Date) {
-  if (!hasDotsSex(person.sex)) {
+export function prepareScoreHistory(
+  person: RaceParticipant,
+  heightCm: number | null | undefined,
+  now: Date,
+  selected: readonly ScoreComponent[] = defaultScoreComponents
+) {
+  const enabled = new Set(selected)
+  if (
+    !enabled.size ||
+    (enabled.has('dots') && !hasDotsSex(person.sex)) ||
+    ((enabled.has('bmi') || enabled.has('biceps')) &&
+      (!heightCm || !Number.isFinite(heightCm) || heightCm < 50 || heightCm > 300))
+  ) {
     return { ...prepareMeasurementHistory([], now), scoreComponents: null }
   }
   const dotsDaily = prepareDotsHistory(person, now).daily
@@ -68,17 +80,17 @@ export function prepareScoreHistory(person: RaceParticipant, heightCm: number, n
       dots?: DailyValue
     }
   >()
-  for (const reading of dotsDaily) {
+  for (const reading of enabled.has('dots') ? dotsDaily : []) {
     days.set(reading.date, { dots: reading })
   }
-  for (const { date, weight } of person.dailyWeights) {
+  for (const { date, weight } of enabled.has('bmi') ? person.dailyWeights : []) {
     days.set(date, { ...days.get(date), weight: { date, value: weight } })
   }
-  for (const reading of bicepsDaily) {
+  for (const reading of enabled.has('biceps') ? bicepsDaily : []) {
     days.set(reading.date, { ...days.get(reading.date), biceps: reading })
   }
   // Both pressures come from the same paired readings, so daily dates align.
-  for (const [index, reading] of systolicDaily.entries()) {
+  for (const [index, reading] of (enabled.has('blood-pressure') ? systolicDaily : []).entries()) {
     days.set(reading.date, {
       ...days.get(reading.date),
       bloodPressure: {
@@ -99,30 +111,45 @@ export function prepareScoreHistory(person: RaceParticipant, heightCm: number, n
     weight = day.weight ?? weight
     biceps = day.biceps ?? biceps
     bloodPressure = day.bloodPressure ?? bloodPressure
-    if (!weight || !biceps || !bloodPressure || !dots) {
-      continue
+    const components: ScoreComponents = {}
+    if (enabled.has('bmi')) {
+      if (!weight) {
+        continue
+      }
+      const bmi = weight.value / (heightCm! / 100) ** 2
+      Object.assign(components, { weight, bmi, bmiIndex: bmiIndex(bmi) })
     }
-    const bmi = weight.value / (heightCm / 100) ** 2
-    scoreComponents = {
-      weight,
-      biceps,
-      bmi,
-      bmiIndex: bmiIndex(bmi),
-      bicepsIndex: bicepsIndex(biceps.value, heightCm),
-      bicepsPoints: 5 * bicepsIndex(biceps.value, heightCm),
-      dots,
-      dotsIndex: dotsIndex(dots.value, person.sex),
-      bloodPressure,
-      bloodPressureIndex: bloodPressureIndex(bloodPressure.systolic, bloodPressure.diastolic)
+    if (enabled.has('biceps')) {
+      if (!biceps) {
+        continue
+      }
+      const index = bicepsIndex(biceps.value, heightCm!)
+      Object.assign(components, { biceps, bicepsIndex: index, bicepsPoints: 5 * index })
     }
+    if (enabled.has('blood-pressure')) {
+      if (!bloodPressure) {
+        continue
+      }
+      Object.assign(components, {
+        bloodPressure,
+        bloodPressureIndex: bloodPressureIndex(bloodPressure.systolic, bloodPressure.diastolic)
+      })
+    }
+    if (enabled.has('dots')) {
+      if (!dots || !hasDotsSex(person.sex)) {
+        continue
+      }
+      Object.assign(components, { dots, dotsIndex: dotsIndex(dots.value, person.sex) })
+    }
+    scoreComponents = components
     measurements.push({
       measuredAt: date,
       value:
-        (scoreComponents.bicepsPoints +
-          scoreComponents.bmiIndex +
-          scoreComponents.bloodPressureIndex +
-          scoreComponents.dotsIndex) /
-        4
+        ((components.bicepsPoints ?? 0) +
+          (components.bmiIndex ?? 0) +
+          (components.bloodPressureIndex ?? 0) +
+          (components.dotsIndex ?? 0)) /
+        enabled.size
     })
   }
   return { ...prepareMeasurementHistory(measurements, now), scoreComponents }

@@ -11,6 +11,7 @@ import {
   prepareScoreHistory,
   type ScoreComponents
 } from './raceIndices'
+import { defaultScoreComponents, type ScoreComponent } from './scoreSettings'
 
 export type RaceMode = 'classic' | 'bmi' | 'biceps' | 'score' | 'blood-pressure' | 'dots'
 export const raceModeOrder: RaceMode[] = [
@@ -130,16 +131,20 @@ export type RaceViewParticipant = Omit<RaceParticipant, 'points' | 'latest' | 's
 export function createRaceView(
   participants: RaceParticipant[],
   mode: RaceMode,
-  now = new Date()
+  now = new Date(),
+  scoreComponents: readonly ScoreComponent[] = defaultScoreComponents
 ): RaceViewParticipant[] {
   return participants.map(({ points, latest, startWeight, ...person }) => {
     const height = person.heightCm
     const needsHeight =
-      mode !== 'classic' &&
-      mode !== 'blood-pressure' &&
-      mode !== 'dots' &&
+      (mode === 'bmi' ||
+        mode === 'biceps' ||
+        (mode === 'score' &&
+          (scoreComponents.includes('bmi') || scoreComponents.includes('biceps')))) &&
       (!height || !Number.isFinite(height) || height < 50 || height > 300)
-    const needsSex = (mode === 'dots' || mode === 'score') && !hasDotsSex(person.sex)
+    const needsSex =
+      (mode === 'dots' || (mode === 'score' && scoreComponents.includes('dots'))) &&
+      !hasDotsSex(person.sex)
     const base = {
       ...person,
       needsHeight,
@@ -185,7 +190,12 @@ export function createRaceView(
       }
     }
     if (mode === 'score') {
-      const history = prepareScoreHistory({ ...person, points, latest, startWeight }, height!, now)
+      const history = prepareScoreHistory(
+        { ...person, points, latest, startWeight },
+        height,
+        now,
+        scoreComponents
+      )
       return {
         ...base,
         points: history.points,

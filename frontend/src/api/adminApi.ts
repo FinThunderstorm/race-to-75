@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-
+import type { ScoreSettings } from '../race/scoreSettings'
 import { authApi } from './authApi'
 import { raceApi } from './raceApi'
 
@@ -36,8 +36,16 @@ export const adminApi = createApi({
     }
     return result
   },
-  tagTypes: ['users'],
+  tagTypes: ['users', 'scoreSettings'],
   endpoints: (builder) => ({
+    getScoreSettings: builder.query<ScoreSettings, void>({
+      query: () => '/score-settings',
+      providesTags: ['scoreSettings']
+    }),
+    saveScoreSettings: builder.mutation<ScoreSettings, ScoreSettings>({
+      query: (body) => ({ url: '/score-settings', method: 'PUT', body }),
+      invalidatesTags: (result) => (result ? ['scoreSettings'] : [])
+    }),
     getUsers: builder.query<{ users: ManagedUser[] }, void>({
       query: () => '/users',
       providesTags: ['users']
@@ -67,6 +75,8 @@ export const adminApi = createApi({
 })
 
 export const {
+  useGetScoreSettingsQuery,
+  useSaveScoreSettingsMutation,
   useGetUsersQuery,
   useInviteUserMutation,
   useUpdateUserMutation,

@@ -3,6 +3,7 @@ import type postgres from 'postgres'
 import { generateEnrollmentToken } from '../auth/tokens.js'
 import { config } from '../config.js'
 import { sql } from '../database.js'
+import type { ScoreComponent } from '../race/score-settings.js'
 
 type ManagedUser = {
   id: string
@@ -20,6 +21,29 @@ export class AdminError extends Error {
   ) {
     super(message)
   }
+}
+
+async function authorizeAdminWrite(tx: postgres.TransactionSql, actorId: string) {
+  // Use the same lock for user management and settings so revocation is atomic.
+  await tx`LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`
+  const [actor] = await tx<ManagedUser[]>`SELECT * FROM users WHERE id = ${actorId}`
+  if (!actor || actor.disabled_at) {
+    throw new AdminError(401, 'Unauthorized')
+  }
+  if (actor.role !== 'admin') {
+    throw new AdminError(403, 'Admin access required')
+  }
+}
+
+export async function saveScoreSettings(actorId: string, components: ScoreComponent[]) {
+  return sql.begin(async (tx) => {
+    await authorizeAdminWrite(tx, actorId)
+    const [settings] = await tx<{ components: ScoreComponent[] }[]>`
+      UPDATE score_settings SET components = ${tx.array(components)}
+      WHERE singleton = true RETURNING components
+    `
+    return settings
+  })
 }
 
 export const listUsers = async (db: postgres.Sql | postgres.TransactionSql = sql, id?: string) =>
@@ -63,14 +87,7 @@ export async function manageUser(actorId: string, action: UserAction) {
   return sql.begin(async (tx) => {
     // Management is infrequent. Serialize writes, including other user provisioners,
     // so authorization, case-insensitive duplicates, and admin counts are atomic.
-    await tx`LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE`
-    const [actor] = await tx<ManagedUser[]>`SELECT * FROM users WHERE id = ${actorId}`
-    if (!actor || actor.disabled_at) {
-      throw new AdminError(401, 'Unauthorized')
-    }
-    if (actor.role !== 'admin') {
-      throw new AdminError(403, 'Admin access required')
-    }
+    await authorizeAdminWrite(tx, actorId)
 
     const [target] =
       action.type === 'create'

@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
-
+import { ScoreSettings } from './admin/ScoreSettings'
 import { UserManagement } from './admin/UserManagement'
 import { useUser } from './hooks/useUser'
 import { parseRaceMode } from './race/raceModes'
@@ -33,7 +33,12 @@ export const Settings = () => {
       <SbdSettings />
       <WithingsSettings />
       <EufySettings />
-      {isAdmin && <UserManagement />}
+      {isAdmin && (
+        <>
+          <ScoreSettings />
+          <UserManagement />
+        </>
+      )}
     </main>
   )
 }

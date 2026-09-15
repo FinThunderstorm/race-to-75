@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import type { ScoreComponent } from '../race/scoreSettings'
 
 export type Sex = 'male' | 'female'
 export type SbdMeasurement = {
@@ -80,7 +81,10 @@ export const raceApi = createApi({
     getRadiatorAccess: builder.query<{ allowed: boolean }, void>({
       query: () => '/radiator/access'
     }),
-    getRace: builder.query<{ participants: RaceHistoryParticipant[] }, 'radiator' | void>({
+    getRace: builder.query<
+      { participants: RaceHistoryParticipant[]; scoreComponents?: ScoreComponent[] },
+      'radiator' | void
+    >({
       query: (mode) => (mode === 'radiator' ? '/radiator' : '/race'),
       providesTags: ['race']
     })

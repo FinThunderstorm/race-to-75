@@ -684,6 +684,20 @@ th:first-child {
   margin-top: 0;
   font-size: 20px;
 }
+.score-settings {
+  margin-top: 40px;
+}
+.integration-form .score-setting-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.integration-form .score-setting-option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cyan);
+}
 .settings-panel .primary-button {
   display: block;
   text-align: center;

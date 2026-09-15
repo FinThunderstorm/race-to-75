@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
 import { config } from '../config.js'
-import { AdminError, listUsers, manageUser } from './queries.js'
+import { loadScoreSettings, scoreSettingsSchema } from '../race/score-settings.js'
+import { AdminError, listUsers, manageUser, saveScoreSettings } from './queries.js'
 
 const email = z.string().trim().max(254).pipe(z.email())
 const displayName = z.string().trim().min(1).max(100)
@@ -50,6 +51,14 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       }
       request.log.error({ err: error }, 'User management failed')
       return reply.code(500).send({ error: 'Could not manage users. Please try again.' })
+    })
+    admin.get('/api/admin/score-settings', loadScoreSettings)
+    admin.put('/api/admin/score-settings', async (request, reply) => {
+      const input = scoreSettingsSchema.safeParse(request.body)
+      if (!input.success) {
+        return reply.code(400).send({ error: 'Select at least one unique, valid score component' })
+      }
+      return saveScoreSettings(request.user.sub, input.data.components)
     })
     admin.get('/api/admin/users', async () => ({ users: await listUsers() }))
     admin.post('/api/admin/users', async (request, reply) => {

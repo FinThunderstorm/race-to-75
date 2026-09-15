@@ -6,6 +6,7 @@ import { registerBicepsRoutes } from './biceps.js'
 import { registerBloodPressureRoutes } from './blood-pressure.js'
 import { registerRadiatorRoutes } from './radiator.js'
 import { registerSbdRoutes, type SbdMeasurement } from './sbd.js'
+import { loadScoreSettings } from './score-settings.js'
 
 export async function registerRaceRoutes(app: FastifyInstance) {
   await registerBicepsRoutes(app)
@@ -111,5 +112,6 @@ async function loadRace() {
   for (const { userId, ...reading } of sbd) {
     participants.get(userId)?.sbdMeasurements.push(reading)
   }
-  return { participants: [...participants.values()] }
+  const { components: scoreComponents } = await loadScoreSettings()
+  return { participants: [...participants.values()], scoreComponents }
 }

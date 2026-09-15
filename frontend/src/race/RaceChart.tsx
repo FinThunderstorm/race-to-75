@@ -15,6 +15,7 @@ import {
   raceModes,
   raceViewBounds
 } from './raceModes'
+import { defaultScoreComponents, type ScoreComponent, scoreComponentLabels } from './scoreSettings'
 import { useAnimatedCoordinates } from './useAnimatedCoordinates'
 
 const formatChange = (change: number) => {
@@ -28,7 +29,8 @@ export const RaceChart = ({
   bmiParticipants = participants,
   live = false,
   radiator = false,
-  mode = 'classic'
+  mode = 'classic',
+  scoreComponents = defaultScoreComponents
 }: {
   participants: RaceViewParticipant[]
   classicParticipants?: RaceViewParticipant[]
@@ -36,6 +38,7 @@ export const RaceChart = ({
   live?: boolean
   radiator?: boolean
   mode?: RaceMode
+  scoreComponents?: readonly ScoreComponent[]
 }) => {
   const { unit, unitLabel, metric, reference: goal, title, referenceLabel } = raceModes[mode]
   const bloodPressure = mode === 'blood-pressure'
@@ -570,7 +573,7 @@ export const RaceChart = ({
             : participants.some((person) => person.latest)
               ? 'Ei mittauksia viimeisen kolmen kuukauden ajalta.'
               : mode === 'score'
-                ? 'Ihmisarvon näyttämiseen tarvitaan paino-, hauis-, verenpaine- ja SBD-tulos sekä profiilin pituus ja sukupuoli.'
+                ? `Ihmisarvon näyttämiseen tarvitaan valittujen mittarien tiedot: ${scoreComponents.map((key) => scoreComponentLabels[key]).join(', ')}.`
                 : mode === 'dots'
                   ? participants.some((person) => person.needsSex)
                     ? 'DOTS-laskentaan tarvitaan profiilin sukupuoli.'
@@ -618,7 +621,12 @@ export const RaceChart = ({
         (bloodPressure ? (
           <BloodPressureReadings participants={participants} live={live} />
         ) : (
-          <RaceReadings participants={participants} mode={mode} live={live} />
+          <RaceReadings
+            participants={participants}
+            mode={mode}
+            live={live}
+            scoreComponents={scoreComponents}
+          />
         ))}
     </section>
   )
