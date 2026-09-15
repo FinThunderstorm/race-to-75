@@ -22,10 +22,12 @@ const expectUndistortedChart = async (page: Page) => {
         const box = circle.getBoundingClientRect()
         const style = getComputedStyle(circle)
         const stroke = style.stroke === 'none' ? 0 : Number.parseFloat(style.strokeWidth)
+        // CSS controls the rendered radius, including hover and focus enlargement.
+        const radius = Number.parseFloat(style.getPropertyValue('r'))
         return {
           width: box.width,
           height: box.height,
-          diameter: circle.r.baseVal.value * 2 + stroke
+          diameter: radius * 2 + stroke
         }
       })
       const boundary = svg.querySelector<SVGLineElement>('.reference-band line')!
