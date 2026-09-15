@@ -134,7 +134,7 @@ export const RaceChart = ({
       return Date.UTC(year, month, Math.min(windowEnd.getUTCDate(), lastDay))
     }),
     bounds.currentWeek,
-    bounds.end
+    bounds.currentWeek + 6 * 24 * 60 * 60 * 1000
   ]
   const sliceWidth = (right - left) / 4
   const x = (date: string) => {
@@ -144,7 +144,7 @@ export const RaceChart = ({
       section += 1
     }
     const duration = sections[section + 1] - sections[section]
-    // On Monday the current week has only one date, placed at its left edge.
+    // Keep this week's weekdays fixed from Monday at the left to Sunday at the right.
     const progress = duration > 0 ? (timestamp - sections[section]) / duration : 0
     return left + (section + progress) * sliceWidth
   }

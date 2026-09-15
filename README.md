@@ -443,7 +443,8 @@ and sample charts show the last three calendar months through today. Completed
 weeks have one point averaging every weighing in that week; the current week
 has at most one point per logged day, averaging that day's weighings. Weeks start
 on Monday in UTC. Empty weeks/days have no point, and the first partial week
-only includes readings within the displayed window.
+only includes readings within the displayed window. Current-week points use fixed,
+evenly spaced weekday positions from Monday to Sunday, leaving future days empty.
 
 Start and current values use the full history and daily averages, independent
 of chart grouping. Participants without recent readings remain visible, and the
