@@ -604,12 +604,14 @@ Run the local checks from the repo root (the lint script also needs shellcheck):
 ./deploy-scripts/01-lint.sh
 npm run build -w backend
 npm run build -w frontend
-npm test -w backend
-node --test scripts/with-local-env.test.mjs backend/scripts/bootstrap-admin.test.js
+npm run test:local
 ./run-tests.sh
 ```
 
-The Playwright script uses an isolated Docker Compose stack and test database.
+`npm run test:local` runs the Playwright subset that needs no running server or
+database. `./run-tests.sh` runs all tests through Playwright in an isolated Docker
+Compose stack and test database. See [the test suite guide](playwright/README.md)
+for coverage and fixture conventions.
 
 ### Database migrations
 

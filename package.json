@@ -4,8 +4,8 @@
   "private": true,
   "workspaces": ["backend", "frontend", "playwright"],
   "scripts": {
-    "test:local": "npm test -w backend && node --test scripts/*.test.mjs",
-    "test": "npm run test:local && npm test -w playwright",
+    "test:local": "npm test -w playwright -- config.spec.ts radiator-api.spec.ts eufy-client.spec.ts with-local-env.spec.ts",
+    "test": "npm test -w playwright",
     "db:migrate": "npm run db:migrate -w backend",
     "knip": "knip",
     "lint": "biome lint .",

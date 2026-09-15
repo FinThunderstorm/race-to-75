@@ -5,7 +5,6 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "db:migrate": "node scripts/migrate.js",
     "auth:bootstrap-admin": "node scripts/bootstrap-admin.js",
     "build": "tsc",

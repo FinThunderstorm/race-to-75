@@ -1,7 +1,6 @@
-import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { expect, test } from '@playwright/test'
 
-import { fetchEufyReadings, lookbackStart } from './client.js'
+import { fetchEufyReadings, lookbackStart } from '../backend/src/integrations/eufy/client'
 
 const response =
   (body: unknown, status = 200): typeof fetch =>
@@ -26,13 +25,13 @@ test('history filters profiles and dates, normalizes kg, and keeps correction ID
     { ...record, create_time: until.getTime() / 1000 + 1 }
   ]
   const readings = await fetchEufyReadings('a', 'token', 'p', from, until, async (url, options) => {
-    assert.equal(new URL(String(url)).searchParams.get('after'), String(time - 1))
-    assert.equal(new Headers(options?.headers).get('Token'), 'token')
+    expect(new URL(String(url)).searchParams.get('after')).toBe(String(time - 1))
+    expect(new Headers(options?.headers).get('Token')).toBe('token')
     return Response.json({ res_code: 1, data: records })
   })
-  assert.equal(readings.length, 1)
-  assert.equal(readings[0].weightKg, 80.5)
-  assert.equal(readings[0].measuredAt.toISOString(), from.toISOString())
+  expect(readings.length).toBe(1)
+  expect(readings[0].weightKg).toBe(80.5)
+  expect(readings[0].measuredAt.toISOString()).toBe(from.toISOString())
   const corrected = await fetchEufyReadings(
     'a',
     'token',
@@ -44,8 +43,8 @@ test('history filters profiles and dates, normalizes kg, and keeps correction ID
       data: [{ ...record, update_time: time + 200, scale_data: { weight: 800 } }]
     })
   )
-  assert.equal(corrected[0].externalId, readings[0].externalId)
-  assert.equal(corrected[0].weightKg, 80)
+  expect(corrected[0].externalId).toBe(readings[0].externalId)
+  expect(corrected[0].weightKg).toBe(80)
   const anotherAccount = await fetchEufyReadings(
     'b',
     'token',
@@ -54,20 +53,17 @@ test('history filters profiles and dates, normalizes kg, and keeps correction ID
     until,
     response({ res_code: 1, data: [record] })
   )
-  assert.notEqual(anotherAccount[0].externalId, readings[0].externalId)
+  expect(anotherAccount[0].externalId).not.toBe(readings[0].externalId)
 })
 
 test('three months back clamps month ends and preserves UTC time', () => {
-  assert.equal(
-    lookbackStart(new Date('2026-05-31T12:34:56Z')).toISOString(),
+  expect(lookbackStart(new Date('2026-05-31T12:34:56Z')).toISOString()).toBe(
     '2026-02-28T12:34:56.000Z'
   )
-  assert.equal(
-    lookbackStart(new Date('2024-05-31T12:34:56Z')).toISOString(),
+  expect(lookbackStart(new Date('2024-05-31T12:34:56Z')).toISOString()).toBe(
     '2024-02-29T12:34:56.000Z'
   )
-  assert.equal(
-    lookbackStart(new Date('2026-01-08T12:34:56Z')).toISOString(),
+  expect(lookbackStart(new Date('2026-01-08T12:34:56Z')).toISOString()).toBe(
     '2025-10-08T12:34:56.000Z'
   )
 })

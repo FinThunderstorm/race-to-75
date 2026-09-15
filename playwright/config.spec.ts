@@ -1,6 +1,7 @@
-import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { test } from 'node:test'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { expect, test } from '@playwright/test'
 
 const readConfig = (overrides: Record<string, string>) =>
   spawnSync(
@@ -11,7 +12,7 @@ const readConfig = (overrides: Record<string, string>) =>
       '--input-type=module',
       '-e',
       `
-    const { config } = await import(${JSON.stringify(new URL('./config.ts', import.meta.url).href)})
+    const { config } = await import(${JSON.stringify(pathToFileURL(resolve(__dirname, '../backend/src/config.ts')).href)})
     console.log(JSON.stringify({ ip: config.radiatorAllowedIp ?? null, proxies: config.trustProxy }))
   `
     ],
@@ -30,8 +31,8 @@ const readConfig = (overrides: Record<string, string>) =>
 
 test('radiator and forwarded-header trust default off for empty deployment settings', () => {
   const result = readConfig({})
-  assert.equal(result.status, 0, result.stderr)
-  assert.deepEqual(JSON.parse(result.stdout), { ip: null, proxies: [] })
+  expect(result.status, result.stderr).toBe(0)
+  expect(JSON.parse(result.stdout)).toEqual({ ip: null, proxies: [] })
 })
 
 test('accepts a single IP and trims a list of trusted proxy addresses and subnets', () => {
@@ -39,8 +40,8 @@ test('accepts a single IP and trims a list of trusted proxy addresses and subnet
     RADIATOR_ALLOWED_IP: '2001:db8::75',
     TRUST_PROXY: ' 10.20.0.2, 10.30.0.0/24, 2001:db8::/64 '
   })
-  assert.equal(result.status, 0, result.stderr)
-  assert.deepEqual(JSON.parse(result.stdout), {
+  expect(result.status, result.stderr).toBe(0)
+  expect(JSON.parse(result.stdout)).toEqual({
     ip: '2001:db8::75',
     proxies: ['10.20.0.2', '10.30.0.0/24', '2001:db8::/64']
   })
@@ -54,6 +55,6 @@ test('rejects malformed allowed IPs and proxy values instead of silently broaden
     { TRUST_PROXY: '10.20.0.0/99' },
     { TRUST_PROXY: '10.20.0.2,' }
   ]) {
-    assert.notEqual(readConfig(overrides).status, 0)
+    expect(readConfig(overrides).status).not.toBe(0)
   }
 })

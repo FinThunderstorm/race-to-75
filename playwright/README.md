@@ -1,10 +1,12 @@
 # Test suite
 
 Run the complete suite with `./run-tests.sh`. It creates an isolated Docker stack,
-builds the application, runs backend/process checks and Playwright, then removes
-the stack. CI uses the same test command.
+builds the application, runs every test through Playwright, then removes the
+stack. CI uses the same test command and produces one summary for the whole suite.
 
-For checks that need no running server or database, use `npm run test:local`.
+For the configuration, IP security, Eufy normalization and environment-script
+checks that need no running server or database, use `npm run test:local`.
+This is a focused Playwright run using the same specs as the full suite.
 With a migrated test database and running backend, `npm test` runs everything
 locally. Application journey fixtures need a PostgreSQL role with `CREATEDB`;
 the Docker test role already has it.
@@ -19,9 +21,11 @@ the Docker test role already has it.
 | Transformation units | Histories, score composition, DOTS, provider records |
 | Process integration | Configuration parsing and environment propagation |
 
-`history.spec.ts`, `score.spec.ts`, and `dots.spec.ts` are transformation tests
-using the Playwright assertion runner; they do not launch a browser. Avoid adding
-unit tests for simple wrappers, labels, URL construction, or implementation
+All tests live in `playwright/*.spec.ts` and use the Playwright test runner.
+Transformation, configuration, injected API and subprocess tests do not launch
+a browser. `with-local-env.spec.ts` and `config.spec.ts` still launch actual Node
+subprocesses to verify environment loading and configuration in isolation.
+Avoid adding unit tests for simple wrappers, labels, URL construction, or implementation
 constants already exercised through application behavior.
 
 ## Real application journeys
@@ -39,6 +43,8 @@ real application. Do not implement a second database inside `page.route()`.
 Bootstrap and webhook-worker specs have dedicated worker fixtures so their
 whole-database operations cannot affect other scenarios. Eufy has a dedicated
 worker to avoid sharing its application rate-limit budget with other journeys.
+The focused API specs that own a backend pool also use dedicated workers and
+close the pool at teardown, including `radiator-api.spec.ts`.
 Do not statically import backend modules into fixture-based specs: the fixture
 must select its database before the backend creates its module-level pool.
 
