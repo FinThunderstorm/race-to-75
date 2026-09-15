@@ -5,7 +5,7 @@ import {
   useDeleteBicepsMeasurementMutation,
   useGetBicepsMeasurementsQuery
 } from '../api/raceApi'
-import { formatDate, formatNumber } from '../format'
+import { formatDate, formatNumber, parseDecimal } from '../format'
 
 export const BicepsSettings = () => {
   const { data, isLoading, isFetching, isError, refetch } = useGetBicepsMeasurementsQuery()
@@ -37,7 +37,7 @@ export const BicepsSettings = () => {
           event.preventDefault()
           setError('')
           setMessage('')
-          const circumferenceCm = Number(circumference)
+          const circumferenceCm = parseDecimal(circumference)
           const parsedDate = new Date(`${date}T00:00:00Z`)
           if (
             !Number.isFinite(circumferenceCm) ||
@@ -67,10 +67,7 @@ export const BicepsSettings = () => {
           Ympärysmitta (cm)
           <input
             id="biceps-circumference"
-            type="number"
-            min="1"
-            max="100"
-            step="0.1"
+            type="text"
             inputMode="decimal"
             required
             disabled={saving}

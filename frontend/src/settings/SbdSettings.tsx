@@ -7,7 +7,7 @@ import {
   useGetRaceQuery,
   useGetSbdMeasurementsQuery
 } from '../api/raceApi'
-import { formatDate, formatNumber } from '../format'
+import { formatDate, formatNumber, parseDecimal } from '../format'
 import { useUser } from '../hooks/useUser'
 import {
   calculateDots,
@@ -51,14 +51,15 @@ export const SbdSettings = () => {
     weight ?? (previousWeight ? String(Math.round(previousWeight.weightKg * 10) / 10) : '')
   const reading = {
     measuredAt: date,
-    squatKg: Number(lifts.squatKg),
-    benchKg: Number(lifts.benchKg),
-    deadliftKg: Number(lifts.deadliftKg),
-    bodyweightKg: Number(weightText)
+    squatKg: parseDecimal(lifts.squatKg),
+    benchKg: parseDecimal(lifts.benchKg),
+    deadliftKg: parseDecimal(lifts.deadliftKg),
+    bodyweightKg: parseDecimal(weightText)
   }
   const validNumbers =
-    Object.values(lifts).every((value) => validKg(Number(value), 0.1, 1000)) &&
-    validKg(reading.bodyweightKg, 1, 500)
+    [reading.squatKg, reading.benchKg, reading.deadliftKg].every((value) =>
+      validKg(value, 0.1, 1000)
+    ) && validKg(reading.bodyweightKg, 1, 500)
   const dots = validNumbers ? calculateDots(sbdTotal(reading), reading.bodyweightKg, sex) : null
 
   return (
@@ -122,10 +123,7 @@ export const SbdSettings = () => {
             {label} (kg)
             <input
               id={`sbd-${key}`}
-              type="number"
-              min="0.1"
-              max="1000"
-              step="0.1"
+              type="text"
               inputMode="decimal"
               required
               disabled={saving}
@@ -159,10 +157,7 @@ export const SbdSettings = () => {
           Kehonpaino (kg)
           <input
             id="sbd-weight"
-            type="number"
-            min="1"
-            max="500"
-            step="0.1"
+            type="text"
             inputMode="decimal"
             required
             disabled={saving}

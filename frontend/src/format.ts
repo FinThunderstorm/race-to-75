@@ -7,3 +7,10 @@ const dateFormat = new Intl.DateTimeFormat('fi-FI', { timeZone: 'UTC' })
 
 export const formatNumber = (value: number) => numberFormat.format(value)
 export const formatDate = (value: string) => dateFormat.format(new Date(value))
+
+export const parseDecimal = (value: string) => {
+  const text = value.trim()
+  return /^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(text)
+    ? Number(text.replace(',', '.'))
+    : Number.NaN
+}

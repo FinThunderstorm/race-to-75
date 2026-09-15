@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useGetProfileQuery, useSaveProfileMutation } from '../api/profileApi'
 import type { Sex } from '../api/raceApi'
+import { parseDecimal } from '../format'
 
 export const RaceProfileSettings = () => {
   const { data, isLoading, isFetching, isError, refetch } = useGetProfileQuery()
@@ -47,7 +48,7 @@ export const RaceProfileSettings = () => {
               setError('')
               setMessage('')
               const value = (height ?? String(data.heightCm ?? '')).trim()
-              const heightCm = value === '' ? null : Number(value)
+              const heightCm = value === '' ? null : parseDecimal(value)
               if (
                 heightCm !== null &&
                 (!Number.isFinite(heightCm) ||
@@ -78,10 +79,7 @@ export const RaceProfileSettings = () => {
               Pituus (cm)
               <input
                 id="race-height"
-                type="number"
-                min="50"
-                max="300"
-                step="0.1"
+                type="text"
                 inputMode="decimal"
                 value={height ?? String(data.heightCm ?? '')}
                 disabled={saving}
