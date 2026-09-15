@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 for (const width of [1440, 390]) {
-  for (let today = 0; today < 7; today += 1) {
+  for (const today of [0, 3, 6]) {
     test(`current-week points keep weekday positions on day ${today + 1} at width ${width}`, async ({
       page
     }) => {

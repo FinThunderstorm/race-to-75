@@ -131,8 +131,16 @@ test('wrapped component labels do not overlap at desktop widths', async ({ page 
         }
       })
     )
-    await page.goto(count === 10 ? '/?mode=blood-pressure' : '/?mode=blood-pressure&data=sample')
+    await page.goto('/?mode=blood-pressure')
     await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
+    await expect(page.locator('.race-standings .participant')).toHaveCount(count)
+    const colors = await page
+      .locator('.race-standings .participant')
+      .evaluateAll((elements) =>
+        elements.map((element) => (element as HTMLElement).style.getPropertyValue('--racer-color'))
+      )
+    expect(colors.every(Boolean)).toBe(true)
+    expect(new Set(colors).size).toBe(count)
     await expect
       .poll(() =>
         page.locator('.race-standings .participant').evaluateAll((elements) => {
@@ -143,5 +151,34 @@ test('wrapped component labels do not overlap at desktop widths', async ({ page 
         })
       )
       .toBe(true)
+  }
+})
+
+test('all sample chart modes remain usable at desktop and mobile widths', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }))
+  for (const [mode, count] of [
+    ['classic', 6],
+    ['bmi', 5],
+    ['biceps', 5],
+    ['blood-pressure', 6],
+    ['dots', 6],
+    ['score', 5]
+  ] as const) {
+    await test.step(mode, async () => {
+      await page.goto(`/?mode=${mode}&data=sample`)
+      await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
+      await expect(page.locator('.chart-series')).toHaveCount(count)
+      if (mode !== 'classic') {
+        await expect(page.locator('.goal-line, .winner, .setback, .personal-low')).toHaveCount(0)
+      }
+      for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 1000 })
+        await expect(page.locator('.chart-series circle').first()).toBeVisible()
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+          true
+        )
+      }
+    })
   }
 })

@@ -1,16 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import { test as base, expect } from '@playwright/test'
 import Fastify from 'fastify'
 
-import { authPlugin } from '../backend/src/auth/index'
-import { closeDatabase, sql } from '../backend/src/database'
-import { registerEufyRoutes } from '../backend/src/integrations/eufy/index'
-import { claimSync, finishSync } from '../backend/src/integrations/eufy/queries'
-import { syncEufy } from '../backend/src/integrations/eufy/sync'
-import { registerRaceRoutes } from '../backend/src/race/index'
+import { test as base, expect } from './app-fixtures'
 
-// Keep the backend pool and mocked global fetch isolated from other specs.
+// Each journey gets a clean application rate-limit budget; unrelated profile tests
+// must not consume the Eufy status quota before this lifecycle starts.
 const test = base.extend<{}, { eufyWorker: void }>({
   eufyWorker: [
     async ({}, use) => {
@@ -20,7 +15,15 @@ const test = base.extend<{}, { eufyWorker: void }>({
   ]
 })
 
-test('Eufy connection isolates profiles, imports once, survives reconnect, and stops after disconnect', async () => {
+test('Eufy connection isolates profiles, imports once, survives reconnect, and stops after disconnect', async ({
+  application
+}) => {
+  const { sql } = application
+  const { authPlugin } = require('../backend/src/auth/index')
+  const { registerEufyRoutes } = require('../backend/src/integrations/eufy/index')
+  const { claimSync, finishSync } = require('../backend/src/integrations/eufy/queries')
+  const { syncEufy } = require('../backend/src/integrations/eufy/sync')
+  const { registerRaceRoutes } = require('../backend/src/race/index')
   const ids = [randomUUID(), randomUUID()]
   const accountId = randomUUID()
   const logs: string[] = []
@@ -43,24 +46,27 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
   let requestedAfter = 0
   let weight = 805
   let loginCalls = 0
+  let failLogin = false
   const timestamp = Math.floor(Date.now() / 1000) - 3600
   globalThis.fetch = async (input, options) => {
     const url = new URL(String(input))
     expect(url.origin).toBe('https://api.eufylife.com')
     if (url.pathname.endsWith('/login')) {
+      expect(options?.redirect).toBe('error')
+      if (failLogin) {
+        return Response.json({ res_code: -1, message: 'never-store-this-password private-token' })
+      }
       loginCalls++
       const body = JSON.parse(String(options?.body))
       expect(body.email).toBe('eufy@example.com')
       expect(body.password).toBe('never-store-this-password')
       return Response.json({
         res_code: 1,
-        access_token: `private-token-${loginCalls}`,
+        // Reconnect deliberately returns the same plaintext to verify fresh encryption.
+        access_token: 'private-token',
         user_id: accountId,
         expires_in: 2592000,
-        customers: [
-          { id: 'p1', name: 'One' },
-          { id: 'p2', name: 'Two' }
-        ]
+        customers: [{ id: 'p1', nick_name: 'One' }, { id: 'p2' }]
       })
     }
     expect(url.pathname).toBe('/v1/device/data')
@@ -95,6 +101,10 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     expect(res.statusCode).toBe(200)
     expect(res.body).not.toContain('private-token')
     expect(res.body).not.toContain('never-store')
+    expect(res.json().profiles).toEqual([
+      { id: 'p1', name: 'One' },
+      { id: 'p2', name: 'Profiili p2' }
+    ])
     return res.json().setupId as string
   }
   const select = (id: string, setupId: string, profileId: string) =>
@@ -113,6 +123,17 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
       (await app.inject({ method: 'POST', url: '/api/integrations/eufy/login', payload: {} }))
         .statusCode
     ).toBe(401)
+    failLogin = true
+    const rejectedLogin = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/eufy/login',
+      headers: { cookie: cookie(ids[0]) },
+      payload: { email: 'eufy@example.com', password: 'never-store-this-password' }
+    })
+    expect(rejectedLogin.statusCode).toBe(401)
+    expect(rejectedLogin.body).not.toContain('never-store-this-password')
+    expect(rejectedLogin.body).not.toContain('private-token')
+    failLogin = false
     const setupId = await login(ids[0])
     const malformed = await app.inject({
       method: 'POST',
@@ -196,6 +217,13 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     failData = 0
     const reconnectSetup = await login(ids[0])
     expect((await select(ids[0], reconnectSetup, 'p1')).statusCode).toBe(200)
+    const [reconnected] =
+      await sql`SELECT access_token FROM integration_connection WHERE id = ${connection.id}`
+    expect(reconnected.access_token).not.toBe(connection.access_token)
+    // The persisted token starts with a 12-byte AES-GCM IV. Reusing plaintext must use a fresh IV.
+    expect(Buffer.from(reconnected.access_token, 'base64url').subarray(0, 12)).not.toEqual(
+      Buffer.from(connection.access_token, 'base64url').subarray(0, 12)
+    )
     expect((await sql`SELECT * FROM measurement WHERE user_id = ${ids[0]}`).length).toBe(1)
     await sql`UPDATE integration_connection SET expires_at = now() - interval '1 second' WHERE id = ${connection.id}`
     await sql`UPDATE eufy_sync SET next_sync_at = now() WHERE connection_id = ${connection.id}`
@@ -205,6 +233,46 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     expect(
       (await sql`SELECT status FROM integration_connection WHERE id = ${connection.id}`)[0].status
     ).toBe('reconnect_required')
+
+    // Stored ciphertext is authenticated against its owner and the current encryption key.
+    const [validToken] =
+      await sql`SELECT access_token FROM integration_connection WHERE id = ${connection.id}`
+    const [otherToken] =
+      await sql`SELECT access_token FROM integration_connection WHERE user_id = ${ids[1]}`
+    const damaged = Buffer.from(validToken.access_token, 'base64url')
+    damaged[0] ^= 1
+    const originalSecret = application.config.cookieSecret
+    try {
+      for (const [ciphertext, secret] of [
+        [damaged.toString('base64url'), originalSecret],
+        [otherToken.access_token, originalSecret],
+        [validToken.access_token, 'rotated-encryption-key']
+      ]) {
+        application.config.cookieSecret = secret
+        await sql`UPDATE integration_connection SET access_token = ${ciphertext}, status = 'active',
+          expires_at = now() + interval '1 day' WHERE id = ${connection.id}`
+        await sql`UPDATE eufy_sync SET next_sync_at = now() WHERE connection_id = ${connection.id}`
+        const callsBefore = dataCalls
+        await syncEufy(ids[0])
+        expect(dataCalls).toBe(callsBefore)
+        expect(
+          (await sql`SELECT status FROM integration_connection WHERE id = ${connection.id}`)[0]
+            .status
+        ).toBe('reconnect_required')
+        expect(await sql`SELECT id FROM measurement WHERE user_id = ${ids[0]}`).toHaveLength(1)
+      }
+    } finally {
+      application.config.cookieSecret = originalSecret
+      await sql`UPDATE integration_connection SET access_token = ${validToken.access_token}, status = 'active',
+        expires_at = now() + interval '1 day' WHERE id = ${connection.id}`
+      await sql`UPDATE eufy_sync SET next_sync_at = now() WHERE connection_id = ${connection.id}`
+    }
+    const callsBeforeControl = dataCalls
+    await syncEufy(ids[0])
+    expect(dataCalls).toBe(callsBeforeControl + 1)
+    expect(
+      (await sql`SELECT status FROM integration_connection WHERE id = ${connection.id}`)[0].status
+    ).toBe('active')
 
     // A response from an old in-flight request must not survive disconnect.
     await sql`UPDATE integration_connection SET status = 'active', expires_at = now() + interval '1 day' WHERE id = ${connection.id}`
@@ -234,92 +302,125 @@ test('Eufy connection isolates profiles, imports once, survives reconnect, and s
     globalThis.fetch = originalFetch
     await app.close()
     await sql`DELETE FROM users WHERE id IN ${sql(ids)}`
-    await closeDatabase()
   }
 })
 
-test('Eufy settings requires profile selection, clears credentials, and supports reconnect', async ({
-  page
+test('Eufy profile selection imports readings, expiry prompts reconnect, and disconnect preserves history', async ({
+  page,
+  application,
+  signIn
 }) => {
-  await page.route('**/api/auth/me', (route) =>
-    route.fulfill({
-      json: {
-        id: 'test',
-        email: 'test@example.com',
-        display_name: 'Test',
-        role: 'member'
-      }
-    })
-  )
-  await page.route('**/api/integrations/withings/status', (route) =>
-    route.fulfill({
-      json: {
-        connected: true,
-        configured: true,
-        automaticUpdates: true
-      }
-    })
-  )
-  let connected = false
-  await page.route('**/api/integrations/eufy/status', (route) =>
-    route.fulfill({
-      json: {
-        status: connected ? 'reconnect_required' : 'disconnected',
-        profileName: connected ? 'Me' : undefined
-      }
-    })
-  )
-  await page.route('**/api/integrations/eufy/login', async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      email: 'eufy@example.com',
-      password: 'secret'
-    })
-    await route.fulfill({
-      json: {
-        setupId: 'setup',
-        profiles: [
+  const user = await signIn()
+  const { sql } = application
+  const { syncEufy } = require('../backend/src/integrations/eufy/sync')
+  const originalFetch = globalThis.fetch
+  const originalDateNow = Date.now
+  let loginCalls = 0
+  const timestamp = Math.floor(Date.now() / 1000) - 3600
+  globalThis.fetch = async (input, options) => {
+    const url = new URL(String(input))
+    if (url.origin !== 'https://api.eufylife.com') {
+      return originalFetch(input, options)
+    }
+    if (url.pathname.endsWith('/login')) {
+      expect(JSON.parse(String(options?.body))).toMatchObject({
+        email: 'eufy@example.com',
+        password: 'private-password'
+      })
+      loginCalls++
+      return Response.json({
+        res_code: 1,
+        access_token: `private-token-${loginCalls}`,
+        user_id: user.id,
+        expires_in: 2592000,
+        customers: [
           { id: 'me', name: 'Me' },
           { id: 'other', name: 'Other' }
         ]
-      }
+      })
+    }
+    expect(url.pathname).toBe('/v1/device/data')
+    return Response.json({
+      res_code: 1,
+      data: [
+        {
+          customer_id: 'me',
+          device_id: 'scale',
+          create_time: timestamp,
+          scale_data: { weight: 805 }
+        },
+        {
+          customer_id: 'other',
+          device_id: 'scale',
+          create_time: timestamp,
+          scale_data: { weight: 700 }
+        }
+      ]
     })
-  })
-  await page.route('**/api/integrations/eufy/profile', (route) => {
-    expect(route.request().postDataJSON()).toEqual({ setupId: 'setup', profileId: 'me' })
-    connected = true
-    return route.fulfill({
-      json: { status: 'connected', profileName: 'Me', lastSyncedAt: new Date().toISOString() }
-    })
-  })
-  await page.route('**/api/integrations/eufy', (route) => {
-    connected = false
-    return route.fulfill({ status: 204 })
-  })
-  await page.goto('/settings')
-  const eufy = page.getByRole('region', { name: 'Eufy Life', exact: true })
-  await eufy.getByRole('button', { name: 'Yhdistä Eufy Life', exact: true }).click()
-  await eufy.getByLabel('Eufy Life -sähköposti').fill('eufy@example.com')
-  await eufy.getByLabel('Eufy Life -salasana').fill('secret')
-  await eufy.getByRole('button', { name: 'Kirjaudu Eufy Lifeen' }).click()
-  await expect(eufy.getByLabel('Eufy Life -salasana')).toHaveCount(0)
-  await expect(eufy.getByRole('button', { name: 'Käytä tätä profiilia' })).toBeDisabled()
-  await eufy.getByLabel('Eufy Life -profiilisi').selectOption('me')
-  await eufy.getByRole('button', { name: 'Käytä tätä profiilia' }).click()
-  await expect(eufy.getByText('Profiili: Me')).toBeVisible()
-  await expect(
-    page
-      .getByRole('region', { name: 'Withings', exact: true })
-      .getByText('Yhdistetty', { exact: true })
-  ).toBeVisible()
-  await page.reload()
-  await expect(eufy.getByText('Yhdistä uudelleen jatkaaksesi synkronointia')).toBeVisible()
-  await eufy.getByRole('button', { name: 'Yhdistä Eufy Life uudelleen' }).click()
-  await expect(eufy.getByLabel('Eufy Life -salasana')).toHaveValue('')
-  await expect(eufy.getByLabel('Eufy Life -sähköposti')).toHaveValue('')
-  await eufy.getByRole('button', { name: 'Peruuta' }).click()
-  await page.setViewportSize({ width: 390, height: 844 })
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await eufy.getByRole('button', { name: 'Katkaise Eufy Life -yhteys' }).click()
-  await expect(eufy.getByText('Ei yhdistetty', { exact: true })).toBeVisible()
-  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain('secret')
+  }
+  try {
+    await page.clock.install()
+    await page.goto('/profile')
+    const eufy = page.getByRole('region', { name: 'Eufy Life', exact: true })
+    const notice = page.getByRole('alert', { name: 'Yhdistä Eufy Life uudelleen' })
+    const enterCredentials = async () => {
+      await eufy.getByLabel('Eufy Life -sähköposti').fill('eufy@example.com')
+      await eufy.getByLabel('Eufy Life -salasana').fill('private-password')
+      await eufy.getByRole('button', { name: 'Kirjaudu Eufy Lifeen' }).click()
+      await expect(eufy.getByLabel('Eufy Life -salasana')).toHaveCount(0)
+      await expect(eufy.getByRole('button', { name: 'Käytä tätä profiilia' })).toBeDisabled()
+      await eufy.getByLabel('Eufy Life -profiilisi').selectOption('me')
+      await eufy.getByRole('button', { name: 'Käytä tätä profiilia' }).click()
+      await expect(eufy.getByText('Profiili: Me')).toBeVisible()
+    }
+    await eufy.getByRole('button', { name: 'Yhdistä Eufy Life', exact: true }).click()
+    await enterCredentials()
+    await page.reload()
+    await expect(eufy.getByText('Profiili: Me')).toBeVisible()
+    expect(
+      await sql`SELECT weight_kg::float AS weight FROM measurement WHERE user_id = ${user.id}`
+    ).toEqual([{ weight: 80.5 }])
+    await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
+    await expect(notice).toHaveCount(0)
+    await sql`UPDATE integration_connection SET expires_at = now() - interval '1 second' WHERE user_id = ${user.id}`
+    await sql`UPDATE eufy_sync SET next_sync_at = now() WHERE connection_id IN (SELECT id FROM integration_connection WHERE user_id = ${user.id})`
+    await syncEufy(user.id)
+    // Expiry is a later lifecycle phase: cross the minute boundary on both clocks
+    // so the real server limiter and browser polling agree about elapsed time.
+    Date.now = () => originalDateNow() + 61_000
+    await page.clock.fastForward(61_000)
+    await expect(notice).toBeVisible()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(notice.getByRole('link', { name: 'Yhdistä uudelleen nyt' })).toBeInViewport()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await notice.getByRole('link', { name: 'Yhdistä uudelleen nyt' }).click()
+    await expect(eufy.getByLabel('Eufy Life -salasana')).toHaveValue('')
+    await expect(eufy.getByLabel('Eufy Life -sähköposti')).toHaveValue('')
+    await enterCredentials()
+    await expect(notice).toHaveCount(0)
+    expect(loginCalls).toBe(2)
+    expect(await sql`SELECT id FROM measurement WHERE user_id = ${user.id}`).toHaveLength(1)
+    const disconnectResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/integrations/eufy' &&
+        response.request().method() === 'DELETE'
+    )
+    const refreshedStatus = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === '/api/integrations/eufy/status'
+    )
+    await eufy.getByRole('button', { name: 'Katkaise Eufy Life -yhteys' }).click()
+    expect((await disconnectResponse).status()).toBe(204)
+    expect((await refreshedStatus).status()).toBe(200)
+    await expect(eufy.getByText('Ei yhdistetty', { exact: true })).toBeVisible()
+    expect(
+      await sql`SELECT id FROM integration_connection WHERE user_id = ${user.id}`
+    ).toHaveLength(0)
+    expect(await sql`SELECT id FROM measurement WHERE user_id = ${user.id}`).toHaveLength(1)
+    expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
+      'private-password'
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    Date.now = originalDateNow
+  }
 })

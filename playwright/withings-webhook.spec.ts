@@ -1,26 +1,20 @@
-import { expect, test } from '@playwright/test'
-import postgres from 'postgres'
+import { expect, test } from './app-fixtures'
 
-const databaseUrl =
-  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/race_to_75'
 const withingsUserId = 987654321
 const rawBody = `userid=${withingsUserId}&appli=1&startdate=1727740800&enddate=1727827200`
 
 test.describe('POST /webhooks/withings', () => {
-  const sql = postgres(databaseUrl)
-
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ application: { sql } }) => {
     await sql`
       DELETE FROM withings_weight_webhook_event
       WHERE withings_userid = ${withingsUserId}
     `
   })
 
-  test.afterAll(async () => {
-    await sql.end()
-  })
-
-  test('stores weight webhook events', async ({ request }) => {
+  test('stores and deduplicates weight webhook events', async ({
+    request,
+    application: { sql }
+  }) => {
     const response = await request.post('/webhooks/withings', {
       data: rawBody,
       headers: { 'content-type': 'application/x-www-form-urlencoded' }
@@ -43,22 +37,15 @@ test.describe('POST /webhooks/withings', () => {
       status: 'pending',
       withings_userid: withingsUserId.toString()
     })
-  })
-
-  test('deduplicates identical weight webhook events', async ({ request }) => {
-    const firstResponse = await request.post('/webhooks/withings', {
-      data: rawBody,
-      headers: { 'content-type': 'application/x-www-form-urlencoded' }
-    })
     const secondResponse = await request.post('/webhooks/withings', {
       data: rawBody,
       headers: { 'content-type': 'application/x-www-form-urlencoded' }
     })
 
-    expect(firstResponse.status()).toBe(202)
+    expect(response.status()).toBe(202)
     expect(secondResponse.status()).toBe(202)
 
-    const firstBody = await firstResponse.json()
+    const firstBody = await response.json()
     const secondBody = await secondResponse.json()
 
     expect(secondBody.id).toBe(firstBody.id)
@@ -72,7 +59,7 @@ test.describe('POST /webhooks/withings', () => {
     expect(count).toBe(1)
   })
 
-  test('ignores non-weight webhook events', async ({ request }) => {
+  test('ignores non-weight webhook events', async ({ request, application: { sql } }) => {
     const response = await request.post('/webhooks/withings', {
       data: `userid=${withingsUserId}&appli=16&date=2026-06-19`,
       headers: { 'content-type': 'application/x-www-form-urlencoded' }

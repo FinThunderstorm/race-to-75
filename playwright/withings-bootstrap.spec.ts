@@ -1,25 +1,17 @@
 import { randomUUID } from 'node:crypto'
 
-import { test as base, expect } from '@playwright/test'
 import Fastify from 'fastify'
 
-import { config } from '../backend/src/config'
-import { closeDatabase, sql } from '../backend/src/database'
-import {
-  handleWithingsCallback,
-  handleWithingsConnect
-} from '../backend/src/integrations/withings/index'
+import { expect, test } from './app-fixtures'
 
-const test = base.extend<{}, { bootstrapWorker: void }>({
-  bootstrapWorker: [
-    async ({}, use) => {
-      await use()
-    },
-    { scope: 'worker', auto: true }
-  ]
-})
-
-test('legacy Withings reconnect preserves managed account roles and names', async () => {
+test('legacy Withings reconnect preserves managed account roles and names', async ({
+  application
+}) => {
+  const { sql, config } = application
+  const {
+    handleWithingsCallback,
+    handleWithingsConnect
+  } = require('../backend/src/integrations/withings/index')
   const originalConfig = { ...config }
   const app = Fastify()
   const provider = Fastify()
@@ -83,6 +75,5 @@ test('legacy Withings reconnect preserves managed account roles and names', asyn
     await app.close()
     await provider.close()
     Object.assign(config, originalConfig)
-    await closeDatabase()
   }
 })

@@ -1,36 +1,30 @@
 import { once } from 'node:events'
 import { createServer } from 'node:http'
 
-import { test as base, expect } from '@playwright/test'
-import Fastify from 'fastify'
+import { expect, test } from './app-fixtures'
 
-import { authPlugin } from '../backend/src/auth/index'
-import { config } from '../backend/src/config'
-import { closeDatabase, sql } from '../backend/src/database'
-import {
-  handleWithingsCallback,
-  registerWithingsProfileRoutes
-} from '../backend/src/integrations/withings/index'
-
-// Keep this spec's backend pool and mutable OAuth configuration in a dedicated worker.
-const test = base.extend<{}, { withingsProfileWorker: void }>({
-  withingsProfileWorker: [
-    async ({}, use) => {
-      await use()
-    },
-    { scope: 'worker', auto: true }
-  ]
-})
-
-test('profile OAuth binds the browser and user, imports readings, and disconnects only that user', async () => {
+test('profile OAuth binds the browser and user, imports readings, and disconnects only that user', async ({
+  application,
+  page,
+  signIn
+}) => {
+  const { app, sql, config } = application
   const originalConfig = { ...config }
-  const app = Fastify()
   const userIds: string[] = []
   let exchanges = 0
   let failSync = false
   const provider = createServer(async (request, response) => {
     for await (const _chunk of request) {
       /* Consume the form body. */
+    }
+    if (request.url?.startsWith('/authorize?')) {
+      const authorization = new URL(request.url, 'http://provider')
+      expect(authorization.searchParams.get('scope')).toBe('user.metrics')
+      const callback = new URL(authorization.searchParams.get('redirect_uri')!)
+      callback.searchParams.set('code', 'browser-code')
+      callback.searchParams.set('state', authorization.searchParams.get('state')!)
+      response.writeHead(302, { location: callback.toString() }).end()
+      return
     }
     response.setHeader('Content-Type', 'application/json')
     if (request.url === '/v2/oauth2') {
@@ -82,21 +76,19 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
       withingsClientId: 'profile-client',
       withingsClientSecret: 'profile-secret',
       withingsApiBaseUrl: `http://127.0.0.1:${address.port}`,
-      withingsAuthorizeUrl: 'https://withings.example/authorize',
-      withingsRedirectUri: 'http://localhost/integrations/withings/callback',
+      withingsAuthorizeUrl: `http://127.0.0.1:${address.port}/authorize`,
+      withingsRedirectUri: `${application.url}/integrations/withings/callback`,
       withingsWebhookCallbackUrl: undefined,
       withingsBootstrapEmail: undefined,
       withingsBootstrapDisplayName: undefined,
       withingsConnectToken: undefined
     })
-    await app.register(authPlugin)
-    await registerWithingsProfileRoutes(app)
-    app.get('/integrations/withings/callback', handleWithingsCallback)
-    const users = await sql<{ id: string }[]>`
+    const owner = await signIn()
+    const [other] = await sql<{ id: string }[]>`
       INSERT INTO users (email, display_name, role) VALUES
-        ('profile-one@example.com', 'Profile One', 'member'),
         ('profile-two@example.com', 'Profile Two', 'member') RETURNING id
     `
+    const users = [owner, other]
     userIds.push(...users.map((user) => user.id))
     const session = app.jwt.sign({ sub: users[0].id, role: 'member' })
     const otherSession = app.jwt.sign({ sub: users[1].id, role: 'member' })
@@ -136,12 +128,19 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
       expect(rejected.headers.location).toBe('/settings?withings=error')
     }
     expect(exchanges).toBe(0)
-    const connected = await app.inject({
-      url: callback,
-      cookies: { session, r2_withings_state: state }
-    })
-    expect(connected.headers.location).toBe('/settings?withings=connected')
-    expect(connected.cookies.find((cookie) => cookie.name === 'r2_withings_state')?.value).toBe('')
+    await page.goto('/profile')
+    const withings = page.getByRole('region', { name: 'Withings', exact: true })
+    await withings.getByRole('link', { name: 'Yhdistä Withings', exact: true }).click()
+    await expect(page).toHaveURL(/\/profile\?withings=connected$/)
+    await expect(
+      withings.getByRole('status').filter({ hasText: /^Withings yhdistetty\.$/ })
+    ).toBeVisible()
+    await expect(withings.getByRole('status').filter({ hasText: /^Yhdistetty$/ })).toBeVisible()
+    expect(
+      (await page.context().cookies()).find((cookie) => cookie.name === 'r2_withings_state')
+    ).toBeUndefined()
+    await page.reload()
+    await expect(withings.getByRole('status').filter({ hasText: /^Yhdistetty$/ })).toBeVisible()
     expect(exchanges).toBe(1)
     expect(
       (await app.inject({ url: '/api/integrations/withings/status', cookies: { session } })).json()
@@ -162,17 +161,22 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
       cookies: { session, r2_withings_state: retryState }
     })
     expect(partial.headers.location).toBe('/settings?withings=connected&sync=failed')
+    await page.goto(`${partial.headers.location}#withings-heading`)
+    await expect(page).toHaveURL(/\/profile\?withings=connected&sync=failed#withings-heading$/)
+    await expect(withings.getByRole('alert')).toContainText('mittausten tuonti epäonnistui')
     const cancelled = await app.inject({
       url: `/integrations/withings/callback?error=access_denied&state=${encodeURIComponent(retryState)}`,
       cookies: { session, r2_withings_state: retryState }
     })
     expect(cancelled.headers.location).toBe('/settings?withings=cancelled')
-    const disconnected = await app.inject({
-      method: 'DELETE',
-      url: '/api/integrations/withings',
-      cookies: { session }
-    })
-    expect(disconnected.statusCode).toBe(204)
+    await page.goto(cancelled.headers.location!)
+    await expect(
+      page.getByText('Yhdistäminen peruutettu. Voit yrittää uudelleen alta.')
+    ).toBeVisible()
+    await withings.getByRole('button', { name: 'Katkaise Withings-yhteys' }).click()
+    await expect(withings.getByRole('status').filter({ hasText: /^Ei yhdistetty$/ })).toBeVisible()
+    await page.reload()
+    await expect(withings.getByRole('status').filter({ hasText: /^Ei yhdistetty$/ })).toBeVisible()
     expect(
       await sql`SELECT id FROM integration_connection WHERE user_id = ${users[0].id}`
     ).toHaveLength(0)
@@ -188,9 +192,7 @@ test('profile OAuth binds the browser and user, imports readings, and disconnect
     if (userIds.length) {
       await sql`DELETE FROM users WHERE id IN ${sql(userIds)}`
     }
-    await app.close()
     await new Promise<void>((resolve) => provider.close(() => resolve()))
     Object.assign(config, originalConfig)
-    await closeDatabase()
   }
 })

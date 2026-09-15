@@ -4,6 +4,8 @@
   "private": true,
   "workspaces": ["backend", "frontend", "playwright"],
   "scripts": {
+    "test:local": "npm test -w backend && node --test scripts/*.test.mjs",
+    "test": "npm run test:local && npm test -w playwright",
     "db:migrate": "npm run db:migrate -w backend",
     "knip": "knip",
     "lint": "biome lint .",

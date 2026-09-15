@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 import type { RaceHistoryParticipant } from '../frontend/src/api/raceApi'
-import { calculateDots, dotsIndex, dotsLevel, dotsLevels } from '../frontend/src/race/dots'
+import { calculateDots, dotsIndex, dotsLevel } from '../frontend/src/race/dots'
 import { prepareRace } from '../frontend/src/race/prepareRace'
-import { createRaceView, parseRaceMode } from '../frontend/src/race/raceModes'
+import { createRaceView } from '../frontend/src/race/raceModes'
 
 const now = new Date('2026-09-11T12:00:00Z')
 const reading = {
@@ -26,8 +26,7 @@ const person: RaceHistoryParticipant = {
 const view = (input = person, mode: 'dots' | 'score' = 'dots') =>
   createRaceView(prepareRace([input], now), mode, now)[0]
 
-test('DOTS is selectable and uses the saved bodyweight and sex without requiring height', () => {
-  expect(parseRaceMode('dots')).toBe('dots')
+test('DOTS uses saved bodyweight and sex without requiring height', () => {
   expect(view({ ...person, heightCm: null }).latest?.value).toBeCloseTo(344.773227, 2)
   expect(view({ ...person, sex: 'female' }).latest?.value).toBeCloseTo(471.124972, 2)
   expect(view({ ...person, measurements: [] }).latest?.value).toBeCloseTo(344.773227, 2)
@@ -112,16 +111,21 @@ test('score waits for SBD and sex, carries only earlier DOTS and exposes its sou
   expect(result.change).toBeCloseTo(-5)
 })
 
-test('level boundaries use unrounded DOTS and Novice normalizes to 100 for both sexes', () => {
+test('DOTS levels and normalization use independent reference thresholds', () => {
+  const levels = [
+    { label: 'Novice', male: 200, female: 150 },
+    { label: 'Intermediate', male: 300, female: 250 },
+    { label: 'Advanced', male: 400, female: 325 },
+    { label: 'Elite / National Level', male: 500, female: 400 }
+  ]
   for (const sex of ['male', 'female'] as const) {
-    expect(dotsIndex(dotsLevels[0][sex], sex)).toBe(100)
-    expect(dotsLevel(dotsLevels[0][sex] - 0.001, sex)).toBe('Alle Novice-tason')
-    for (const [index, level] of dotsLevels.entries()) {
+    expect(dotsIndex(sex === 'male' ? 200 : 150, sex)).toBe(100)
+    for (const [index, level] of levels.entries()) {
+      expect(dotsLevel(level[sex] - 0.001, sex)).toBe(
+        index === 0 ? 'Alle Novice-tason' : levels[index - 1].label
+      )
       expect(dotsLevel(level[sex], sex)).toBe(level.label)
       expect(dotsLevel(level[sex] + 0.001, sex)).toBe(level.label)
-      if (index > 0) {
-        expect(dotsLevel(level[sex] - 0.001, sex)).toBe(dotsLevels[index - 1].label)
-      }
     }
   }
 })

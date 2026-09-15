@@ -45,4 +45,4 @@ services:
     volumes:
       - .:/work
       - /work/node_modules
-    command: sh -c "npm ci && npm test -w playwright"
+    command: sh -c "npm ci && npm test"

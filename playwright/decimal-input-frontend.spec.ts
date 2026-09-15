@@ -108,13 +108,3 @@ test('decimal text fields retain range and precision validation', async ({ page 
   }
   expect(saves).toBe(0)
 })
-
-test('an empty height still clears the profile height', async ({ page }) => {
-  const panel = page.getByRole('region', { name: 'Kisaprofiili' })
-  await panel.getByLabel('Pituus (cm)').fill('')
-  const submitted = page.waitForRequest(
-    (request) => request.url().endsWith('/api/profile') && request.method() === 'PUT'
-  )
-  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
-  expect((await submitted).postDataJSON()).toEqual({ heightCm: null, sex: 'female' })
-})

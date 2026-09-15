@@ -1,52 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import {
-  EufyAuthError,
-  EufyServiceError,
-  fetchEufyReadings,
-  loginEufy,
-  lookbackStart
-} from './client.js'
-import { decryptToken, encryptToken } from './token.js'
+import { fetchEufyReadings, lookbackStart } from './client.js'
 
 const response =
   (body: unknown, status = 200): typeof fetch =>
   async () =>
     Response.json(body, { status })
-
-test('login sends credentials only to Eufy and returns a token and normalized profiles', async () => {
-  const account = await loginEufy('test@example.com', 'test-password', async (url, options) => {
-    assert.equal(String(url), 'https://api.eufylife.com/v1/user/v2/email/login')
-    assert.equal(options?.redirect, 'error')
-    assert.equal(JSON.parse(String(options?.body)).password, 'test-password')
-    return Response.json({
-      res_code: 1,
-      access_token: 'token',
-      user_id: 123,
-      customers: [{ id: 1, nick_name: 'Racer' }, { id: '2' }]
-    })
-  })
-  assert.equal(account.accountId, '123')
-  assert.deepEqual(account.profiles, [
-    { id: '1', name: 'Racer' },
-    { id: '2', name: 'Profiili 2' }
-  ])
-  assert.equal('password' in account, false)
-  assert.equal('email' in account, false)
-})
-
-test('upstream errors cannot echo credentials, and expired tokens differ from service failures', async () => {
-  await assert.rejects(
-    loginEufy('email', 'password', response({ res_code: -1, message: 'secret password' })),
-    EufyAuthError
-  )
-  const get = (fetcher: typeof fetch) =>
-    fetchEufyReadings('a', 'token', 'p', new Date(0), new Date(), fetcher)
-  await assert.rejects(get(response({ message: 'token' }, 401)), EufyAuthError)
-  await assert.rejects(get(response({ message: 'token' }, 503)), EufyServiceError)
-  await assert.rejects(get(response({ res_code: 1, unexpected: [] })), EufyServiceError)
-})
 
 test('history filters profiles and dates, normalizes kg, and keeps correction IDs stable', async () => {
   const from = new Date('2026-08-08T12:00:00Z')
@@ -109,16 +69,5 @@ test('three months back clamps month ends and preserves UTC time', () => {
   assert.equal(
     lookbackStart(new Date('2026-01-08T12:34:56Z')).toISOString(),
     '2025-10-08T12:34:56.000Z'
-  )
-})
-
-test('encrypted tokens are randomized and cannot be used by another user or after key rotation', () => {
-  const encrypted = encryptToken('private-token', 'user', 'secret')
-  assert.equal(decryptToken(encrypted, 'user', 'secret'), 'private-token')
-  assert.notEqual(encrypted, encryptToken('private-token', 'user', 'secret'))
-  assert.throws(() => decryptToken(encrypted, 'other', 'secret'))
-  assert.throws(() => decryptToken(encrypted, 'user', 'rotated'))
-  assert.throws(() =>
-    decryptToken(`${encrypted.slice(0, 5)}X${encrypted.slice(6)}`, 'user', 'secret')
   )
 })

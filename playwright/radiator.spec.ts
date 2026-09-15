@@ -95,28 +95,6 @@ test('IP visitor gets live data without account links and the chart fills and re
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 })
 
-test('login and settings remain protected by a real session on an allowed network', async ({
-  page
-}) => {
-  let signedIn = false
-  await page.route('**/api/auth/me', (route) =>
-    route.fulfill(signedIn ? { json: user } : { status: 401, json: { error: 'Unauthorized' } })
-  )
-  await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
-  await page.goto('/')
-  await expect(page.locator('.dashboard--radiator')).toBeVisible()
-  await page.goto('/settings')
-  await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
-  await page.goto('/login')
-  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
-  signedIn = true
-  await page.reload()
-  await expect(page.getByRole('link', { name: 'Profiili' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toBeVisible()
-  await expect(page.locator('.dashboard--radiator')).toHaveCount(0)
-})
-
 test('IP radiator can enter fullscreen without showing profile or logout controls', async ({
   page
 }) => {
@@ -233,21 +211,23 @@ test('radiator polls live data and removes the graph when IP access is revoked',
 }) => {
   await page.clock.install()
   let allowed = true
-  let requests = 0
+  let participantName = 'Office Racer'
   await page.route('**/api/auth/me', (route) =>
     route.fulfill({ status: 401, json: { error: 'Unauthorized' } })
   )
   await page.route('**/api/radiator', (route) => {
-    requests += 1
     return route.fulfill(
-      allowed ? { json: race } : { status: 401, json: { error: 'Unauthorized' } }
+      allowed
+        ? { json: { participants: [{ ...race.participants[0], name: participantName }] } }
+        : { status: 401, json: { error: 'Unauthorized' } }
     )
   })
   await page.goto('/')
   await expect(page.locator('.race-chart')).toBeVisible()
-  const initialRequests = requests
+  await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
+  participantName = 'Updated Racer'
   await page.clock.fastForward(30_100)
-  await expect.poll(() => requests).toBeGreaterThan(initialRequests)
+  await expect(page.getByRole('button', { name: /Updated Racer/ })).toBeVisible()
   allowed = false
   await page.clock.fastForward(30_100)
   await expect(page).toHaveURL(/\/login$/)

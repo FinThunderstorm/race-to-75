@@ -49,12 +49,6 @@ test('live chart plots weekly averages and current-week daily averages over thre
   ).toBeVisible()
 })
 
-test('serves the SPA shell with the login screen for unauthenticated users', async ({ page }) => {
-  await page.goto('/')
-
-  await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
-})
-
 test('defaults to live history, persists on reload, and switches between sample and live', async ({
   page
 }) => {

@@ -249,7 +249,7 @@ test('concurrent demotions and duplicate invitations are serialized', async ({
   }
 })
 
-test('admin UI invites a member who enrolls and gains management access after promotion', async ({
+test('admin invites a member who enrolls, signs back in and gains management access after promotion', async ({
   page,
   context,
   browser
@@ -278,6 +278,23 @@ test('admin UI invites a member who enrolls and gains management access after pr
     await memberPage.goto(enrollmentUrl)
     await memberPage.getByRole('button', { name: 'Luo pääsyavain' }).click()
     await expect(memberPage.getByText('Kirjautuneena UI Invitee')).toBeVisible()
+    expect(
+      (
+        await memberPage.request.post('/api/auth/enroll/options', {
+          data: { token: new URL(enrollmentUrl).searchParams.get('token') }
+        })
+      ).status()
+    ).toBe(400)
+    await memberPage.getByRole('button', { name: 'Kirjaudu ulos' }).click()
+    await expect(
+      memberPage.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })
+    ).toBeVisible()
+    expect((await memberPage.request.get('/api/auth/me')).status()).toBe(401)
+    await memberPage.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' }).click()
+    await expect(memberPage.getByText('Kirjautuneena UI Invitee')).toBeVisible()
+    const me = await memberPage.request.get('/api/auth/me')
+    expect(me.status()).toBe(200)
+    expect(await me.json()).toMatchObject({ email, display_name: 'UI Invitee' })
     await expect(memberPage.getByRole('link', { name: 'Ylläpito' })).toHaveCount(0)
     await memberPage.goto('/admin')
     await expect(memberPage).toHaveURL(`${baseURL}/profile`)

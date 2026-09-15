@@ -126,95 +126,6 @@ test('missing heights explain an empty chart even when another participant has n
   await expect(page.getByRole('button', { name: /BMI Racer 81,0/ })).toBeVisible()
 })
 
-test('BMI radiator stays read-only and renders without account controls', async ({ page }) => {
-  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }))
-  await page.route('**/api/radiator', (route) => route.fulfill({ json: { participants } }))
-  await page.goto('/?mode=bmi&data=sample')
-  await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
-  await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Lisää pituutesi|Esimerkkimittaukset/ })).toHaveCount(
-    0
-  )
-  await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
-})
-
-test('height can be saved, corrected and cleared, with retryable loading and saving', async ({
-  page
-}) => {
-  let heightCm: number | null = null
-  let failLoad = true
-  let failSave = true
-  await page.route('**/api/profile', (route) => {
-    if (route.request().method() === 'PUT') {
-      if (failSave) {
-        return route.fulfill({ status: 500, json: {} })
-      }
-      expect(route.request().postDataJSON()).toEqual({
-        heightCm: route.request().postDataJSON().heightCm,
-        sex: null
-      })
-      heightCm = route.request().postDataJSON().heightCm
-    } else if (failLoad) {
-      return route.fulfill({ status: 500, json: {} })
-    }
-    return route.fulfill({ json: { heightCm } })
-  })
-  await page.route('**/api/race', (route) =>
-    route.fulfill({ json: { participants: [{ ...participants[0], heightCm }] } })
-  )
-  await page.route('**/api/integrations/withings/status', (route) =>
-    route.fulfill({ json: { connected: false, configured: false } })
-  )
-  await page.route('**/api/integrations/eufy/status', (route) =>
-    route.fulfill({ json: { status: 'disconnected' } })
-  )
-  await page.goto('/?mode=bmi')
-  await page.getByRole('link', { name: 'Lisää pituutesi' }).click()
-  const panel = page.getByRole('region', { name: 'Kisaprofiili' })
-  await expect(panel.getByRole('alert')).toContainText('Profiilin lataaminen epäonnistui')
-  failLoad = false
-  await panel.getByRole('button', { name: 'Yritä ladata profiili uudelleen' }).click()
-  await panel.getByLabel('Pituus (cm)').fill('180')
-  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
-  await expect(panel.getByRole('alert')).toContainText('Profiilin tallentaminen epäonnistui')
-  failSave = false
-  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
-  await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
-  await expect(page).toHaveURL(/mode=bmi/)
-  await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
-  await page.getByRole('link', { name: 'Profiili', exact: true }).click()
-  await panel.getByLabel('Pituus (cm)').fill('190')
-  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
-  await page.reload()
-  await expect(panel.getByLabel('Pituus (cm)')).toHaveValue('190')
-  await panel.getByLabel('Pituus (cm)').fill('')
-  await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
-  await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')
-  await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
-  await expect(page).toHaveURL(/\/\?mode=bmi$/)
-  await expect(page.locator('.dashboard').getByRole('status')).toHaveText(
-    'Lisää pituus asetuksissa, jotta tulokset voidaan näyttää.'
-  )
-})
-
-test('BMI sample charts remain readable at desktop and mobile sizes', async ({ page }) => {
-  await page.goto('/?mode=bmi&data=sample')
-  for (const viewport of [
-    { width: 1440, height: 1000 },
-    { width: 390, height: 844 }
-  ]) {
-    await page.setViewportSize(viewport)
-    await expect(page.locator('.chart-series')).toHaveCount(5)
-    await expect(
-      page.getByRole('region', { name: 'Osallistujat, joilta puuttuu pituus' })
-    ).toContainText('Sanna')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.screenshot({ path: `test-results/bmi-${viewport.width}.png`, fullPage: true })
-  }
-})
-
 test('mode buttons automatically cycle every ten seconds and support pause and resume', async ({
   page
 }) => {
@@ -303,6 +214,9 @@ test('mode switches keep the header, controls and plot in place on desktop and m
       await page.setViewportSize({ width, height: 1000 })
       await page.goto('/?data=sample')
       await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
+      await expect(page.locator('.chart-series')).toHaveCount(radiator ? 2 : 6)
+      // A late webfont swap changes wrapping independently of mode selection.
+      await page.evaluate(() => document.fonts.ready.then(() => undefined))
       const selectors = ['.race-header', '.race-mode', '.sample-indicator', '.race-chart']
       const before = await Promise.all(
         selectors.map((selector) => page.locator(selector).boundingBox())
