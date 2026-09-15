@@ -392,9 +392,10 @@ p {
   position: absolute;
   top: var(--row-position);
   transform: translateY(-50%);
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   min-height: 42px;
-  padding: 5px 2px;
+  padding: 5px 6px;
   text-align: left;
   border: 0;
   background: #080511;
