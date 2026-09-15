@@ -44,7 +44,7 @@ test('expired Eufy token shows a prominent notice and reconnecting clears it', a
   })
   await page.goto('/')
   const notice = page.getByRole('alert', { name: 'Yhdistä Eufy Life uudelleen' })
-  await expect(page.getByRole('link', { name: 'Racer', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Profiili', exact: true })).toBeVisible()
   await expect(notice).toHaveCount(0)
   expired = true
   await page.clock.runFor(30_100)

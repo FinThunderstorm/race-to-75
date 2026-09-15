@@ -49,7 +49,7 @@ const Notice = () => {
           kirjaudut Eufy Lifeen uudelleen.
         </p>
       </div>
-      <Link className="primary-button" to="/settings?eufy=reconnect#eufy-heading">
+      <Link className="primary-button" to="/profile?eufy=reconnect#eufy-heading">
         Yhdistä uudelleen nyt
       </Link>
     </aside>

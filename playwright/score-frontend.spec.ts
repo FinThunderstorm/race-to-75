@@ -79,7 +79,7 @@ test('Score shows the combined index, formulas and dated components, and preserv
     await page.screenshot({ path: `test-results/score-readings-${width}.png`, fullPage: true })
   }
   await page.getByRole('link', { name: 'Lisää hauismittaus' }).click()
-  await expect(page).toHaveURL(/settings\?mode=score#biceps$/)
+  await expect(page).toHaveURL(/profile\?mode=score#biceps$/)
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=score$/)
   await page.getByRole('link', { name: 'Ryhmän mittaukset', exact: true }).click()
@@ -133,7 +133,7 @@ test('biceps without height directs the owner to settings instead of plotting ce
   ).toContainText('Score Racer')
   await expect(page.locator('.chart-series')).toHaveCount(0)
   await page.getByRole('link', { name: 'Lisää pituutesi' }).click()
-  await expect(page).toHaveURL(/settings\?mode=biceps$/)
+  await expect(page).toHaveURL(/profile\?mode=biceps$/)
 })
 
 test('missing blood pressure prompts entry and a manual reading enables the score', async ({
@@ -157,7 +157,7 @@ test('missing blood pressure prompts entry and a manual reading enables the scor
   await page.goto('/?mode=score')
   await expect(page.locator('.chart-series')).toHaveCount(0)
   await page.getByRole('link', { name: 'Lisää verenpainemittaus' }).click()
-  await expect(page).toHaveURL(/settings\?mode=score#blood-pressure$/)
+  await expect(page).toHaveURL(/profile\?mode=score#blood-pressure$/)
   const panel = page.getByRole('region', { name: 'Verenpainemittaukset' })
   await panel.getByLabel('Yläpaine (mmHg)').fill('160')
   await panel.getByLabel('Alapaine (mmHg)').fill('100')

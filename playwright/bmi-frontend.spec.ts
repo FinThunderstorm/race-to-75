@@ -45,9 +45,9 @@ test('weight is first and opens by default and from existing links', async ({ pa
     await expect(buttons.last()).toHaveClass('race-mode-score')
     await expect(page.getByRole('button', { name: /BMI Racer 81,0/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /Missing Height 80,0/ })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'BMI Racer', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Profiili', exact: true })).toHaveAttribute(
       'href',
-      '/settings?mode=classic'
+      '/profile?mode=classic'
     )
   }
 })
@@ -183,7 +183,7 @@ test('height can be saved, corrected and cleared, with retryable loading and sav
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=bmi/)
   await expect(page.getByRole('button', { name: /BMI Racer 25,0.*100,0 kp/ })).toBeVisible()
-  await page.getByRole('link', { name: 'BMI Racer', exact: true }).click()
+  await page.getByRole('link', { name: 'Profiili', exact: true }).click()
   await panel.getByLabel('Pituus (cm)').fill('190')
   await panel.getByRole('button', { name: 'Tallenna profiili' }).click()
   await expect(panel.getByRole('status')).toHaveText('Profiili tallennettu.')

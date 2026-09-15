@@ -32,7 +32,7 @@ test('bottom-right IP indicator reports network access independently of login an
   await page.goto('/')
   const indicator = page.getByRole('complementary', { name: 'Verkon käyttöoikeus' })
   await expect(indicator).toHaveText('IP-osoite sallittu')
-  await expect(page.getByRole('link', { name: 'Office Racer' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Profiili' })).toBeVisible()
   const bounds = (await indicator.boundingBox())!
   expect(bounds.x + bounds.width).toBeGreaterThan(1400)
   expect(bounds.y + bounds.height).toBeGreaterThan(960)
@@ -76,7 +76,7 @@ test('IP visitor gets live data without account links and the chart fills and re
   await page.goto('/')
   await expect(page.getByRole('button', { name: /Office Racer/ })).toBeVisible()
   await expect(page.locator('.dashboard-footer')).toHaveText('Koko näyttö')
-  await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Profiili' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
   await expect(
     page.getByRole('link', { name: /Esimerkkimittaukset|Ryhmän mittaukset/ })
@@ -112,7 +112,7 @@ test('login and settings remain protected by a real session on an allowed networ
   await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
   signedIn = true
   await page.reload()
-  await expect(page.getByRole('link', { name: 'Office Racer' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Profiili' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toBeVisible()
   await expect(page.locator('.dashboard--radiator')).toHaveCount(0)
 })
@@ -129,7 +129,7 @@ test('IP radiator can enter fullscreen without showing profile or logout control
   const fullscreen = page.getByRole('button', { name: 'Koko näyttö', exact: true })
   await expect(fullscreen).toBeVisible()
   await expect(page.locator('.dashboard-footer')).toHaveText('Koko näyttö')
-  await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Profiili' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
   await fullscreen.click()
   await expect
@@ -157,7 +157,7 @@ test('anonymous radiator keeps its fullscreen footer visible when the browser bl
   await expect(page.getByRole('alert')).toHaveText(
     'Koko näytön tila ei ole käytettävissä tässä näkymässä. Käytä selaimen koko näytön toimintoa.'
   )
-  await expect(page.getByRole('link', { name: 'Office Racer' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Profiili' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
 })
 

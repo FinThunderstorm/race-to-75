@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   )
 })
 
-test('signed-in name opens settings with connection controls and retryable failures', async ({
+test('profile link opens profile with connection controls and retryable failures', async ({
   page
 }) => {
   const withings = page.getByRole('region', { name: 'Withings', exact: true })
@@ -50,11 +50,11 @@ test('signed-in name opens settings with connection controls and retryable failu
     return route.fulfill({ status: 204 })
   })
   await page.goto('/')
-  await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
-  await page.getByRole('link', { name: 'Profile Racer', exact: true }).click()
-  await expect(page).toHaveURL(/\/settings\?mode=classic$/)
+  await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Profiili', exact: true }).click()
+  await expect(page).toHaveURL(/\/profile\?mode=classic$/)
   await expect(page.getByRole('heading', { name: 'Käyttäjähallinta' })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Asetukset' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Oma profiili' })).toBeVisible()
   await expect(page.getByText('profile@example.com', { exact: true })).toBeVisible()
   await expect(withings.getByRole('alert')).toContainText(
     'Withings-yhteyden tarkistaminen epäonnistui'
@@ -90,8 +90,8 @@ test('settings requires login', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Kirjaudu sisään pääsyavaimella' })).toBeVisible()
 })
 
-for (const path of ['/profile', '/admin']) {
-  test(`${path} redirects to settings and preserves integration results`, async ({ page }) => {
+for (const path of ['/profile', '/settings']) {
+  test(`${path} opens profile and preserves integration results`, async ({ page }) => {
     await page.route('**/api/auth/me', (route) =>
       route.fulfill({
         json: {
@@ -112,8 +112,8 @@ for (const path of ['/profile', '/admin']) {
       })
     )
     await page.goto(`${path}?withings=connected&sync=failed#withings-heading`)
-    await expect(page).toHaveURL(/\/settings\?withings=connected&sync=failed#withings-heading$/)
-    await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
+    await expect(page).toHaveURL(/\/profile\?withings=connected&sync=failed#withings-heading$/)
+    await expect(page.getByRole('heading', { name: 'Oma profiili', exact: true })).toBeVisible()
     await expect(page.getByText('Withings yhdistetty.', { exact: true })).toBeVisible()
     await expect(
       page.getByRole('region', { name: 'Withings', exact: true }).getByRole('alert')

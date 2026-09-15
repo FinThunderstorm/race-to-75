@@ -1069,3 +1069,188 @@ th:first-child {
     animation: none !important;
   }
 }
+
+/* Account navigation and the separate profile / administration workspaces. */
+.account-navigation {
+  margin-left: auto;
+  color: var(--secondary);
+  font-size: 12px;
+}
+.account-navigation nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px 12px;
+}
+.account-navigation nav > a {
+  padding: 10px 14px;
+  border: 1px solid #453452;
+  background: #100b1b;
+  color: #eeeaf8;
+  text-decoration: none;
+  border-radius: 4px;
+}
+.account-navigation nav > a:hover,
+.account-navigation nav > a[aria-current="page"] {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: #35dfff0b;
+}
+.account-navigation .text-button {
+  font-size: inherit;
+}
+.account-user {
+  max-width: 280px;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.dashboard > .account-navigation {
+  margin-bottom: 24px;
+}
+.auth-page > .account-navigation {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  left: 24px;
+}
+.account-page {
+  width: min(100%, 1200px);
+  padding: 24px 32px 64px;
+}
+.account-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.account-page > .account-heading {
+  margin: 56px 0 28px;
+}
+.account-heading h1 {
+  margin: 16px 0;
+  font-size: clamp(28px, 4vw, 40px);
+  letter-spacing: -0.04em;
+}
+.account-heading .auth-description {
+  max-width: 680px;
+}
+.section-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 16px 0;
+  border-block: 1px solid #302242;
+}
+.section-navigation a {
+  padding: 6px 0;
+  color: var(--cyan);
+  font-size: 13px;
+  text-underline-offset: 6px;
+}
+.account-section {
+  margin-top: 48px;
+  scroll-margin-top: 24px;
+}
+.account-section .settings-section-header {
+  max-width: 760px;
+}
+.account-section .eyebrow {
+  margin-bottom: 16px;
+  color: var(--secondary);
+  font-size: 10px;
+}
+.account-section .settings-panel {
+  border-radius: 6px;
+  scroll-margin-top: 24px;
+}
+.measurement-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.measurement-shortcuts a {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #453452;
+  border-radius: 4px;
+  color: #eeeaf8;
+  background: #160f23;
+  text-decoration: none;
+  font-size: 13px;
+}
+.measurement-shortcuts span {
+  color: var(--cyan);
+  font-size: 11px;
+}
+.measurement-shortcuts a:hover {
+  border-color: var(--cyan);
+}
+.measurement-grid,
+.connections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+.measurement-grid > :last-child {
+  grid-column: 1 / -1;
+}
+#sbd .integration-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#sbd .integration-form > :is(p, output, button) {
+  grid-column: 1 / -1;
+}
+#sbd .integration-form > .primary-button {
+  width: auto;
+  min-width: 200px;
+  justify-self: start;
+}
+.account-section > #race-profile {
+  max-width: 640px;
+}
+.account-section > .user-management {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.account-section > .score-settings {
+  margin: 0;
+}
+.account-page :is(a, button, input, select):focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+}
+@media (max-width: 680px) {
+  .account-page {
+    padding: 20px 16px 48px;
+  }
+  .account-toolbar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 24px;
+  }
+  .account-user {
+    flex-basis: 100%;
+    max-width: none;
+    text-align: right;
+  }
+  .account-navigation {
+    width: 100%;
+  }
+  .account-page > .account-heading {
+    margin-top: 32px;
+  }
+  .measurement-grid,
+  .connections-grid,
+  #sbd .integration-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-section .settings-panel {
+    padding: 20px 16px;
+  }
+}

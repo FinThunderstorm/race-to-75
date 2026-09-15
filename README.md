@@ -24,7 +24,7 @@ Manual weight entry is still planned.
 ### DOTS and SBD totals
 
 Select **DOTS** or open `/?mode=dots`. Add **Sukupuoli** (Mies / Nainen) in
-**Asetukset → Kisaprofiili**, then record your **SBD-tulokset**: squat (Kyykky),
+**Profiili → Kisaprofiili**, then record your **SBD-tulokset**: squat (Kyykky),
 bench press (Penkkipunnerrus), deadlift (Maastaveto), result date and bodyweight.
 The bodyweight field uses your last weighing on or before that date and can
 be corrected manually. The saved weight stays attached to that SBD result;
@@ -59,7 +59,7 @@ can see these measurements. Apply `0013_sbd_measurement.sql` using
 
 ### Blood pressure
 
-Select **Verenpaine** or open `/?mode=blood-pressure`. In **Asetukset →
+Select **Verenpaine** or open `/?mode=blood-pressure`. In **Profiili →
 Verenpainemittaukset**, enter your systolic (yläpaine) and diastolic (alapaine)
 pressures in mmHg and the measurement date (UTC, default today). Backdating and
 multiple readings per day are supported. Delete your own entries and add them
@@ -85,11 +85,11 @@ Existing databases need `0012_blood_pressure_measurement.sql`; apply it with
 
 ### Biceps circumference
 
-Select **Hauis** or open `/?mode=biceps`. In **Asetukset → Hauismittaukset**,
+Select **Hauis** or open `/?mode=biceps`. In **Profiili → Hauismittaukset**,
 record your own circumference in centimetres and the measurement date (UTC).
 You can delete your own entries to correct mistakes. Multiple readings on one
 day are averaged; completed weeks use weekly averages. Add your height in
-**Asetukset → Kisaprofiili** to show the **biceps index: 100 × circumference / height**
+**Profiili → Kisaprofiili** to show the **biceps index: 100 × circumference / height**
 (both in cm). For example, 34 cm at 170 cm and 38 cm at 190 cm both score 20.
 The chart plots circumference in cm and shows its citizen points in parentheses,
 e.g. `40,0 cm (20,0 kp)` at 200 cm tall. Tooltips and table values use the same
@@ -118,7 +118,7 @@ and Getting started for the current local workflow.
   enrollment links, disable/re-enable users, and grant or revoke `admin` access.
   Permanent account removal is still planned.
 - The first admin is created with the **bootstrap command**; after that,
-  admins invite users and promote others from settings.
+  admins invite users and promote others from **Ylläpito** (`/admin`).
 - Members can log weight and view progress, the leaderboard, and manage their
   own passkeys and integrations.
 
@@ -158,13 +158,14 @@ measurement history — glanceable and auto-updating.
 - Open `/` without a session from the address configured in
   `RADIATOR_ALLOWED_IP` to see the live group graph and standings, refreshing
   every 30 seconds. Server-Sent Events and live reaction events remain planned.
-- IP access hides the profile/settings link, logout, and sample-data switch.
+- IP access hides the profile and admin links, logout, and sample-data switch.
   A compact bottom-left footer keeps **Koko näyttö** available (Esc to exit).
   If the browser blocks fullscreen, the control explains how to use the browser's
   own full-screen option instead of disappearing.
   The graph expands vertically with the browser window, including tall
   displays; small screens and large participant lists can scroll as needed.
-- Signed-in visitors keep the normal dashboard, including settings and logout,
+- Signed-in visitors keep the normal dashboard, including profile, admin (when
+authorized), and logout links,
   even at the allowed address. Open `/login` to sign in from the internal
   network; enrollment links also work normally. IP access never creates a user
   session or grants access to account, admin, or integration APIs.
@@ -241,7 +242,7 @@ itself is phishing-resistant and inherently multi-factor, so no separate MFA.
 ### Integrations
 
 Integrations have provider-specific connection and sync code and share the
-`measurement` table. Users can connect both Withings and Eufy Life in **Asetukset**.
+`measurement` table. Users can connect both Withings and Eufy Life in **Profiili**.
 Withings uses OAuth and a webhook worker. Eufy Life uses a temporary sign-in,
 profile selection, and polling inside the backend process.
 
@@ -331,14 +332,20 @@ expire after
 
 The bootstrap command refuses to run if any admin already exists. If you already
 have an account, use its passkey. An existing admin can issue a new enrollment
-link from **Käyttäjähallinta** in settings. If no admin can sign in, recovery still
+link from **Käyttäjähallinta** in **Ylläpito**. If no admin can sign in,
+recovery still
 requires database access.
 
 #### Invite and manage other users
 
-Click your signed-in name in the dashboard footer to open **Asetukset**
-(direct URL: `/settings`). All users see their account details and Withings
-connection controls. Admins also see **Käyttäjähallinta** on this page.
+Use the top-right **Profiili** link (`/profile`) for manual biceps, blood pressure,
+and SBD measurements, personal details, and Withings/Eufy connections. The profile
+has quick links to its sections and measurement forms.
+
+Admins also have a separate **Ylläpito** link (`/admin`) for **Käyttäjähallinta**
+and shared **Pisteasetukset**. Guests see **Kirjaudu sisään** outside radiator mode;
+radiator mode hides all account links. Signed-in users can log out from the same
+top-right navigation. To invite someone, open **Ylläpito → Käyttäjähallinta**.
 Enter an email and display name, select **Luo kutsu**, and copy the enrollment
 link to
 share privately with that person.
@@ -352,13 +359,15 @@ previous unused links while retaining existing passkeys. Admins cannot demote
 or disable themselves; another enabled admin must make those changes.
 
 Role changes apply to existing sessions immediately on the next API request;
-open pages refresh access within 30 seconds. Demotion hides user management
-while keeping personal settings available. Disabled accounts cannot sign in,
+open pages refresh access within 30 seconds. Demotion redirects an open admin
+page to the personal profile. Disabled accounts cannot sign in,
 enroll, or use an existing session. Disabling invalidates unused enrollment links
 and preserves readings, passkeys, and Withings imports. Re-enabling restores
 passkey access and may restore an unexpired session. There is no permanent delete
-action in this view. Old `/profile` and `/admin` links redirect to settings,
-including any integration result messages.
+action in this view. Old `/settings` links redirect to `/profile`, preserving
+query parameters,
+section anchors, and integration result messages. Members opening `/admin` are
+redirected to `/profile` without requesting admin data.
 
 For an existing deployment, run `npm run db:migrate` against its database before
 starting the updated app. Migration `0005_user_disablement.sql` adds account
@@ -382,10 +391,10 @@ Keep `WITHINGS_REDIRECT_URI` set to the localhost callback above. Set
 `WITHINGS_INITIAL_SYNC_DAYS` to the history window you want: the local example
 uses **180 days**. Leave `WITHINGS_WEBHOOK_CALLBACK_URL` empty for a local import.
 
-Restart `./start-local-env.sh`, log in, and click your name in the dashboard footer
-to open **<http://localhost:7500/settings>**. Click **Yhdistä Withings**, log into
+Restart `./start-local-env.sh`, log in, and click **Profiili** at the top right
+to open **<http://localhost:7500/profile>**. Click **Yhdistä Withings**, log into
 Withings, and approve access. The callback connects the signed-in app account,
-imports your history, and returns to settings. No bootstrap email or connect
+imports your history, and returns to your profile. No bootstrap email or connect
 token is needed for this flow.
 
 The profile shows connection status and any import errors. Use **Yhdistä
@@ -397,7 +406,7 @@ app's authorization in Withings; that can be removed from Withings separately.
 
 ### Connect Eufy Life
 
-Open **<http://localhost:7500/settings>**, choose **Yhdistä Eufy Life**, sign in
+Open **<http://localhost:7500/profile>**, choose **Yhdistä Eufy Life**, sign in
 with your Eufy Life account, and select your own profile. A user may connect both
 Withings and Eufy Life; different users may select different profiles from the
 same Eufy account. A profile cannot be connected to two race participants at once.
@@ -413,7 +422,7 @@ imported through two different providers is not automatically merged.
 The app never saves your Eufy email or password and never automatically signs
 in again. It stores an encrypted access token, account ID, and selected profile.
 Temporary profile-selection tokens expire after 10 minutes. When the access
-token expires or is rejected, Asetukset prompts you to **Yhdistä Eufy Life uudelleen**.
+token expires or is rejected, Profiili prompts you to **Yhdistä Eufy Life uudelleen**.
 Reconnecting the same profile preserves the original history boundary to recover
 missed readings. Disconnecting removes the token and stops imports; existing
 weight readings remain.
@@ -474,8 +483,8 @@ Select **BMI** from **Kisanäkymä**, or open **<http://localhost:7500/?mode=bmi
 Paino is the first/default mode (`?mode=classic`) and uses live data. Available
 modes are Paino, BMI, Hauis, Verenpaine, DOTS and Ihmisarvo, in that order. Automatic
 switching cycles through these six modes; Ihmisarvo remains the last, highlighted
-button. Mode selection is preserved when visiting settings and returning.
-Add your height in centimetres under **Asetukset → Kisaprofiili**, then save.
+button. Mode selection is preserved when visiting profile or admin and returning.
+Add your height in centimetres under **Profiili → Kisaprofiili**, then save.
 Height accepts 50–300 cm with one decimal place; leave it blank and save to
 remove it.
 
@@ -551,7 +560,7 @@ daily. Calculations retain full precision; the display rounds to one decimal
 using a Finnish decimal comma.
 
 Administrators can choose the group's components under
-**Asetukset → Ihmisarvon mittarit**.
+**Ylläpito → Pisteasetukset → Ihmisarvon mittarit**.
 Select at least one of BMI, Hauis, Verenpaine and DOTS, then choose **Tallenna mittarit**.
 The selected components have equal weight: two components each contribute 50%.
 Only selected components require measurements; height is needed for BMI or biceps,
@@ -563,7 +572,7 @@ The selection persists in PostgreSQL and can only be changed by an enabled admin
 Expand **Näytä mittaukset** to see the formulas, enabled component indices, raw
 values and their measurement dates. Old component readings can be carried forward;
 their original dates remain visible. Ihmisarvo supports live and sample data, the
-read-only radiator, automatic mode switching and returning from Asetukset.
+read-only radiator, automatic mode switching and returning from profile or admin.
 Use **Lisää verenpainemittaus** in either Verenpaine or Ihmisarvo to record a
 reading. Adding or deleting readings recalculates the score, including history.
 
@@ -665,8 +674,8 @@ is pulled on each deploy. Use a commit SHA instead of `latest` when you want
 Coolify to deploy an exact image, for example `IMAGE_TAG=<commit-sha>`. If the
 GHCR package is private, configure Coolify registry credentials for `ghcr.io`.
 
-Signed-in users manage their Withings connection at `/settings`, accessible by
-clicking their name in the dashboard footer. The token-based bootstrap flow
+Signed-in users manage their Withings connection at `/profile`, accessible through
+**Profiili** in the top-right navigation. The token-based bootstrap flow
 remains available for compatibility and requires the optional `WITHINGS_CONNECT_TOKEN`,
 `WITHINGS_BOOTSTRAP_EMAIL`, and `WITHINGS_BOOTSTRAP_DISPLAY_NAME` settings.
 Connect the bootstrap account by opening:

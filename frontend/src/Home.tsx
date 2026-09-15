@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 
-import { adminApi } from './api/adminApi'
-import { authApi, useLogoutMutation } from './api/authApi'
-import { profileApi } from './api/profileApi'
-import { raceApi, useGetRaceQuery } from './api/raceApi'
-import { withingsApi } from './api/withingsApi'
+import { AccountNavigation } from './account/AccountNavigation'
+import { useGetRaceQuery } from './api/raceApi'
 import { useUser } from './hooks/useUser'
 import { prepareRace } from './race/prepareRace'
 import { RaceChart } from './race/RaceChart'
@@ -16,12 +12,8 @@ import { defaultScoreComponents } from './race/scoreSettings'
 
 export const Home = ({ radiator = false }: { radiator?: boolean }) => {
   const { user } = useUser()
-  const [logout, { isLoading }] = useLogoutMutation()
-  const [logoutError, setLogoutError] = useState(false)
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const [playing, setPlaying] = useState(true)
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
   const [params, setParams] = useSearchParams()
   const mode = parseRaceMode(params.get('mode'))
   useEffect(() => {
@@ -35,7 +27,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
     }, 10_000)
     return () => window.clearTimeout(timeout)
   }, [playing, mode, params, setParams])
-  const settingsUrl = `/settings?mode=${mode}`
+  const profileUrl = `/profile?mode=${mode}`
   const live = radiator || params.get('data') !== 'sample'
   const {
     data,
@@ -94,6 +86,7 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
 
   return (
     <main className={`dashboard${radiator ? ' dashboard--radiator' : ''}`}>
+      {!radiator && <AccountNavigation />}
       <header className="race-header">
         <div>
           <h1 className="wordmark">Race to 75</h1>
@@ -204,69 +197,37 @@ export const Home = ({ radiator = false }: { radiator?: boolean }) => {
       )}
       <div className="measurement-actions">
         {!radiator && live && view.some((person) => person.id === user?.id && person.needsSex) && (
-          <Link className="text-button" to={`${settingsUrl}#race-profile`}>
+          <Link className="text-button" to={`${profileUrl}#race-profile`}>
             Lisää sukupuoli profiiliin
           </Link>
         )}
         {!radiator && (mode === 'dots' || mode === 'score') && (
-          <Link className="text-button" to={`${settingsUrl}#sbd`}>
+          <Link className="text-button" to={`${profileUrl}#sbd`}>
             Lisää SBD-tulos
           </Link>
         )}
         {!radiator &&
           live &&
           view.some((person) => person.id === user?.id && person.needsHeight) && (
-            <Link className="text-button" to={settingsUrl}>
+            <Link className="text-button" to={profileUrl}>
               Lisää pituutesi
             </Link>
           )}
         {!radiator && (mode === 'biceps' || mode === 'score') && (
-          <Link className="text-button" to={`${settingsUrl}#biceps`}>
+          <Link className="text-button" to={`${profileUrl}#biceps`}>
             Lisää hauismittaus
           </Link>
         )}
         {!radiator && (mode === 'blood-pressure' || mode === 'score') && (
-          <Link className="text-button" to={`${settingsUrl}#blood-pressure`}>
+          <Link className="text-button" to={`${profileUrl}#blood-pressure`}>
             Lisää verenpainemittaus
           </Link>
         )}
       </div>
       <footer className={`dashboard-footer${radiator ? ' dashboard-footer--radiator' : ''}`}>
-        {!radiator && (
-          <p>
-            Kirjautuneena{' '}
-            <Link className="text-button" to={settingsUrl}>
-              {user?.display_name}
-            </Link>
-          </p>
-        )}
         {fullscreenButton}
-        {!radiator && (
-          <button
-            className="text-button"
-            type="button"
-            disabled={isLoading}
-            onClick={async () => {
-              setLogoutError(false)
-              try {
-                await logout().unwrap()
-                dispatch(authApi.util.resetApiState())
-                dispatch(profileApi.util.resetApiState())
-                dispatch(raceApi.util.resetApiState())
-                dispatch(withingsApi.util.resetApiState())
-                dispatch(adminApi.util.resetApiState())
-                navigate('/login')
-              } catch {
-                setLogoutError(true)
-              }
-            }}
-          >
-            {isLoading ? 'Kirjaudutaan ulos…' : 'Kirjaudu ulos'}
-          </button>
-        )}
       </footer>
       {fullscreenError && <p role="alert">{fullscreenError}</p>}
-      {logoutError && <p role="alert">Uloskirjautuminen epäonnistui. Yritä uudelleen.</p>}
     </main>
   )
 }

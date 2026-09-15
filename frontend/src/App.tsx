@@ -1,17 +1,24 @@
 import type { ReactElement } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router'
-
+import { Admin } from './Admin'
 import { useGetRaceQuery } from './api/raceApi'
 import { Enroll } from './auth/Enroll'
 import { Login } from './auth/Login'
 import { Home } from './Home'
 import { useUser } from './hooks/useUser'
+import { Profile } from './Profile'
 import { IpAccessIndicator } from './race/IpAccessIndicator'
-import { Settings } from './Settings'
 import { EufyReconnectNotice } from './settings/EufyReconnectNotice'
 
-const ProtectedRoute = ({ children }: { children: ReactElement }) => {
-  const { isAuthenticated, isLoading } = useUser()
+const ProtectedRoute = ({
+  children,
+  admin = false
+}: {
+  children: ReactElement
+  admin?: boolean
+}) => {
+  const { user, isAuthenticated, isLoading } = useUser()
+  const { search } = useLocation()
 
   if (isLoading) {
     return (
@@ -21,12 +28,18 @@ const ProtectedRoute = ({ children }: { children: ReactElement }) => {
     )
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  if (admin && user?.role !== 'admin') {
+    return <Navigate to={{ pathname: '/profile', search }} replace />
+  }
+  return children
 }
 
 const SettingsRedirect = () => {
   const { search, hash } = useLocation()
-  return <Navigate to={{ pathname: '/settings', search, hash }} replace />
+  return <Navigate to={{ pathname: '/profile', search, hash }} replace />
 }
 
 const RaceRoute = () => {
@@ -61,15 +74,22 @@ export const App = () => (
   <>
     <EufyReconnectNotice />
     <Routes>
-      <Route path="/admin" element={<SettingsRedirect />} />
-      <Route path="/profile" element={<SettingsRedirect />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute admin>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/settings" element={<SettingsRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/enroll" element={<Enroll />} />
       <Route
-        path="/settings"
+        path="/profile"
         element={
           <ProtectedRoute>
-            <Settings />
+            <Profile />
           </ProtectedRoute>
         }
       />

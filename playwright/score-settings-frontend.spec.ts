@@ -48,7 +48,7 @@ test('admin saves component choices and live score uses only the selected measur
       }
     })
   )
-  await page.goto('/settings?mode=score')
+  await page.goto('/admin?mode=score')
   const panel = page.getByRole('region', { name: 'Ihmisarvon mittarit' })
   await expect(panel.getByRole('alert')).toBeVisible()
   failLoad = false
@@ -93,7 +93,7 @@ test('members do not get score administration controls', async ({ page }) => {
   )
   await page.route('**/api/race', (route) => route.fulfill({ json: { participants: [] } }))
   await page.goto('/settings')
-  await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Oma profiili', exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Ihmisarvon mittarit' })).toHaveCount(0)
 })
 

@@ -256,11 +256,11 @@ test('admin UI invites a member who enrolls and gains management access after pr
 }) => {
   await signIn(context, await seed())
   await page.goto('/')
-  await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(1)
-  await page.getByRole('link', { name: 'Admin Test', exact: true }).click()
-  await expect(page).toHaveURL(`${baseURL}/settings?mode=classic`)
-  await expect(page.getByRole('heading', { name: 'Asetukset', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Withings', exact: true })).toBeVisible()
+  await expect(page.locator('.dashboard-footer').getByRole('link')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Ylläpito', exact: true }).click()
+  await expect(page).toHaveURL(`${baseURL}/admin?mode=classic`)
+  await expect(page.getByRole('heading', { name: 'Ylläpito', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Withings', exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })).toBeVisible()
   const email = `${prefix}-ui@example.com`
   const form = page.getByRole('form', { name: 'Kutsu käyttäjä' })
@@ -278,9 +278,9 @@ test('admin UI invites a member who enrolls and gains management access after pr
     await memberPage.goto(enrollmentUrl)
     await memberPage.getByRole('button', { name: 'Luo pääsyavain' }).click()
     await expect(memberPage.getByText('Kirjautuneena UI Invitee')).toBeVisible()
-    await expect(memberPage.getByRole('link', { name: 'Käyttäjähallinta' })).toHaveCount(0)
-    await memberPage.goto('/settings')
-    await expect(memberPage).toHaveURL(`${baseURL}/settings`)
+    await expect(memberPage.getByRole('link', { name: 'Ylläpito' })).toHaveCount(0)
+    await memberPage.goto('/admin')
+    await expect(memberPage).toHaveURL(`${baseURL}/profile`)
     await expect(
       memberPage.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })
     ).toHaveCount(0)
@@ -289,7 +289,7 @@ test('admin UI invites a member who enrolls and gains management access after pr
     page.on('dialog', (dialog) => dialog.accept())
     await card.getByRole('button', { name: 'Tee ylläpitäjäksi' }).click()
     await expect(card.getByText('Ylläpitäjä', { exact: true })).toBeVisible()
-    await memberPage.goto('/settings')
+    await memberPage.goto('/admin')
     await expect(
       memberPage.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })
     ).toBeVisible()
@@ -307,7 +307,7 @@ test('admin UI invites a member who enrolls and gains management access after pr
     await expect(card.getByText('Osallistuja', { exact: true })).toBeVisible()
     // Refetch from the open admin view: revoked data and invite controls must disappear.
     await memberPage.getByRole('button', { name: 'Päivitä käyttäjät' }).click()
-    await expect(memberPage).toHaveURL(`${baseURL}/settings`)
+    await expect(memberPage).toHaveURL(`${baseURL}/profile`)
     await expect(
       memberPage.getByRole('heading', { name: 'Käyttäjähallinta', exact: true })
     ).toHaveCount(0)
