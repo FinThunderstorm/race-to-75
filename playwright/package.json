@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "@fastify/static": "10.1.5",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
     "fastify": "5.12.5",
     "postgres": "3.4.9"
   }
