@@ -2,7 +2,11 @@
   "name": "race-to-75",
   "version": "0.0.1",
   "private": true,
-  "workspaces": ["backend", "frontend", "playwright"],
+  "workspaces": [
+    "backend",
+    "frontend",
+    "playwright"
+  ],
   "scripts": {
     "test:local": "npm test -w playwright -- config.spec.ts radiator-api.spec.ts eufy-client.spec.ts with-local-env.spec.ts",
     "test": "npm test -w playwright",
@@ -18,6 +22,11 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "knip": "6.38.0",
-    "markdownlint-cli2": "0.23.3"
+    "markdownlint-cli2": "^0.24.0"
+  },
+  "dependencies": {
+    "fastify": "5.12.7",
+    "vite": "8.3.5",
+    "zod": "4.6.7"
   }
 }
