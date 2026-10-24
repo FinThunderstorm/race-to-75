@@ -74,7 +74,9 @@ test('IP visitor gets live data without account links and the chart fills and re
   await page.route('**/api/radiator', (route) => route.fulfill({ json: race }))
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/')
-  await expect(page.getByRole('button', { name: /Office Racer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Office Racer', { exact: true }) })
+  ).toBeVisible()
   await expect(page.locator('.dashboard-footer')).toHaveText('Koko näyttö')
   await expect(page.getByRole('link', { name: 'Profiili' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Kirjaudu ulos' })).toHaveCount(0)
@@ -91,7 +93,9 @@ test('IP visitor gets live data without account links and the chart fills and re
     .poll(async () => (await chart.boundingBox())!.height)
     .toBeCloseTo(before.height + 360, 0)
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.getByRole('button', { name: /Office Racer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Office Racer', { exact: true }) })
+  ).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 })
 
@@ -162,7 +166,9 @@ test('radiator standings stay aligned to the graph when other participants have 
   const standings = (await page.locator('.race-standings').boundingBox())!
   expect(standings.height).toBeCloseTo(chart.height, 0)
   expect(standings.y).toBeCloseTo(chart.y, 0)
-  await expect(page.getByRole('button', { name: /Waiting Racer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Waiting Racer', { exact: true }) })
+  ).toBeVisible()
 })
 
 test('denied IP redirects to login even when an override query parameter is supplied', async ({
@@ -227,7 +233,9 @@ test('radiator polls live data and removes the graph when IP access is revoked',
   await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
   participantName = 'Updated Racer'
   await page.clock.fastForward(30_100)
-  await expect(page.getByRole('button', { name: /Updated Racer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Updated Racer', { exact: true }) })
+  ).toBeVisible()
   allowed = false
   await page.clock.fastForward(30_100)
   await expect(page).toHaveURL(/\/login$/)

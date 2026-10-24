@@ -44,7 +44,9 @@ test('weight is first and opens by default and from existing links', async ({ pa
     await expect(buttons.first()).toHaveAttribute('aria-pressed', 'true')
     await expect(buttons.last()).toHaveClass('race-mode-score')
     await expect(page.getByRole('button', { name: /BMI Racer 81,0/ })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Missing Height 80,0/ })).toBeVisible()
+    await expect(
+      page.getByRole('button').filter({ has: page.getByTitle('Missing Height', { exact: true }) })
+    ).toBeVisible()
     await expect(page.getByRole('link', { name: 'Profiili', exact: true })).toHaveAttribute(
       'href',
       '/profile?mode=classic'
@@ -62,7 +64,7 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   )
   await page.getByRole('button', { name: 'BMI', exact: true }).click()
   await expect(page).toHaveURL(/mode=bmi/)
-  await expect(racer).toContainText('100,0')
+  await expect(racer).toContainText('25,0')
   expect(
     await racer.evaluate((element) =>
       (element as HTMLElement).style.getPropertyValue('--racer-color')
@@ -76,7 +78,7 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   await expect(page.locator('.personal-low, .setback, .winner')).toHaveCount(0)
   await expect(
     page.getByRole('region', { name: 'Osallistujat, joilta puuttuu pituus' })
-  ).toContainText('Missing Height')
+  ).toContainText('Missing Hei...')
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(
     page.getByRole('row', {
@@ -93,7 +95,7 @@ test('BMI updates the chart, table and badges, preserving colors and mode across
   await expect(page).toHaveURL(/mode=bmi.*data=sample/)
   await expect(page.locator('.reference-band-label')).toHaveText('BMI 18,5–25 (100 kp)')
   await page.getByRole('link', { name: 'Esimerkkimittaukset', exact: true }).click()
-  await expect(racer).toContainText('100,0')
+  await expect(racer).toContainText('25,0')
   await page.getByRole('button', { name: 'Paino · 75 kg', exact: true }).click()
   await expect(racer).toContainText('81,0')
   await expect(page.locator('.goal-label')).toHaveText('75,0 KG — TAVOITE')

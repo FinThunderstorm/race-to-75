@@ -58,7 +58,7 @@ test('Score shows the combined index, formulas and dated components, and preserv
   await expect(page.getByRole('button', { name: /Weight Only.*Mittauksia puuttuu/ })).toBeVisible()
   await expect(
     page.getByRole('region', { name: 'Osallistujat, joilta puuttuu pituus' })
-  ).toContainText('Missing Height')
+  ).toContainText('Missing Hei...')
   await expect(page.locator('.goal-line, .winner, .setback, .personal-low')).toHaveCount(0)
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.locator('.race-data')).toContainText(

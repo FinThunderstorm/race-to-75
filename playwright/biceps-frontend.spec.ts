@@ -47,8 +47,9 @@ test('profile height and a biceps measurement persist, update the chart, and can
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=biceps$/)
   await expect(
-    page.getByRole('button', { name: new RegExp(`${user.displayName}.*36,5.*20,3 kp`) })
-  ).toBeVisible()
+    page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+  ).toContainText('36,5')
+  await expect(page.locator('.chart-series circle title')).toContainText('36,5 cm (20,3 kp)')
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.getByRole('table')).toContainText('senttimetreinä')
   await page.getByRole('link', { name: 'Lisää hauismittaus' }).click()
@@ -59,8 +60,9 @@ test('profile height and a biceps measurement persist, update the chart, and can
   await expect(profile.getByLabel('Pituus (cm)')).toHaveValue('190')
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(
-    page.getByRole('button', { name: new RegExp(`${user.displayName}.*36,5.*19,2 kp`) })
-  ).toBeVisible()
+    page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+  ).toContainText('36,5')
+  await expect(page.locator('.chart-series circle title')).toContainText('36,5 cm (19,2 kp)')
 
   await page.getByRole('link', { name: 'Lisää hauismittaus' }).click()
   await profile.getByLabel('Pituus (cm)').fill('')

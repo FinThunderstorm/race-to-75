@@ -106,12 +106,17 @@ test('live data retains the preview chart size and character when participants h
   await expectUndistortedChart(page)
   const preview = await page.locator('.race-chart').boundingBox()
   await page.getByRole('link', { name: 'Esimerkkimittaukset' }).click()
-  await expect(page.getByRole('button', { name: /Recent Racer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Recent Racer', { exact: true }) })
+  ).toBeVisible()
   await expect(page.locator('.race-art img')).toBeVisible()
   const live = await page.locator('.race-chart').boundingBox()
   expect(live).toEqual(preview)
   await expectUndistortedChart(page)
-  const recent = await page.getByRole('button', { name: /Recent Racer/ }).boundingBox()
+  const recent = await page
+    .getByRole('button')
+    .filter({ has: page.getByTitle('Recent Racer', { exact: true }) })
+    .boundingBox()
   expect(recent!.x).toBeGreaterThanOrEqual(live!.x + live!.width - 1)
   const absent = page.getByRole('region', { name: 'Osallistujat, joilta puuttuu mittauksia' })
   await expect(
@@ -127,7 +132,9 @@ test('live data retains the preview chart size and character when participants h
   ]) {
     await page.setViewportSize(viewport)
     await expectUndistortedChart(page)
-    await expect(page.getByRole('button', { name: /Recent Racer/ })).toBeVisible()
+    await expect(
+      page.getByRole('button').filter({ has: page.getByTitle('Recent Racer', { exact: true }) })
+    ).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
 })

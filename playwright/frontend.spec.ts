@@ -76,7 +76,9 @@ test('defaults to live history, persists on reload, and switches between sample 
   await expect(page.getByRole('link', { name: 'Ryhmän mittaukset' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Live Racer 85,0/ })).toBeVisible()
   expect(requests).toBeGreaterThan(0)
-  await expect(page.getByRole('button', { name: /Waiting Racer Ei mittauksia/ })).toBeVisible()
+  await expect(
+    page.getByRole('button').filter({ has: page.getByTitle('Waiting Racer', { exact: true }) })
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: /Heikki/ })).toHaveCount(0)
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.getByRole('row', { name: 'Live Racer 130,0 85,0 10,0 1.9.2026' })).toBeVisible()

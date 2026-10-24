@@ -43,8 +43,8 @@ test('admin score choices survive retries and reloads, then control the real rac
     await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
     await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
     await expect(
-      page.getByRole('button', { name: new RegExp(`${user.displayName}.*100,0`) })
-    ).toBeVisible()
+      page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+    ).toContainText('100,0')
     await page.getByText('Näytä mittaukset', { exact: true }).click()
     await expect(page.locator('.race-data')).toContainText('Ihmisarvo = (verenpaineindeksi) / 1')
     await expect(
@@ -60,8 +60,8 @@ test('admin score choices survive retries and reloads, then control the real rac
     await page.goto('/?mode=score')
     expect((await radiator).status()).toBe(200)
     await expect(
-      page.getByRole('button', { name: new RegExp(`${user.displayName}.*100,0`) })
-    ).toBeVisible()
+      page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+    ).toContainText('100,0')
     await expect(page.getByRole('link', { name: 'Lisää verenpainemittaus' })).toHaveCount(0)
   } finally {
     await application.sql`UPDATE score_settings SET components = ${application.sql.array(original.components)}`

@@ -39,8 +39,8 @@ test('blood pressure validates the pair, persists to its two chart series, and r
   await page.getByRole('link', { name: 'Takaisin kisaan' }).click()
   await expect(page).toHaveURL(/mode=blood-pressure$/)
   await expect(
-    page.getByRole('button', { name: new RegExp(`${user.displayName}.*125,0.*82,0`) })
-  ).toBeVisible()
+    page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+  ).toContainText('125,0 / 82,0')
   await expect(page.locator('.diastolic-series')).toHaveCount(1)
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.getByRole('table')).toContainText('mmHg')

@@ -62,8 +62,8 @@ test('profile sex unlocks SBD, dated weight prefill preserves overrides, and a r
   await expect(page).toHaveURL(/mode=dots/)
   await page.getByRole('button', { name: 'Keskeytä näkymien automaattinen vaihto' }).click()
   await expect(
-    page.getByRole('button', { name: new RegExp(`${user.displayName}.*471,1`) })
-  ).toBeVisible()
+    page.getByRole('button').filter({ has: page.getByTitle(user.displayName, { exact: true }) })
+  ).toContainText('471,1')
   await page.getByText('Näytä mittaukset', { exact: true }).click()
   await expect(page.getByRole('table', { name: 'DOTS-tasorajat' })).toContainText('325')
   await page.getByRole('link', { name: 'Lisää SBD-tulos' }).click()
