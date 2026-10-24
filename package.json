@@ -2,11 +2,7 @@
   "name": "race-to-75",
   "version": "0.0.1",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend",
-    "playwright"
-  ],
+  "workspaces": ["backend", "frontend", "playwright"],
   "scripts": {
     "test:local": "npm test -w playwright -- config.spec.ts radiator-api.spec.ts eufy-client.spec.ts with-local-env.spec.ts",
     "test": "npm test -w playwright",
