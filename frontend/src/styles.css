@@ -239,11 +239,6 @@ p {
   color: var(--secondary);
   line-height: 1.8;
 }
-.race--live .participant-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 40%;
-}
 .race--stacked .race-standings,
 .unplotted-list {
   position: static;
@@ -267,8 +262,7 @@ p {
 .unplotted-list .participant-name {
   flex: 1 1 calc(100% - 26px);
   max-width: none;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .race-unplotted {
   margin: 24px 0 12px 4%;
@@ -286,10 +280,12 @@ p {
 }
 .race {
   position: relative;
+  isolation: isolate;
   margin-top: 32px;
 }
 .race-chart {
   position: relative;
+  z-index: 1;
   width: 61%;
   height: clamp(460px, calc(100svh - 295px), 730px);
 }
@@ -382,6 +378,7 @@ p {
 }
 .race-standings {
   position: absolute;
+  z-index: 2;
   inset: 0 0 auto 61%;
   height: clamp(460px, calc(100svh - 295px), 730px);
 }
@@ -393,12 +390,13 @@ p {
   top: var(--row-position);
   transform: translateY(-50%);
   width: fit-content;
+  justify-self: start;
   max-width: 100%;
   min-height: 42px;
   padding: 5px 6px;
   text-align: left;
   border: 0;
-  background: #080511;
+  background: #080511cc;
   color: #eeeaf8;
   white-space: nowrap;
 }
@@ -407,7 +405,7 @@ p {
 }
 .participant:hover,
 .participant[aria-pressed="true"] {
-  background: linear-gradient(#ffffff06, #ffffff06), #080511;
+  background: linear-gradient(#ffffff06, #ffffff06), #080511dd;
 }
 .participant-dot {
   flex: 0 0 10px;
@@ -417,6 +415,9 @@ p {
   box-shadow: 0 0 10px var(--racer-color);
 }
 .participant-name {
+  min-width: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
   font-size: clamp(17px, 1.65vw, 26px);
   font-weight: 700;
   letter-spacing: 0.035em;
@@ -448,6 +449,23 @@ p {
   white-space: nowrap;
 }
 @media (min-width: 901px) {
+  .race:not(.race--stacked) .participant {
+    min-height: 26px;
+    padding: 3px 6px;
+    gap: 7px;
+    flex-wrap: nowrap;
+  }
+  .race:not(.race--stacked) .participant-name {
+    font-size: clamp(13px, 1.1vw, 17px);
+    letter-spacing: 0.02em;
+  }
+  .race:not(.race--stacked) .participant-weight {
+    flex-shrink: 0;
+    font-size: clamp(13px, 1.05vw, 16px);
+  }
+  .race:not(.race--stacked) .participant-weight ~ :is(.remaining, .race-badge) {
+    display: none;
+  }
   .race--component:not(.race--stacked) :is(.race-chart, .race-standings) {
     min-height: var(--component-chart-min-height, 200px);
   }
@@ -477,6 +495,7 @@ p {
 }
 .race-art {
   position: absolute;
+  z-index: 0;
   right: 1%;
   top: -145px;
   pointer-events: none;
@@ -846,11 +865,6 @@ th:first-child {
   }
 }
 
-@media (min-width: 1700px) {
-  .dashboard {
-    padding-inline: max(3%, calc((100vw - 1700px) / 2));
-  }
-}
 @media (max-width: 1250px) {
   .participant {
     gap: 7px;
@@ -877,8 +891,7 @@ th:first-child {
   .race--live .participant-name {
     flex: 1 1 calc(100% - 26px);
     max-width: none;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
   .label-connector {
     display: none;

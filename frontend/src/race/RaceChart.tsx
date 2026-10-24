@@ -11,7 +11,6 @@ import {
   type RaceMode,
   type RaceViewParticipant,
   raceBands,
-  raceCitizenPoints,
   raceModes,
   raceViewBounds
 } from './raceModes'
@@ -72,8 +71,8 @@ export const RaceChart = ({
   }
   const chartRef = useRef<HTMLDivElement>(null)
   const standingsRef = useRef<HTMLDivElement>(null)
-  const [componentRowHeight, setComponentRowHeight] = useState(48)
-  const rowSpacing = component ? componentRowHeight : 48
+  const [componentRowHeight, setComponentRowHeight] = useState(34)
+  const rowSpacing = component ? componentRowHeight : 34
   const [size, setSize] = useState({ width: 840, height: 640 })
   const hasReadings = participants.some((person) => person.points.length > 0)
 
@@ -107,7 +106,7 @@ export const RaceChart = ({
     const rows = [...standingsRef.current.querySelectorAll<HTMLElement>('.participant')]
     const update = () => {
       const spacing = Math.max(
-        48,
+        34,
         ...rows.map((row) => Math.ceil(row.getBoundingClientRect().height) + 8)
       )
       setComponentRowHeight((previous) => (previous === spacing ? previous : spacing))
@@ -173,7 +172,7 @@ export const RaceChart = ({
   const stacked =
     (classic || bmi ? classicParticipants : participants).filter(
       (person) => person.points.length > 0
-    ).length > 10
+    ).length > 12
   const targetCoordinates = useMemo(() => {
     const y = (value: number) => ((bounds.top - value) / (bounds.top - bounds.bottom)) * plotHeight
     const coordinates: Record<string, number> = goal === null ? {} : { goal: y(goal) }
@@ -208,16 +207,18 @@ export const RaceChart = ({
     coordinate(`point:${person.id}:${date}`)
   const renderParticipant = (person: RaceViewParticipant, placeholder = false) => {
     const current = person.latest?.value
-    const points =
+    const details =
       current === undefined
-        ? null
-        : raceCitizenPoints(
-            mode,
-            current,
-            person.heightCm,
-            person.diastolic?.latest?.value,
-            person.sex
-          )
+        ? undefined
+        : [
+            mode === 'dots' && hasDotsSex(person.sex) ? dotsLevel(current, person.sex) : '',
+            `Muutos ${formatChange(person.change)}${bloodPressure && person.diastolic ? ` / ${formatChange(person.diastolic.change)}` : ''} ${unit}`,
+            classic ? `${formatNumber(Math.max(0, current - (goal ?? 0)))} kg jäljellä` : '',
+            classic && person.streak >= 7 ? `Tavoite · ${person.streak} päivää` : '',
+            person.personalLow && person.streak < 7 ? 'Uusi alin paino' : ''
+          ]
+            .filter(Boolean)
+            .join(' · ')
     const style = {
       '--racer-color': person.color,
       '--row-position': `${((coordinate(`label:${person.id}`) ?? 0) / size.height) * 100}%`
@@ -231,10 +232,16 @@ export const RaceChart = ({
         tabIndex={placeholder ? -1 : undefined}
         style={style}
         aria-pressed={selected === person.id}
+        title={details}
+        aria-description={details}
         onClick={() => setSelected(selected === person.id ? null : person.id)}
       >
         <span className="participant-dot" />
-        <span className="participant-name">{person.name}</span>
+        <span className="participant-name" title={person.name}>
+          {Array.from(person.name).length > 11
+            ? `${Array.from(person.name).slice(0, 11).join('')}...`
+            : person.name}
+        </span>
         {current === undefined ? (
           <span className="remaining">
             {person.needsHeight
@@ -257,9 +264,6 @@ export const RaceChart = ({
                 ? ` / ${formatNumber(person.diastolic.latest.value)}`
                 : ''}
               <small title={unitLabel}>{unit}</small>
-              {points !== null && (
-                <span className="participant-points"> ({formatNumber(points)} kp)</span>
-              )}
             </span>
             {!classic ? (
               <span className="remaining">
