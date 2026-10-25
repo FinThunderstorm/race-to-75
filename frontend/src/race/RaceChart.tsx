@@ -124,31 +124,20 @@ export const RaceChart = ({
   const today = new Date().toISOString().slice(0, 10)
   const bounds = useMemo(() => raceViewBounds(participants, mode), [participants, mode, today])
   const y = (weight: number) => ((bounds.top - weight) / (bounds.top - bounds.bottom)) * plotHeight
-  // Each rolling month gets a quarter of the plot, with the final month shortened
-  // at Monday to give this week its own quarter. Keep dates proportional within slices.
-  const windowEnd = new Date(bounds.end)
-  const sections = [
-    bounds.start,
-    ...[-2, -1].map((offset) => {
-      const year = windowEnd.getUTCFullYear()
-      const month = windowEnd.getUTCMonth() + offset
-      const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-      return Date.UTC(year, month, Math.min(windowEnd.getUTCDate(), lastDay))
-    }),
-    bounds.currentWeek,
-    bounds.currentWeek + 6 * 24 * 60 * 60 * 1000
-  ]
   const sliceWidth = (right - left) / 4
   const x = (date: string) => {
     const timestamp = Math.max(bounds.start, Math.min(Date.parse(date), bounds.end))
-    let section = 0
-    while (section < 3 && timestamp >= sections[section + 1]) {
-      section += 1
+    if (timestamp < bounds.currentWeek) {
+      return (
+        left + ((timestamp - bounds.start) / (bounds.currentWeek - bounds.start)) * sliceWidth * 3
+      )
     }
-    const duration = sections[section + 1] - sections[section]
-    // Keep this week's weekdays fixed from Monday at the left to Sunday at the right.
-    const progress = duration > 0 ? (timestamp - sections[section]) / duration : 0
-    return left + (section + progress) * sliceWidth
+    // Keep Monday at the start of the last quarter and Sunday at its end.
+    return (
+      left +
+      sliceWidth * 3 +
+      ((timestamp - bounds.currentWeek) / (6 * 24 * 60 * 60 * 1000)) * sliceWidth
+    )
   }
   const withReadings = participants.filter((person) => person.points.length > 0)
   const withoutReadings = participants.filter(
@@ -322,8 +311,8 @@ export const RaceChart = ({
           >
             <title id="chart-title">{title}</title>
             <desc id="chart-description">
-              {live ? 'Ryhmän mittaukset' : 'Esimerkkimittaukset'}: {metric} viimeisen kolmen
-              kuukauden ajalta.{' '}
+              {live ? 'Ryhmän mittaukset' : 'Esimerkkimittaukset'}: {metric} edellisten 12 täyden
+              viikon ja kuluvan viikon ajalta.{' '}
               {bloodPressure
                 ? 'Yläpaine näkyy yhtenäisenä viivana ja alapaine katkoviivana, molemmat mmHg-yksikössä. Päättyneiltä viikoilta näytetään kaikkien mittausten keskiarvot ja kuluvalta viikolta päiväkeskiarvot.'
                 : mode === 'score'
@@ -338,11 +327,10 @@ export const RaceChart = ({
                 'Viivojen sijainti perustuu mittausarvoihin. Suluissa näkyvät mittarista lasketut kansalaispisteet. '}
               Viikko alkaa maanantaina UTC-ajassa. Aikaväliä edeltävä viimeinen tunnettu arvo
               näytetään vasemmassa reunassa. Jos uudempia mittauksia ei ole, viiva jatkuu
-              vaakasuorana. Kolme kuukausijaksoa ja kuluva viikko vievät kukin neljänneksen
-              kuvaajasta. Yhtenäiset pystyviivat erottavat jaksot, ja syaani katkoviiva aloittaa
-              kuluvan viikon. Päivämäärät sijoittuvat suhteellisesti kunkin jakson sisällä. Alku- ja
-              nykyarvot näkyvät alla olevassa taulukossa. Korosta historiaa valitsemalla
-              osallistuja.
+              vaakasuorana. Edelliset 12 täyttä viikkoa vievät kolme neljännestä kuvaajasta, ja
+              kuluva viikko viimeisen neljänneksen. Yhtenäiset pystyviivat merkitsevät kuukausien
+              alkuja, ja syaani katkoviiva aloittaa kuluvan viikon. Alku- ja nykyarvot näkyvät alla
+              olevassa taulukossa. Korosta historiaa valitsemalla osallistuja.
             </desc>
             <defs>
               <clipPath id="chart-weight-range">
@@ -354,7 +342,7 @@ export const RaceChart = ({
             </defs>
             <ReferenceBands bands={raceBands[mode]} left={left} right={right} y={y} unit={unit} />
             {bounds.weeks
-              .filter((week) => week !== bounds.currentWeek && !sections.includes(week))
+              .filter((week) => week !== bounds.currentWeek && !bounds.months.includes(week))
               .map((week) => (
                 <line
                   key={week}
@@ -374,17 +362,12 @@ export const RaceChart = ({
               </g>
             ))}
             <path className="chart-axis" d={`M${left} 0 V${plotHeight} H${right}`} />
-            {sections.slice(0, 3).map((month) => {
+            {bounds.months.map((month) => {
               const monthX = x(new Date(month).toISOString())
               return (
                 <g key={month}>
                   <line className="month-line" x1={monthX} x2={monthX} y1="0" y2={plotHeight} />
-                  <text
-                    className="month-label"
-                    x={monthX + sliceWidth / 2}
-                    y="-10"
-                    textAnchor="middle"
-                  >
+                  <text className="month-label" x={monthX + 6} y="-10" textAnchor="start">
                     {new Date(month)
                       .toLocaleDateString('fi-FI', { month: 'short', timeZone: 'UTC' })
                       .toUpperCase()}
@@ -575,7 +558,7 @@ export const RaceChart = ({
               ? 'Tulosten näyttämiseen tarvitaan pituus.'
               : 'Lisää pituus asetuksissa, jotta tulokset voidaan näyttää.'
             : participants.some((person) => person.latest)
-              ? 'Ei mittauksia viimeisen kolmen kuukauden ajalta.'
+              ? 'Ei mittauksia edellisten 12 viikon ja kuluvan viikon ajalta.'
               : mode === 'score'
                 ? `Ihmisarvon näyttämiseen tarvitaan valittujen mittarien tiedot: ${scoreComponents.map((key) => scoreComponentLabels[key]).join(', ')}.`
                 : mode === 'dots'
@@ -601,7 +584,7 @@ export const RaceChart = ({
           <p className="unplotted-heading">
             {mode === 'score'
               ? 'Ihmisarvoon tarvitaan mittaukset'
-              : 'Ei mittauksia viimeisen kolmen kuukauden ajalta'}
+              : 'Ei mittauksia edellisten 12 viikon ja kuluvan viikon ajalta'}
           </p>
           <div className="unplotted-list">
             {withoutReadings.map((person) => renderParticipant(person))}

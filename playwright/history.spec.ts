@@ -74,7 +74,7 @@ test('empty and single-reading participants do not invent changes or personal re
   const bounds = chartBounds(people, new Date('2026-09-10T12:00:00Z'))
   expect(bounds.top).toBe(148.5)
   expect(bounds.bottom).toBe(71.5)
-  expect(bounds.start).toBe(Date.parse('2026-06-10T00:00:00Z'))
+  expect(bounds.start).toBe(Date.parse('2026-06-15T00:00:00Z'))
   expect(bounds.end).toBe(Date.parse('2026-09-10T00:00:00Z'))
 })
 
@@ -106,16 +106,16 @@ test('completed weeks average all weighings while the current week averages each
   expect(person.change).toBe(-3)
 })
 
-test('the three-month window excludes older and future weighings and clips the first week', () => {
+test('the 12-week window includes full weeks and excludes future weighings', () => {
   const people = prepareRace(
     [
       {
         id: 'one',
         name: 'One',
         measurements: [
-          { measuredAt: '2026-06-09T23:59:59Z', weightKg: 200 },
-          { measuredAt: '2026-06-10T00:00:00Z', weightKg: 88 },
-          { measuredAt: '2026-06-14T23:59:59Z', weightKg: 92 },
+          { measuredAt: '2026-06-14T23:59:59Z', weightKg: 200 },
+          { measuredAt: '2026-06-15T00:00:00Z', weightKg: 88 },
+          { measuredAt: '2026-06-21T23:59:59Z', weightKg: 92 },
           { measuredAt: '2026-09-10T11:00:00Z', weightKg: 80 },
           { measuredAt: '2026-09-10T13:00:00Z', weightKg: 250 },
           { measuredAt: '2026-09-11T08:00:00Z', weightKg: 300 }
@@ -125,7 +125,7 @@ test('the three-month window excludes older and future weighings and clips the f
     new Date('2026-09-10T12:00:00Z')
   )
   expect(people[0].points).toEqual([
-    { date: '2026-06-10', weight: 90, period: 'week' },
+    { date: '2026-06-15', weight: 90, period: 'week' },
     { date: '2026-09-10', weight: 80, period: 'day' }
   ])
   expect(people[0].startWeight).toBe(200)
@@ -151,16 +151,18 @@ test('Sunday and Monday fall in different UTC weeks, including across a year bou
   ])
 })
 
-test('calendar-month boundaries clamp correctly and remain fixed for empty or stale histories', () => {
-  expect(chartWindow(new Date('2026-05-31T12:00:00Z')).start).toBe(
-    Date.parse('2026-02-28T00:00:00Z')
-  )
-  expect(chartWindow(new Date('2024-05-31T12:00:00Z')).start).toBe(
-    Date.parse('2024-02-29T00:00:00Z')
-  )
-  expect(chartWindow(new Date('2027-01-31T12:00:00Z')).start).toBe(
-    Date.parse('2026-10-31T00:00:00Z')
-  )
+test('the window starts 12 Mondays ago across month, leap-year and year boundaries', () => {
+  for (const [today, start] of [
+    ['2026-05-31', '2026-03-02'],
+    ['2024-05-31', '2024-03-04'],
+    ['2027-01-31', '2026-11-02'],
+    ['2026-10-25', '2026-07-27']
+  ]) {
+    const window = chartWindow(new Date(`${today}T12:00:00Z`))
+    expect(window.start).toBe(Date.parse(`${start}T00:00:00Z`))
+    expect(window.currentWeek - window.start).toBe(12 * 7 * 24 * 60 * 60 * 1000)
+    expect(window.weeks).toHaveLength(13)
+  }
   const now = new Date('2026-09-10T12:00:00Z')
   const [person] = prepareRace(
     [
@@ -175,7 +177,7 @@ test('calendar-month boundaries clamp correctly and remain fixed for empty or st
   expect(person.points).toEqual([{ date: '2020-01-01', weight: 150, period: 'day' }])
   expect(person.latest).toEqual({ date: '2020-01-01', weight: 150 })
   const bounds = chartBounds([person], now)
-  expect(bounds.start).toBe(Date.parse('2026-06-10T00:00:00Z'))
+  expect(bounds.start).toBe(Date.parse('2026-06-15T00:00:00Z'))
   expect(bounds.end).toBe(Date.parse('2026-09-10T00:00:00Z'))
   expect(bounds.top).toBeGreaterThan(150)
 })
@@ -220,11 +222,11 @@ test('a first-week bucket at the left boundary supersedes the preceding reading'
   const history = prepareMeasurementHistory(
     [
       { measuredAt: '2026-06-09', value: 90 },
-      { measuredAt: '2026-06-12', value: 38 }
+      { measuredAt: '2026-06-17', value: 38 }
     ],
     now
   )
-  expect(history.points).toEqual([{ date: '2026-06-10', value: 38, period: 'week' }])
+  expect(history.points).toEqual([{ date: '2026-06-15', value: 38, period: 'week' }])
   expect(prepareMeasurementHistory([], now).points).toEqual([])
   expect(prepareMeasurementHistory([{ measuredAt: '2026-09-11', value: 90 }], now).points).toEqual(
     []
@@ -251,7 +253,7 @@ test('old biceps and weight readings remain plottable with appropriate chart bou
     const bounds = raceViewBounds(view, mode, now)
     expect(bounds.bottom).toBeLessThan(view[0].points[0].value)
     expect(bounds.top).toBeGreaterThan(view[0].points[0].value)
-    expect(bounds.start).toBe(Date.parse('2026-06-10'))
+    expect(bounds.start).toBe(Date.parse('2026-06-15'))
   }
 })
 

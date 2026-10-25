@@ -65,8 +65,9 @@ pressures in mmHg and the measurement date (UTC, default today). Backdating and
 multiple readings per day are supported. Delete your own entries and add them
 again to correct mistakes. Saving or deleting refreshes the shared history.
 
-The three-month chart shows systolic pressure as a solid line and diastolic
-pressure as a dashed line in each participant's color. Completed weeks average
+The chart covers the previous 12 full weeks and current week. It shows systolic
+pressure as a solid line and diastolic pressure as a dashed line in each
+participant's color. Completed weeks average
 all readings; the current week uses daily averages. Latest values show both
 pressures and their measurement date in the readings table. Labels, tooltips and
 tables show the component citizen points in parentheses, e.g.
@@ -135,8 +136,9 @@ and Getting started for the current local workflow.
 ### Progress
 
 - Paino is the default view. BMI uses imported weight and saved height.
-- Each mode shows its current value and a three-month trend chart. Weight shows
-  kilograms remaining to 75 kg; other modes show the latest change.
+- Each mode shows its current value and a trend chart covering the previous 12
+  full weeks and current week. Weight shows kilograms remaining to 75 kg; other
+  modes show the latest change.
 - Completed weeks show averages; the current week shows daily values.
 - Metric values include citizen points in parentheses. BMI and blood pressure
   show faint reference bands, and charts add proportional padding at both ends.

@@ -46,10 +46,8 @@ export function chartWindow(now = new Date()) {
   const month = now.getUTCMonth()
   const day = now.getUTCDate()
   const end = Date.UTC(year, month, day)
-  // Clamp the day when the month three months ago is shorter (e.g. May 31 → Feb 28).
-  const lastDay = new Date(Date.UTC(year, month - 2, 0)).getUTCDate()
-  const start = Date.UTC(year, month - 3, Math.min(day, lastDay))
   const currentWeek = weekStart(end)
+  const start = currentWeek - 12 * 7 * dayMs
   const weeks = []
   for (let week = weekStart(start); week <= end; week += 7 * dayMs) {
     if (week >= start) {

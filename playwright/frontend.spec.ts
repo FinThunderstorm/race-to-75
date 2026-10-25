@@ -7,7 +7,7 @@ const previewUser = {
   role: 'member'
 }
 
-test('live chart plots weekly averages and current-week daily averages over three months', async ({
+test('live chart plots weekly averages and current-week daily averages over 12 full weeks and the current week', async ({
   page
 }) => {
   await page.clock.install({ time: new Date('2026-09-10T12:00:00Z') })
