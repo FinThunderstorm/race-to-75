@@ -9,6 +9,6 @@
     "@fastify/static": "10.1.8",
     "@playwright/test": "1.64.1",
     "fastify": "5.12.8",
-    "postgres": "3.4.9"
+    "postgres": "4.0.0"
   }
 }
